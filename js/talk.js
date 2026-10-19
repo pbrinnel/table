@@ -13,6 +13,10 @@ const TALK_MAD_TIME = 5;         // seconds the MAD line stays once fully typed
 const TALK_BACKUP_TIME = 2;      // seconds the backup line stays once fully typed
 const TALK_LOST_TIME = 4;        // seconds "All is lost..." stays once fully typed
 const TALK_FADE_TIME = 0.3;      // seconds to fade out after that
+// How solid the box's paper is: just short of 1, so the bottom of the table
+// shows faintly through it while the words stay easy to read. The portrait and
+// the words are always solid.
+const TALK_BOX_ALPHA = 0.85;
 
 // Layout, in frame units
 const TALK_BOX_W = 760;
@@ -96,6 +100,9 @@ function portraitFor(face) {
 function drawPortrait(c, face, x, y, side) {
     const k = side / PORTRAIT_SIZE;
     c.save();
+    // the box behind is see-through; the portrait isn't
+    c.fillStyle = PAPER;
+    c.fillRect(x, y, side, side);
     c.translate(x, y);
     c.scale(k, k);
     c.beginPath();
@@ -179,10 +186,12 @@ function drawTalk(c, dt) {
     const w = Math.min(TALK_BOX_W, view.w - 2 * TALK_MARGIN);
     const x = (view.w - w) / 2;
     const y = view.h - TALK_MARGIN - TALK_BOX_H;
-    c.globalAlpha = TALK_FADE_TIME > 0 ? 1 - talk.fade / TALK_FADE_TIME : 1;
+    const shown = TALK_FADE_TIME > 0 ? 1 - talk.fade / TALK_FADE_TIME : 1;
 
+    c.globalAlpha = shown * TALK_BOX_ALPHA;
     c.fillStyle = PAPER;
     c.fillRect(x, y, w, TALK_BOX_H);
+    c.globalAlpha = shown;
     c.lineWidth = LINE_WIDTH;
     c.strokeStyle = INK;
     c.lineJoin = 'miter';

@@ -1,7 +1,10 @@
 // The little guys. The first runs around grabbing things and hauling them back
-// to where they started, fast, with no care for what's in the way. His grip is a
+// to where they started, fast. On foot he steers around whatever's in his way
+// and goes easy on it when he has to squeeze past; once he has hold of
+// something, what he hauls shoves aside whatever's in its way. His grip is a
 // capped spring like the player's, so heavy things still drag on him. Anything
-// that hits him hard enough knocks him flat for a while. Every time an object
+// that hits him hard enough knocks him flat for a while. With nothing to do, a
+// guy wanders, spreading out from the other idle guys. Every time an object
 // goes over the edge (and something is still left), he calls for backup and one
 // more guy climbs up where it fell, for the rest of the run. They share the
 // work: each takes a different job. When the last thing goes over the edge,
@@ -37,6 +40,32 @@ const GUY_LOOK_TIME = 1.3;       // seconds looking at each empty spot
 const GUY_BRINK_TIME = 2.8;      // seconds at the edge before he steps off
 const GUY_SAD_LOOKS = 3;         // how many empty spots he looks at
 
+// Wandering: with no job, a guy ambles to a spot picked to be far from the other
+// idle guys, and eases off any who come close, so they spread out evenly.
+const GUY_WANDER_PACE = 0.5;     // fraction of GUY_WALK_SPEED; an amble, not a run
+const GUY_ROAM_TIME = 6;         // seconds on one wander spot before he picks another
+const GUY_SPREAD_MM = 300;       // idle guys closer than this push each other apart
+const GUY_SPREAD = 0.25;         // m/s of push at touching, fading to nothing at GUY_SPREAD_MM
+const GUY_ROAM_PICKS = 6;        // random spots he weighs when choosing the next
+// Steering: on foot, not hauling, he looks ahead and bends his path around
+// whatever is there, rather than shoving it.
+const GUY_STEER_DIRS = 16;       // directions he considers
+const GUY_LOOK_MM = 150;         // how far ahead he looks
+// Rays cast side by side per direction, across his body plus GUY_CLEAR_MM each
+// side. Close enough together that a knife can't slip between two.
+const GUY_STEER_RAYS = 5;
+const GUY_CLEAR_MM = 10;         // elbow room beside his body that must be clear too
+const GUY_STEER_STICK = 0.15;    // how much he favors keeping last step's heading, so he doesn't dither
+const GUY_SQUEEZE_PACE = 0.25;   // his pace while brushing past something, and the slowest he steers, as a fraction of the pace he wanted
+// Touching something that isn't his job, his push drops to this: less than the
+// force a dinner plate needs to slide (about 2 N), so squeezing past can't shove it.
+const GUY_SQUEEZE_FORCE = 1;     // newtons
+// Hauling with care: when what he's dragging is about to bump something, or is
+// touching it, he slows to this fraction of GUY_CARRY_SPEED and keeps his pull
+// point close behind it, so it nudges what's in the way rather than launching it.
+const GUY_HAUL_CARE = 0.2;
+const GUY_HAUL_LEAD_MM = 15;     // furthest his pull point runs ahead of his hands while careful
+
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
 const GUY_STRIDE_MM = 22;        // how far one step of his feet carries him
@@ -58,6 +87,7 @@ const GUY_KIND = {
     get mass() { return GUY_MASS; },
     bullet: true,
     fixedRotation: true,
+    slick: true,
     pieces: [{ circle: GUY_R_MM }],
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
@@ -78,7 +108,6 @@ function addGuy(xMm, yMm) {
     const thing = addThing(GUY_KIND, xMm, yMm, 0);
     const g = {
         thing,
-        rest: Vec2(xMm / 1000, yMm / 1000),
         down: 0,          // seconds left on the floor; 0 when he's up
         floored: false,   // just knocked down, still to work out which way he fell
         flatAngle: 0,
@@ -95,6 +124,9 @@ function addGuy(xMm, yMm) {
         clock: 0,
         leaving: null,    // once nothing is left: { phase, t, looks, brink, over }
         faceTo: null,     // an angle to face slowly instead of where he's going
+        roam: null,       // where he's wandering to, in meters, while idle
+        roamT: 0,         // seconds spent on that spot
+        steerDir: null,   // the direction he chose last step, so he doesn't dither
     };
     thing.guy = g;
     guys.push(g);
@@ -140,7 +172,7 @@ function isTidy(t, slack) {
 // Whatever the player has just picked up comes first: every guy goes straight
 // for it, and it turns into a tug of war. Otherwise, whatever is furthest from
 // home that no other guy is working on, so the work is shared. With nothing
-// free, he goes back to his rest spot.
+// free, he wanders.
 function pickJob(g) {
     for (const t of things) {
         if (!isGuy(t) && t.home && onTable(t) && isHeld(t.body)) return t;
@@ -212,6 +244,221 @@ function walkTo(at, to, top) {
     return Vec2.mul(d, Math.min(top, len * 4) / len);
 }
 
+// Walking on foot, not hauling: the same, bent around whatever is in the way.
+function walkAround(g, at, to, top) {
+    return steer(g, walkTo(at, to, top), Vec2.distance(at, to));
+}
+
+// Ray casts for steer(), kept here so the inner loop allocates nothing.
+const steerFrom = planck.Vec2(0, 0), steerTo = planck.Vec2(0, 0);
+let steerSelf = null, steerJob = null, steerHit = 1;
+const steerDirX = [], steerDirY = [];
+for (let i = 0; i < GUY_STEER_DIRS; i++) {
+    steerDirX.push(Math.cos(i / GUY_STEER_DIRS * Math.PI * 2));
+    steerDirY.push(Math.sin(i / GUY_STEER_DIRS * Math.PI * 2));
+}
+
+// Is what he's hauling about to bump into something (not a guy) along its way
+// home, or already touching it? Rays from its center and from near either side,
+// as far as it reaches plus GUY_LOOK_MM.
+let haulSelf = null, haulHit = false;
+function haulSees(fixture) {
+    const b = fixture.getBody();
+    if (b === haulSelf || guys.some(o => o.thing.body === b)) return -1;
+    haulHit = true;
+    return 0;
+}
+function haulBlocked(t, dx, dy) {
+    const b = t.body;
+    for (let e = b.getContactList(); e; e = e.next) {
+        if (e.contact.isTouching() && !guys.some(o => o.thing.body === e.other)) return true;
+    }
+    const p = b.getPosition();
+    const len = reachToward(t, Vec2(dx, dy)) + GUY_LOOK_MM / 1000;
+    const wide = Math.min(reachToward(t, Vec2(-dy, dx)), reachToward(t, Vec2(dy, -dx))) * 0.9;
+    haulSelf = b;
+    haulHit = false;
+    for (const k of [-1, 0, 1]) {
+        steerFrom.x = p.x - dy * wide * k;
+        steerFrom.y = p.y + dx * wide * k;
+        steerTo.x = steerFrom.x + dx * len;
+        steerTo.y = steerFrom.y + dy * len;
+        world.rayCast(steerFrom, steerTo, haulSees);
+        if (haulHit) return true;
+    }
+    return false;
+}
+
+// Is the point inside anything he'd steer around? A ray that starts inside a
+// shape never reports hitting it, so a ray from a shoulder already against the
+// tray's rim would see a clear run along it.
+let steerInside = false;
+function steerTouches(fixture) {
+    const b = fixture.getBody();
+    if (b === steerSelf || b === steerJob || !fixture.testPoint(steerFrom)) return true;
+    steerInside = true;
+    return false;
+}
+
+// Planck's rayCast callback: -1 skips a fixture, the fraction clips the ray to it.
+function steerSees(fixture, point, normal, fraction) {
+    const b = fixture.getBody();
+    if (b === steerSelf || b === steerJob) return -1;
+    if (fraction < steerHit) steerHit = fraction;
+    return fraction;
+}
+
+// How far, in meters (at most GUY_LOOK_MM), he can walk from `at` along the unit
+// direction (dx, dy) before reaching something or the table's edge. Parallel
+// rays side by side, from past one shoulder to past the other.
+function freeAlong(at, dx, dy) {
+    const r = GUY_R_MM / 1000, look = GUY_LOOK_MM / 1000, len = look + r;
+    const side = r + GUY_CLEAR_MM / 1000;
+    let hit = 1;
+    const half = (GUY_STEER_RAYS - 1) / 2;
+    for (let k = -half; k <= half; k++) {
+        const across = side * k / half;
+        steerFrom.x = at.x - dy * across;
+        steerFrom.y = at.y + dx * across;
+        steerTo.x = steerFrom.x + dx * len;
+        steerTo.y = steerFrom.y + dy * len;
+        steerInside = false;
+        world.queryAABB(planck.AABB(steerFrom, steerFrom), steerTouches);
+        if (steerInside) return 0;
+        steerHit = 1;
+        world.rayCast(steerFrom, steerTo, steerSees);
+        if (steerHit < hit) hit = steerHit;
+    }
+    const free = Math.min(look, Math.max(0, hit * len - r));
+    // the table's edge is a wall: how far is he still inside where he can stand?
+    const hw = TABLE_W_MM / 2000 - r, hh = TABLE_H_MM / 2000 - r;
+    const tx = dx > 1e-6 ? (hw - at.x) / dx : dx < -1e-6 ? (-hw - at.x) / dx : Infinity;
+    const ty = dy > 1e-6 ? (hh - at.y) / dy : dy < -1e-6 ? (-hh - at.y) / dy : Infinity;
+    return Math.min(free, Math.max(0, Math.min(tx, ty)));
+}
+
+// Close range, where the rays can miss a corner between them: is anything within
+// GUY_CLEAR_MM of his body, here or a little way along (dx, dy)? Points round a
+// ring, tested against whatever overlaps them.
+const NEAR_POINTS = 12;
+function crowded(at, dx, dy) {
+    const ring = (GUY_R_MM + GUY_CLEAR_MM) / 1000;
+    for (const ahead of [0, GUY_CLEAR_MM, GUY_CLEAR_MM * 2]) {
+        for (let i = 0; i < NEAR_POINTS; i++) {
+            const a = i / NEAR_POINTS * Math.PI * 2;
+            steerFrom.x = at.x + dx * ahead / 1000 + Math.cos(a) * ring;
+            steerFrom.y = at.y + dy * ahead / 1000 + Math.sin(a) * ring;
+            steerInside = false;
+            world.queryAABB(planck.AABB(steerFrom, steerFrom), steerTouches);
+            if (steerInside) return true;
+        }
+    }
+    return false;
+}
+
+// Context steering. `want` is the velocity he'd like (m/s) and toGo how far he
+// is from where it leads; this returns the velocity to use instead. Of the
+// directions around him, he takes the one that best matches where he wants to
+// go while being clear ahead, and slows as it closes in.
+function steer(g, want, toGo) {
+    const speed = want.length();
+    if (speed < 1e-4) return want;
+    const look = GUY_LOOK_MM / 1000;
+    const wx = want.x / speed, wy = want.y / speed;
+    steerSelf = g.thing.body;
+    steerJob = g.job ? g.job.body : null;
+    const at = steerSelf.getPosition();
+
+    // nothing in the way before the target: just go, unless something is close
+    // enough to brush
+    const ahead = freeAlong(at, wx, wy);
+    if (ahead >= look || ahead > toGo) {
+        g.steerDir = Vec2(wx, wy);
+        return crowded(at, wx, wy) ? Vec2.mul(want, GUY_SQUEEZE_PACE) : want;
+    }
+
+    const sd = g.steerDir;
+    let best = 0, bestI = -1, bestFree = 0;
+    for (let i = 0; i < GUY_STEER_DIRS; i++) {
+        const dx = steerDirX[i], dy = steerDirY[i];
+        let interest = Math.max(0, dx * wx + dy * wy);
+        if (sd) interest += GUY_STEER_STICK * Math.max(0, dx * sd.x + dy * sd.y);
+        if (interest <= 0) continue;
+        const free = freeAlong(at, dx, dy) / look;
+        const score = interest * free;     // interest * (1 - danger)
+        if (score > best) { best = score; bestI = i; bestFree = free; }
+    }
+    if (bestI < 0) {
+        g.steerDir = null;
+        return Vec2.mul(want, GUY_SQUEEZE_PACE);    // boxed in: creep
+    }
+    g.steerDir = Vec2(steerDirX[bestI], steerDirY[bestI]);
+    const pace = crowded(at, g.steerDir.x, g.steerDir.y) ? GUY_SQUEEZE_PACE : Math.max(GUY_SQUEEZE_PACE, bestFree);
+    return Vec2.mul(g.steerDir, speed * pace);
+}
+
+// Standing, not knocked down, and nothing to do.
+function isIdle(g) {
+    return !g.job && g.down <= 0 && !g.leaving && onTable(g.thing);
+}
+
+// Is there an object (not a guy) where he'd stand at p? Tested at a grid of
+// points across his body, since the broad phase only narrows it down.
+function spotTaken(p) {
+    const r = GUY_R_MM / 1000;
+    let taken = false;
+    world.queryAABB(planck.AABB(Vec2(p.x - r, p.y - r), Vec2(p.x + r, p.y + r)), fixture => {
+        if (guys.some(o => o.thing.body === fixture.getBody())) return true;
+        for (let i = -2; i <= 2 && !taken; i++) {
+            for (let j = -2; j <= 2 && !taken; j++) {
+                taken = fixture.testPoint(Vec2(p.x + i * r / 2, p.y + j * r / 2));
+            }
+        }
+        return !taken;
+    });
+    return taken;
+}
+
+// The next wander spot: of a few random ones, the one furthest from every other
+// idle guy (where he is, or where he's headed), which is what spreads them out.
+function pickRoam(g) {
+    const hw = TABLE_W_MM / 2000 - GUY_R_MM * 3 / 1000, hh = TABLE_H_MM / 2000 - GUY_R_MM * 3 / 1000;
+    let pick = null, far = -1;
+    for (let i = 0; i < GUY_ROAM_PICKS; i++) {
+        const p = Vec2((Math.random() * 2 - 1) * hw, (Math.random() * 2 - 1) * hh);
+        let near = Infinity;
+        if (spotTaken(p)) near = -1;     // never a spot under something: he'd just lean on it
+        for (const o of guys) {
+            if (near < 0) break;
+            if (o === g || !isIdle(o)) continue;
+            near = Math.min(near, Vec2.distance(p, o.thing.body.getPosition()));
+            if (o.roam) near = Math.min(near, Vec2.distance(p, o.roam));
+        }
+        if (pick === null || near > far) { far = near; pick = p; }
+    }
+    g.roam = pick;
+    g.roamT = 0;
+}
+
+// Idle: amble toward the wander spot, easing away from idle guys who come close.
+function wander(g, at, h) {
+    if (!g.roam || (g.roamT += h) > GUY_ROAM_TIME || Vec2.distance(at, g.roam) < 0.03) pickRoam(g);
+    const top = GUY_WALK_SPEED * GUY_WANDER_PACE;
+    const want = walkTo(at, g.roam, top);
+    const range = GUY_SPREAD_MM / 1000;
+    for (const o of guys) {
+        if (o === g || !isIdle(o)) continue;
+        const away = Vec2.sub(at, o.thing.body.getPosition()), d = away.length();
+        if (d >= range) continue;
+        const push = GUY_SPREAD * (1 - d / range);
+        if (d > 1e-6) want.addMul(push / d, away);
+        else want.x += push;
+    }
+    const sp = want.length();
+    if (sp > top) want.mul(top / sp);
+    return steer(g, want, Vec2.distance(at, g.roam));
+}
+
 // The velocity he wants this step.
 function guyWants(g, h) {
     const at = g.thing.body.getPosition();
@@ -226,7 +473,10 @@ function guyWants(g, h) {
         if (!guys.some(o => o.leaving)) allIsLost();
         g.leaving = { phase: 'frozen', t: 0, looks: homes.slice(0, GUY_SAD_LOOKS) };
     }
-    if (g.leaving) return leaving(g, at, h);
+    if (g.leaving) {
+        g.steerDir = null;
+        return leaving(g, at, h);
+    }
 
     // Half the slack to finish as to start, so he doesn't twitch at the
     // threshold.
@@ -242,7 +492,8 @@ function guyWants(g, h) {
         g.best = Infinity;
         g.stuck = 0;
     }
-    if (!g.job) return walkTo(at, g.rest, GUY_WALK_SPEED);
+    if (!g.job) return wander(g, at, h);
+    g.roam = null;      // a fresh spot is picked the next time he's idle
 
     const t = g.job, p = t.body.getPosition();
     const toGuy = Vec2.sub(at, p);
@@ -263,7 +514,7 @@ function guyWants(g, h) {
 
     if (!g.grip) {
         if (apart > touching + GUY_REACH_MM / 1000) {
-            return walkTo(at, standable(Vec2.add(p, Vec2.mul(side, touching))), GUY_WALK_SPEED);
+            return walkAround(g, at, standable(Vec2.add(p, Vec2.mul(side, touching))), GUY_WALK_SPEED);
         }
         // Got it: grab the near edge, and keep to the side he grabbed it from.
         const edge = Vec2.add(p, Vec2.mul(side, touching - GUY_R_MM / 1000));
@@ -277,14 +528,21 @@ function guyWants(g, h) {
     }
 
     // Haul: the point he pulls toward runs ahead to home at carrying speed,
-    // and he runs along beside it.
+    // and he runs along beside it. With something in the way, slowly, and
+    // never far ahead of his hands, so the spring can't fling it into things.
     const grabbed = g.grip.getAnchorB();
     const goal = Vec2.add(t.home, Vec2.sub(grabbed, p));
     const ahead = Vec2.sub(goal, g.carry), aheadLen = ahead.length();
-    const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * h);
+    const careful = aheadLen > 1e-6 && haulBlocked(t, ahead.x / aheadLen, ahead.y / aheadLen);
+    const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * (careful ? GUY_HAUL_CARE : 1) * h);
     if (aheadLen > 1e-6) g.carry = Vec2.add(g.carry, Vec2.mul(ahead, stepLen / aheadLen));
+    if (careful) {
+        const lead = Vec2.sub(g.carry, grabbed), leadLen = lead.length(), most = GUY_HAUL_LEAD_MM / 1000;
+        if (leadLen > most) g.carry = Vec2.add(grabbed, Vec2.mul(lead, most / leadLen));
+    }
     g.grip.setTarget(g.carry);
     // keep pace with it, plus close whatever gap has opened
+    g.steerDir = null;
     return Vec2.add(t.body.getLinearVelocity(), walkTo(at, standable(Vec2.add(p, g.hold)), GUY_WALK_SPEED));
 }
 
@@ -302,7 +560,7 @@ function noticeDrops() {
 }
 
 // A backup climbs up where the object fell, lying flat the way a guy knocked
-// off the table does, and his rest spot is where he arrived.
+// off the table does.
 function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
@@ -317,6 +575,25 @@ function stepGuys(h) {
     noticeDrops();
     arriveBackups();
     for (const g of guys) stepGuy(g, h);
+}
+
+// Touching anything but his job, he slides along it rather than leaning into it:
+// takes out of `want` any part that points into what he's touching, and says
+// whether he's touching anything at all. Even a light push held for a while
+// creeps a knife along the cloth, so the only safe push is none.
+function sidestep(b, job, want) {
+    let touching = false;
+    for (let e = b.getContactList(); e; e = e.next) {
+        const c = e.contact;
+        if (!c.isTouching() || (job && e.other === job.body)) continue;
+        touching = true;
+        const n = c.getWorldManifold(null).normal;
+        // the normal points from fixture A to fixture B; turn it to point away from him
+        const s = c.getFixtureA().getBody() === b ? 1 : -1;
+        const into = (want.x * n.x + want.y * n.y) * s;
+        if (into > 0) { want.x -= n.x * s * into; want.y -= n.y * s * into; }
+    }
+    return touching;
 }
 
 function stepGuy(g, h) {
@@ -358,9 +635,13 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
+    // squeezing past something that isn't his job, he can't shove it; hauling is different
+    const squeezing = !g.grip && sidestep(b, g.job, want);
+    if (squeezing) want.mul(GUY_SQUEEZE_PACE);
     const f = Vec2.mul(Vec2.sub(want, v), m / h);
     const fl = f.length();
-    if (fl > GUY_FORCE) f.mul(GUY_FORCE / fl);
+    const cap = squeezing ? GUY_SQUEEZE_FORCE : GUY_FORCE;
+    if (fl > cap) f.mul(cap / fl);
     b.applyForceToCenter(f, true);
     g.expect = Vec2.add(v, Vec2.mul(f, h / m));
 
@@ -401,13 +682,47 @@ function limb(c, x0, y0, x1, y1, digits) {
     splay(c, x1, y1, Math.atan2(y1 - y0, x1 - x0), digits);
 }
 
-function drawHead(c, x) {
+// The first guy wears his pompadour: seen from above, a black mass over his
+// whole head that swells forward past his brow into a quiff of three locks,
+// with two streaks of shine swept back from it, so it reads as hair and not
+// as a black head. Backups are bareheaded, so he's the one you can pick out.
+const QUIFF_MM = 10;             // how far the quiff swells forward of his head
+const QUIFF_STEPS = 48;
+function drawHead(c, x, g) {
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
     inkShape(c);
     c.beginPath();
-    ring(c, x, 0, 13);
-    inkShape(c);
+    if (g !== guys[0]) {
+        ring(c, x, 0, 13);
+        inkShape(c);
+        return;
+    }
+    for (let i = 0; i <= QUIFF_STEPS; i++) {
+        const a = i / QUIFF_STEPS * Math.PI * 2 - Math.PI;
+        const front = Math.max(0, Math.cos(a - 0.35));
+        // swells toward his front and swept to one side, in three locks with
+        // notches between them
+        const r = 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - 0.35) * 4.5)));
+        const px = x + Math.cos(a) * r, py = Math.sin(a) * r;
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    }
+    c.closePath();
+    c.fillStyle = INK;
+    c.fill();
+    inkLine(c);
+    // shine: two paper strokes swept back from the quiff
+    c.beginPath();
+    c.moveTo(x + 19, -1);
+    c.quadraticCurveTo(x + 5, -11, x - 9, -5);
+    c.moveTo(x + 19, 7);
+    c.quadraticCurveTo(x + 3, 6, x - 9, 2);
+    c.save();
+    if (inkFrame) c.setTransform(inkFrame);
+    c.lineWidth = LINE_WIDTH;
+    c.strokeStyle = PAPER;
+    c.stroke();
+    c.restore();
 }
 
 // Running, legs and arms swinging opposite each other; reaching out in front
@@ -428,7 +743,7 @@ function drawGuyStanding(c, g) {
     c.beginPath();
     c.ellipse(-3, 0, 7, sad ? 10 : 12, 0, 0, Math.PI * 2);
     inkShape(c);
-    drawHead(c, sad ? 9 : 3);
+    drawHead(c, sad ? 9 : 3, g);
 }
 
 // Flat on his back, arms and legs flung out, laid the way he was knocked.
@@ -443,5 +758,5 @@ function drawGuyFlat(c, g) {
     c.beginPath();
     c.ellipse(-4, 0, 12, 9, 0, 0, Math.PI * 2);
     inkShape(c);
-    drawHead(c, 20);
+    drawHead(c, 20, g);
 }

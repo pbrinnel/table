@@ -5,7 +5,7 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | File | What it does |
 |---|---|
 | `index.html` | The page: hidden-page tags, layout, and the script list in load order |
-| `js/lib/planck.min.js` | Planck.js 1.5.0, the physics engine, vendored as is. License in `js/lib/planck-LICENSE.txt` |
+| `js/lib/planck.min.js` | Planck.js 1.5.0, the physics engine, vendored as is (`js/world.js` replaces its friction joint's velocity solve, which has a bug). License in `js/lib/planck-LICENSE.txt` |
 | `js/frame.js` | The field: `LW` x `LH` logical units, scaled to fit, turned on portrait screens; defines `canvas`, `ctx` and `screenToFrame()` |
 | `js/look.js` | Ink, paper, `LINE_WIDTH`, and `inkLine`/`inkShape`, which every drawing strokes with so the pen stays even |
 | `js/table.js` | The table's size, `MM_PER_UNIT`, mm-to-frame conversion, the test layout, the table's outline |
