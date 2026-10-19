@@ -28,18 +28,22 @@ so this is about the page, and about not labeling things on GitHub.
 ## Git
 
 - `main` is the live page. Nobody pushes to it; a ruleset enforces that. Every change goes
-  through a pull request, squash-merged.
-- One short-lived branch per piece of work, named `person/topic`: `paul/menu`,
-  `dhfm91/collisions`. Pull `main` before you branch.
-- Branch from `main`, not from another unmerged branch. Squash merging rewrites the first
-  branch's commits, so a branch stacked on it conflicts with `main` afterward. If one is
-  stacked anyway, merge `main` into it once the first PR lands; where the conflict is only
-  the duplicated work, keep the branch's side.
+  through a pull request.
+- Each person has one long-lived branch: `paul-dev` and `dhfm91-dev`. All your work goes
+  there, piece after piece. There are no per-topic branches.
+- When your branch is in a good state, open a PR from it to `main` and merge it with
+  **"Create a merge commit"**, never squash. Squashing rewrites the branch's commits, so
+  the next PR from the same branch conflicts with its own earlier work. Keep the branch
+  afterward and carry on with it.
+- When the other person's work lands on `main`, merge `main` into your branch (GitHub's
+  "Update branch", or `git merge origin/main`) before your next PR.
 - You merge your own PR. Ask the other person to look first when it touches what they're
   working on; small fixes can go straight in.
-- Before merging, press "Update branch" (or merge `main` into your branch), check it still
-  works, **then** bump `?v=N`. Doing it last means two PRs never fight over the number.
-- Claude commits on branches only, never on `main`. The person pushes and opens the PR.
+- Before merging, update the branch from `main`, check it still works, **then** bump
+  `?v=N`. Doing it last means two PRs never fight over the number.
+- Claude commits on the person's branch only, never on `main`. The person pushes and opens
+  the PR. A branch Claude creates tracks its own name on GitHub, never `main`: a branch
+  made from `origin/main` tracks `main` by default, and pushing it then targets `main`.
 - Commit only your own changes. Check `git status` and `git diff` before committing; the
   other person, or another Claude session, may have work in the same folder. Claude never
   uses `git stash` or `git add -p`; it stages its own hunks with `git apply --cached`.
