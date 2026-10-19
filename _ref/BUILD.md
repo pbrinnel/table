@@ -72,20 +72,14 @@ drawn, but it collides as a handle and a head.
 - `_labs/objects.html`: every object kind drawn large, its physics pieces overlaid in a
   second color, so drawing and collision shape can be checked against each other.
 
-## Checks before showing visual work
-
-- Machine-made tells: uneven stroke widths, decoration nobody asked for, drop shadows,
-  gradients, rounded "app" styling, mismatched detail between objects.
-- Harm: count flashes per second (should be none). No photos are involved.
-- Desktop and phone sizes, both phone orientations.
-
 ## Build order
 
 Each step is its own branch and PR, and ends with something to try on the slider page.
 
 1. **Engine and frame.** Vendor Planck. New frame size, the scale cap removed, the portrait
    turn. The table's outline drawn, and one plate that can be dragged around and flung
-   against the rim. `_labs/tune.html` with the drag, friction and rim sliders.
+   against the rim. `_labs/tune.html` with the drag, friction and rim sliders. The
+   under-construction placeholder in `start.js` is deleted.
    *Lead builds this one: it sets the patterns everything else follows.*
 2. **Objects.** The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
    `_labs/objects.html`. *Delegated to `builder` (Sonnet), a few kinds per brief, against the
