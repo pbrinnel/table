@@ -19,7 +19,10 @@ const GUY_MASS = 150;            // grams
 const GUY_WALK_SPEED = 1.2;      // m/s, running to the next job
 const GUY_CARRY_SPEED = 0.8;     // m/s, hauling something home
 const GUY_FORCE = 6;             // newtons, the most his legs can push or brake with
-const GUY_GRIP_FORCE = 8;        // newtons, the most his hands can pull a thing with
+// His hands pull a thing with at most this share of the player's DRAG_MAX_FORCE.
+// In a tug of war guys' pulls add up, so below a half the player beats two of
+// them, and above a third three beat the player (Paul).
+const GUY_GRIP_SHARE = 0.4;
 const GUY_GRIP_HZ = 6;           // how stiff his grip is
 // A jolt to his speed bigger than this, beyond what his own legs did, knocks
 // him down. Measured from speed rather than collision force because he's a
@@ -69,6 +72,11 @@ const GUY_HAUL_LEAD_MM = 15;     // furthest his pull point runs ahead of his ha
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
 const GUY_STRIDE_MM = 22;        // how far one step of his feet carries him
+// Picked up, he flails: arms and legs thrash back and forth this many times a
+// second, through GUY_FLAIL_SWING radians either way. Limbs moving, not light
+// and dark trading places, so it isn't a flash.
+const GUY_FLAIL_HZ = 2.5;
+const GUY_FLAIL_SWING = 0.8;
 
 // Every guy, the first and each backup. Each has his own body and his own grip.
 let guys = [];
@@ -91,7 +99,8 @@ const GUY_KIND = {
     pieces: [{ circle: GUY_R_MM }],
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
-        if (t.guy.down > 0) drawGuyFlat(c, t.guy);
+        if (isHeld(t.body)) drawGuyFlailing(c, t.guy);
+        else if (t.guy.down > 0) drawGuyFlat(c, t.guy);
         else drawGuyStanding(c, t.guy);
     },
 };
@@ -519,7 +528,7 @@ function guyWants(g, h) {
         // Got it: grab the near edge, and keep to the side he grabbed it from.
         const edge = Vec2.add(p, Vec2.mul(side, touching - GUY_R_MM / 1000));
         g.grip = world.createJoint(planck.MouseJoint({
-            maxForce: GUY_GRIP_FORCE,
+            maxForce: GUY_GRIP_SHARE * DRAG_MAX_FORCE,
             frequencyHz: GUY_GRIP_HZ,
             dampingRatio: 0.9,
         }, cloth, t.body, edge));
@@ -744,6 +753,25 @@ function drawGuyStanding(c, g) {
     c.ellipse(-3, 0, 7, sad ? 10 : 12, 0, 0, Math.PI * 2);
     inkShape(c);
     drawHead(c, sad ? 9 : 3, g);
+}
+
+// Held up by the player, kicking and waving: each limb swings on its own
+// phase, so it reads as panic rather than a march.
+function drawGuyFlailing(c, g) {
+    c.rotate(g.facing);
+    const w = guyClock * GUY_FLAIL_HZ * Math.PI * 2;
+    c.beginPath();
+    for (const s of [-1, 1]) {
+        const arm = s * (Math.PI / 2 - 0.2) + Math.sin(w + s) * GUY_FLAIL_SWING;
+        limb(c, 2, s * 11, 2 + Math.cos(arm) * 26, s * 11 + Math.sin(arm) * 26, 6);
+        const leg = s * (Math.PI - 0.5) + Math.sin(w * 1.3 + 2 + s) * GUY_FLAIL_SWING * 0.7;
+        limb(c, -6, s * 5, -6 + Math.cos(leg) * 22, s * 5 + Math.sin(leg) * 22, 5);
+    }
+    inkLine(c);
+    c.beginPath();
+    c.ellipse(-3, 0, 7, 12, 0, 0, Math.PI * 2);
+    inkShape(c);
+    drawHead(c, 3, g);
 }
 
 // Flat on his back, arms and legs flung out, laid the way he was knocked.

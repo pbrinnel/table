@@ -40,6 +40,10 @@ ending of sorts (see **The little guy**).
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
 - No menus, no text, no buttons in the first playable.
+  - **Update (Paul):** one exception, for building it: a small DEBUG button in the top
+    right corner. It opens a panel listing every object and every guy with their
+    properties, live, and a pause/play button that stops everyone moving. Objects and
+    guys will get more properties as they're differentiated; the panel grows with them.
   - **Update (dhfm91):** still no menus or buttons, but the little guy talks in a dialog
     box (see **The guy talks**). That's the only text.
 
@@ -84,6 +88,9 @@ where it was, and you can knock him around.
 - **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
   edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
   like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.
+  - **Update (Paul):** in a tug of war the player beats one or two guys and three beat the
+    player; pulling guys off the edge with an object stays possible. Each guy's grip is
+    `GUY_GRIP_SHARE` of the player's `DRAG_MAX_FORCE`, and the guys' pulls add up.
   - **Update (dhfm91):** he's tiny and doesn't want anything to move, so on foot (going to
     a job, or wandering) he steers around objects and other guys rather than through them,
     slowing as he squeezes past. Brushing past something, his push drops to
@@ -105,6 +112,8 @@ where it was, and you can knock him around.
   then gets up and goes back to work.
 - **Grabbing him:** he can be dragged like an object. Held, he's limp and lets go of what
   he had; let go, he lies stunned, then gets up. *Prototype choice.*
+  - **Update (Paul):** held, he flails instead of hanging limp: arms and legs thrash
+    (`GUY_FLAIL_HZ`, `GUY_FLAIL_SWING`). He still lets go, and lies stunned once dropped.
 - **Knocked off the table:** he falls like anything else, then climbs back on where he went
   over after `GUY_CLIMB_TIME`. *Prototype choice.*
 - **The end (Paul):** when the last object has gone over the edge, he follows it, slowly
@@ -136,6 +145,9 @@ gets messier (dhfm91).
   square on the left, his line typed out beside it. Same two colors and same pen as
   everything else, square corners. It always reads upright, even when the table is turned
   on a phone. It doesn't block touches.
+  - **Update (Paul):** it blocks the bottom of the table, so a press on the box makes it
+    vanish at once, rather than reaching through to what's underneath. Pressing anywhere
+    else works as before.
   - **Update (dhfm91):** the box's paper is slightly see-through (`TALK_BOX_ALPHA`), so the
     bottom of the table shows faintly through it, in light grey, the one grey in the
     game. The portrait and the words stay solid.

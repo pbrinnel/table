@@ -47,7 +47,7 @@ function loop(time) {
     // a hidden tab stops the clock; don't replay the gap
     const dt = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.25);
     lastTime = time;
-    stepWorld(dt, stepGuys);
+    if (!debugPaused) stepWorld(dt, stepGuys);
     dropFallen();
 
     ctx.fillStyle = PAPER;
@@ -61,4 +61,5 @@ function loop(time) {
 setTable(TEST_LAYOUT);
 listenForDrags();
 listenForTalk();
+listenForDebug();
 requestAnimationFrame(loop);

@@ -131,6 +131,9 @@ let talk = null;
 let talkFontReady = false;
 let talkFontAsked = false;
 let talkWaitingForGrab = false;
+// Where the box was last drawn, in upright-view units, so a press on it can
+// dismiss it; null when nothing is showing.
+let talkBox = null;
 
 // Nothing may type or draw before the font is in, or the first words would
 // show in a fallback face. A failed load carries on anyway.
@@ -149,6 +152,18 @@ function say(text, face, hold) {
 
 function hush() {
     talk = null;
+    talkBox = null;
+}
+
+// True if a press at this page position lands on the box. The box covers the
+// bottom of the table, so pressing it makes it vanish rather than reaching
+// through to whatever is underneath.
+function talkBoxHit(clientX, clientY) {
+    if (!talk || !talkBox) return false;
+    const r = canvas.getBoundingClientRect();
+    const vw = frameTurned ? LH : LW, vh = frameTurned ? LW : LH;
+    const x = (clientX - r.left) / r.width * vw, y = (clientY - r.top) / r.height * vh;
+    return x >= talkBox.x && x <= talkBox.x + talkBox.w && y >= talkBox.y && y <= talkBox.y + talkBox.h;
 }
 
 // Greedy word wrap of the full line, so words don't jump lines while it types.
@@ -177,7 +192,7 @@ function drawTalk(c, dt) {
         talk.since += dt;
         if (talk.hold !== null && talk.since >= talk.hold) {
             talk.fade += dt;
-            if (talk.fade >= TALK_FADE_TIME) { talk = null; return; }
+            if (talk.fade >= TALK_FADE_TIME) { hush(); return; }
         }
     }
 
@@ -187,6 +202,7 @@ function drawTalk(c, dt) {
     const x = (view.w - w) / 2;
     const y = view.h - TALK_MARGIN - TALK_BOX_H;
     const shown = TALK_FADE_TIME > 0 ? 1 - talk.fade / TALK_FADE_TIME : 1;
+    talkBox = { x, y, w, h: TALK_BOX_H };
 
     c.globalAlpha = shown * TALK_BOX_ALPHA;
     c.fillStyle = PAPER;

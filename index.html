@@ -61,10 +61,61 @@
             touch-action: none;
             max-width: 100%;
         }
+
+        /* Debug overlay (js/debug.js): plain black on white, the game's font */
+        #debug-button, #debug-panel, #debug-panel * {
+            font-family: "Patrick Hand";
+            color: #000;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        #debug-button {
+            position: fixed;
+            top: 4px;
+            right: 4px;
+            z-index: 20;
+            background: #fff;
+            border: 1px solid #000;
+            border-radius: 0;
+            padding: 2px 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #debug-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 320px;
+            max-width: 100%;
+            z-index: 10;
+            overflow: auto;
+            background: #fff;
+            border: 1px solid #000;
+            padding: 8px;
+            font-size: 14px;
+            line-height: 1.25;
+        }
+        #debug-panel[hidden] { display: none; }
+        #debug-panel button {
+            background: #fff;
+            border: 1px solid #000;
+            border-radius: 0;
+            padding: 2px 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #debug-panel h2 { font-size: 18px; font-weight: normal; margin: 10px 0 4px; border-bottom: 1px solid #000; }
+        #debug-panel h3 { font-size: 15px; font-weight: normal; margin: 8px 0 2px; }
+        #debug-panel table { border-collapse: collapse; width: 100%; }
+        #debug-panel td { vertical-align: top; padding: 0 4px 0 0; }
+        #debug-panel td:first-child { white-space: nowrap; }
     </style>
 </head>
 <body>
     <canvas id="stage"></canvas>
+    <button id="debug-button" type="button">DEBUG</button>
+    <div id="debug-panel" hidden></div>
 
 <!-- Load order matters. These are plain scripts sharing one scope: what one
      declares at its top level, the ones after it can see. start.js goes last.
@@ -81,6 +132,7 @@
 <script src="js/drag.js?v=4"></script>
 <script src="js/guy.js?v=4"></script>
 <script src="js/talk.js?v=4"></script>
+<script src="js/debug.js?v=4"></script>
 <script src="js/start.js?v=4"></script>
 </body>
 </html>

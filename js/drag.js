@@ -3,7 +3,7 @@
 // ceiling, the same for every object, and that ceiling is what makes heavy
 // things lag behind and light things keep up.
 
-const DRAG_MAX_FORCE = 8;   // newtons
+const DRAG_MAX_FORCE = 15;  // newtons
 const DRAG_HZ = 5;          // how stiff the spring is
 const DRAG_DAMPING = 0.7;   // 1 settles without overshooting; lower wobbles
 // A finger is wide and a knife is thin, so a press this close to an outline
@@ -32,6 +32,12 @@ function pointerMm(e) {
 }
 
 function grab(e) {
+    // a press on the guy's message dismisses it instead of grabbing what's under it
+    if (talkBoxHit(e.clientX, e.clientY)) {
+        e.preventDefault();
+        hush();
+        return;
+    }
     const p = pointerMm(e);
     const t = grabAt(p.x, p.y);
     if (!t) return;
