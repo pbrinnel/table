@@ -31,6 +31,10 @@ so this is about the page, and about not labeling things on GitHub.
   through a pull request, squash-merged.
 - One short-lived branch per piece of work, named `person/topic`: `paul/menu`,
   `dhfm91/collisions`. Pull `main` before you branch.
+- Branch from `main`, not from another unmerged branch. Squash merging rewrites the first
+  branch's commits, so a branch stacked on it conflicts with `main` afterward. If one is
+  stacked anyway, merge `main` into it once the first PR lands; where the conflict is only
+  the duplicated work, keep the branch's side.
 - You merge your own PR. Ask the other person to look first when it touches what they're
   working on; small fixes can go straight in.
 - Before merging, press "Update branch" (or merge `main` into your branch), check it still
