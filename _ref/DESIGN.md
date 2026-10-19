@@ -3,8 +3,8 @@
 What the game is and how it should feel. How it's built is in `BUILD.md`.
 
 Status: the first playable is built and live. Anything under **Open** is undecided; Claude
-doesn't fill those in on its own. *Prototype choice* marks a call Claude made that Paul
-hasn't confirmed; (Paul) marks one he made.
+doesn't fill those in on its own. *Prototype choice* marks a call Claude made that nobody
+has confirmed; (Paul) or (dhfm91) marks who made a call. Either of them can change any of it.
 
 ## The idea
 

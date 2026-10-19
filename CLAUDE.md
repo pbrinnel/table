@@ -10,7 +10,10 @@ file in.
 ## Who
 
 - Paul (`pbrinnel`) owns the repo and the site it hangs off.
-- `dhfm91` is the collaborator.
+- `dhfm91` is the co-developer, with the same say over the game as Paul: either of them can
+  change gameplay, feel or look, settle anything under **Open** in `_ref/DESIGN.md`, or
+  undo an earlier call, including one marked as the other's. When one of them changes
+  something the other decided, say so in the commit and the PR, so it isn't a surprise.
 
 ## Staying hidden
 
