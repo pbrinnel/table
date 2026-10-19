@@ -30,26 +30,74 @@ so this is about the page, and about not labeling things on GitHub.
 
 ## Git
 
-- `main` is the live page. Nobody pushes to it; a ruleset enforces that. Every change goes
-  through a pull request.
+This section is the whole routine for both of us. Neither of us should need to message the
+other about how to branch, merge or deploy; if something here is unclear, fix it here.
+
+**Branches**
+- `main` is the live page. Nobody pushes to it; a ruleset enforces that. Every change
+  reaches it through a pull request, merged with a merge commit. The ruleset allows no
+  other kind, because squashing rewrites a branch's commits and the next PR from that
+  branch then conflicts with its own earlier work.
 - Each person has one long-lived branch: `paul-dev` and `dhfm91-dev`. All your work goes
-  there, piece after piece. There are no per-topic branches.
-- When your branch is in a good state, open a PR from it to `main` and merge it with
-  **"Create a merge commit"**, never squash. Squashing rewrites the branch's commits, so
-  the next PR from the same branch conflicts with its own earlier work. Keep the branch
-  afterward and carry on with it.
-- When the other person's work lands on `main`, merge `main` into your branch (GitHub's
-  "Update branch", or `git merge origin/main`) before your next PR.
-- You merge your own PR. Ask the other person to look first when it touches what they're
-  working on; small fixes can go straight in.
-- Before merging, update the branch from `main`, check it still works, **then** bump
-  `?v=N`. Doing it last means two PRs never fight over the number.
-- Claude commits on the person's branch only, never on `main`. The person pushes and opens
-  the PR. A branch Claude creates tracks its own name on GitHub, never `main`: a branch
-  made from `origin/main` tracks `main` by default, and pushing it then targets `main`.
+  there, piece after piece. There are no per-topic branches, and the branch is kept after
+  every merge.
+- A branch that's missing from GitHub (deleted by accident, say) comes back on the next
+  push from the local copy. Nothing is lost while the local copy exists.
+- Never force-push, rebase or reset a branch that's been pushed. Fix forward with a new
+  commit or a merge instead.
+
+**Who does what**
+- The person pushes, opens the PR and merges it, with **Merge pull request**, so nothing
+  goes out that they haven't seen. Claude doesn't push, even where it could.
+- Claude does everything else, without being asked: keeping the branch up to date with
+  `main`, resolving conflicts, bumping `?v=N`, and checking that the result works. Claude
+  commits only on the person's own branch, never on `main`.
+- You merge your own PR; no approval is needed. Say in the PR what it changes, especially
+  anything the other person built or decided.
+
+**Claude's routine at the start of every session** (also under **Every session**)
+1. `git fetch`. Switch to the person's branch, and if `main` has moved on, merge
+   `origin/main` into it. Resolve any conflicts, run `_labs/check.sh`, and commit the merge.
+
+**Claude's routine when a piece of work is ready to go live**
+1. `git fetch` and merge `origin/main` into the branch again, in case the other person
+   merged while you worked. Resolve conflicts; test.
+2. Bump every `?v=N` in `index.html` to one more than `main`'s, all together, as the last
+   commit. Doing it last, and from `main`'s number, means two PRs never fight over it. Skip
+   it when nothing the page loads has changed (only docs or `_labs/`).
+3. Run `_labs/check.sh`, then tell the person: push, open a PR to `main`, and merge it.
+4. If `main` moved again before they merged (GitHub shows "This branch is out-of-date" or
+   a conflict), redo steps 1 to 3. The usual conflict is the `?v=N` line: take one more than
+   `main`'s.
+
+**Shared folders**
 - Commit only your own changes. Check `git status` and `git diff` before committing; the
   other person, or another Claude session, may have work in the same folder. Claude never
   uses `git stash` or `git add -p`; it stages its own hunks with `git apply --cached`.
+- A branch Claude creates must push to its own name on GitHub, never `main`: a branch made
+  from `origin/main` tracks `main` by default, so set
+  `git config branch.<name>.merge refs/heads/<name>` right after creating it.
+
+## Working together
+
+How Paul and dhfm91 stay out of each other's way:
+
+- **Claim before you start.** Put your name on the `_ref/TODO.md` item before writing any
+  code, and commit that with your first piece of work. If something you need is claimed by
+  the other person, leave it and pick something else.
+- **Name the files.** Under your TODO item, list the files you expect to change. Two people
+  editing the same file at the same time is the main source of conflicts, so if the files
+  overlap with the other person's item, agree first or wait.
+- **Go live often, in small pieces.** A PR every session or two keeps both branches close to
+  `main`, and small merges conflict less and are easier to untangle.
+- **Take `main` in often.** Merge it into your branch at the start of every session, not
+  only before a PR.
+- **Shared files change in small edits.** `index.html`'s script list, `_ref/MAP.md`,
+  `_ref/TODO.md` and `_labs/tune.html` are touched by almost every piece of work. Change
+  only your own lines, and don't reorder or reformat the rest.
+- **Write decisions down, not in chat.** A game decision goes in `_ref/DESIGN.md`, a rule in
+  this file. The other person's Claude reads those, and never your messages.
+- **One folder per person.** Each of you works in your own clone on your own machine.
 
 ## Working with Claude
 
@@ -94,11 +142,9 @@ Assume you're picking up from someone else, with none of their conversation.
   `MAP.md` the work touches.
 - `git fetch`, then `git status`. Note any changes that aren't yours and leave them alone.
 - Work on the person's own branch: `paul-dev` or `dhfm91-dev`. The first time, create it
-  from the latest `main` and make it push to its own name, not `main`:
-  `git checkout -b dhfm91-dev origin/main`, then
-  `git config branch.dhfm91-dev.merge refs/heads/dhfm91-dev`.
-- Check what's already on the branch (`git log origin/main..`) and whether `main` has
-  moved on (`git log ..origin/main`); if it has, merge it in first.
+  from the latest `main` (`git checkout -b dhfm91-dev origin/main`) and point it at its own
+  name (see **Shared folders** under **Git**).
+- Bring it up to date with `main`, as **Git** describes.
 - Run `_labs/check.sh`. If it fails before you've touched anything, fix that first or say
   so.
 - Put your name (or "Claude, for Paul" / "Claude, for dhfm91") on the TODO item you're
@@ -114,7 +160,8 @@ Assume you're picking up from someone else, with none of their conversation.
 - Run `_labs/check.sh`; it must pass.
 - Check it at desktop and phone sizes (see **Testing**), and run the **Checks** below if
   anything visible changed.
-- Commit, then tell the person the branch is ready to push.
+- Commit. When the work should go live, follow **Claude's routine when a piece of work is
+  ready to go live** under **Git**; otherwise tell the person the branch is ready to push.
 
 **Stopping halfway**
 - Commit what's there on the branch, with a message starting `WIP:`.
