@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tune</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: #fff; overflow: hidden; overscroll-behavior: none; }
+
+    /* the right margin leaves the panel's column free; js/frame.js fits the
+       table into what the body has left */
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        padding: 20px;
+        margin-right: 300px;
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    #stage { display: block; background: #fff; touch-action: none; max-width: 100%; }
+
+    #panel {
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: 300px;
+        overflow-y: auto;
+        padding: 12px;
+        background: #f4f4f4;
+        border-left: 1px solid #000;
+        font: 12px/1.3 system-ui, sans-serif;
+        color: #000;
+        -webkit-user-select: text;
+        user-select: text;
+    }
+    #panel h2 { font-size: 12px; font-weight: bold; margin: 12px 0 4px; }
+    #panel h2:first-child { margin-top: 0; }
+    .row { margin-bottom: 6px; }
+    .row label { display: flex; justify-content: space-between; }
+    .row input { width: 100%; }
+    .buttons { display: flex; gap: 6px; margin: 12px 0 6px; }
+    .buttons button { flex: 1; font: inherit; padding: 4px; }
+    textarea { width: 100%; height: 170px; font: 11px/1.3 ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="panel"></div>
+
+<script>
+// Feel constants by file: [name, min, max, step]. Initial values come from
+// the loaded game, not from here.
+const TUNABLES = [
+    ['js/world.js', [
+        ['CLOTH_FRICTION', 0, 1.5, 0.01],
+        ['CLOTH_SPIN_FRICTION', 0, 4, 0.05],
+        ['OBJECT_FRICTION', 0, 1, 0.01],
+        ['OBJECT_BOUNCE', 0, 1, 0.01],
+        ['RIM_BOUNCE', 0, 1, 0.01],
+        ['MAX_SPEED', 0.5, 20, 0.5],
+    ]],
+    ['js/drag.js', [
+        ['DRAG_MAX_FORCE', 0, 40, 0.5],
+        ['DRAG_HZ', 0.5, 20, 0.5],
+        ['DRAG_DAMPING', 0, 2, 0.05],
+        ['GRAB_SLOP', 0, 60, 1],
+    ]],
+    ['js/look.js', [
+        ['LINE_WIDTH', 0.5, 8, 0.25],
+    ]],
+];
+const NAMES = TUNABLES.flatMap(([, list]) => list.map(s => s[0]));
+const STORE_KEY = 'tune-lab-values';
+
+// The game declares these with const, which nothing else can reassign, so the
+// lab loads the scripts as text and turns exactly these into var.
+// A name that's never found would leave its slider moving nothing, so the
+// panel lists any that weren't.
+const loosened = new Set();
+function loosen(text) {
+    for (const n of NAMES) {
+        const re = new RegExp('^const ' + n + ' =', 'm');
+        if (re.test(text)) { text = text.replace(re, 'var ' + n + ' ='); loosened.add(n); }
+    }
+    return text;
+}
+
+async function loadGame() {
+    const html = await (await fetch('../index.html')).text();
+    const srcs = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m => m[1].replace(/\?v=.*$/, ''));
+    const texts = await Promise.all(srcs.map(async s => {
+        const r = await fetch('../' + s);
+        if (!r.ok) throw new Error(s + ': ' + r.status);
+        return r.text();
+    }));
+    srcs.forEach((s, i) => {
+        const el = document.createElement('script');
+        el.textContent = s === 'js/lib/planck.min.js' ? texts[i] : loosen(texts[i]);
+        document.body.appendChild(el);
+    });
+}
+
+const defaults = {};
+const inputs = {};
+const outs = {};
+
+function loadSaved() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function save() {
+    const o = {};
+    for (const n of NAMES) o[n] = window[n];
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(o)); } catch (e) {}
+}
+
+// A value saved in this browser can differ from what the code now ships with;
+// show both, so an old slider setting can't pass for the code's.
+function show(n) {
+    inputs[n].value = window[n];
+    outs[n].textContent = window[n] === defaults[n] ? window[n] : window[n] + ' (code ' + defaults[n] + ')';
+}
+
+function setValue(n, v) {
+    window[n] = v;
+    applyFeel();
+    show(n);
+    refreshText();
+}
+
+function valuesText() {
+    return TUNABLES.map(([file, list]) =>
+        '// ' + file + '\n' + list.map(s => 'const ' + s[0] + ' = ' + window[s[0]] + ';').join('\n')
+    ).join('\n\n') + '\n';
+}
+let box;
+function refreshText() { if (box) box.value = valuesText(); }
+
+function buildPanel() {
+    const panel = document.getElementById('panel');
+    const missing = NAMES.filter(n => !loosened.has(n));
+    if (missing.length) {
+        const warn = document.createElement('p');
+        warn.textContent = 'Not found as a top-level const, so these sliders do nothing: ' + missing.join(', ');
+        warn.style.cssText = 'color:#b00;margin-bottom:8px';
+        panel.appendChild(warn);
+    }
+    for (const [file, list] of TUNABLES) {
+        const h = document.createElement('h2');
+        h.textContent = file;
+        panel.appendChild(h);
+        for (const [n, min, max, step] of list) {
+            defaults[n] = window[n];
+            const row = document.createElement('div');
+            row.className = 'row';
+            const label = document.createElement('label');
+            const name = document.createElement('span');
+            name.textContent = n;
+            outs[n] = document.createElement('span');
+            label.append(name, outs[n]);
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.min = min; input.max = max; input.step = step;
+            input.addEventListener('input', () => { setValue(n, parseFloat(input.value)); save(); });
+            inputs[n] = input;
+            row.append(label, input);
+            panel.appendChild(row);
+        }
+    }
+
+    const buttons = document.createElement('div');
+    buttons.className = 'buttons';
+    const mk = (text, fn) => {
+        const b = document.createElement('button');
+        b.textContent = text;
+        b.addEventListener('click', fn);
+        buttons.appendChild(b);
+    };
+    mk('Reset table', () => { setTable(TEST_LAYOUT); applyFeel(); });
+    mk('Defaults', () => {
+        for (const n of NAMES) window[n] = defaults[n];
+        applyFeel();
+        for (const n of NAMES) show(n);
+        refreshText();
+        save();
+    });
+    mk('Copy values', async () => {
+        refreshText();
+        try { await navigator.clipboard.writeText(box.value); } catch (e) { box.select(); }
+    });
+    panel.appendChild(buttons);
+
+    box = document.createElement('textarea');
+    box.readOnly = true;
+    panel.appendChild(box);
+
+    const saved = loadSaved();
+    for (const n of NAMES) {
+        if (typeof saved[n] === 'number' && isFinite(saved[n])) window[n] = saved[n];
+        show(n);
+    }
+    applyFeel();
+    refreshText();
+}
+
+loadGame().then(buildPanel).catch(e => {
+    document.getElementById('panel').textContent = 'Failed to load the game: ' + e.message;
+});
+</script>
+</body>
+</html>
