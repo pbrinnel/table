@@ -12,6 +12,6 @@ Not published:
 
 | Folder | What's in it |
 |---|---|
-| `_ref/` | Docs: this map, `TODO.md` |
+| `_ref/` | Docs: this map, `TODO.md`, `DESIGN.md` (what the game is), `BUILD.md` (how it's built, and in what order) |
 | `_labs/` | Dev tools: slider pages, test pages, build scripts |
 | `.claude/` | Claude Code setup: `launch.json` (local preview server), `agents/builder.md` (the Sonnet subagent for delegated work) |

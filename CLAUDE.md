@@ -60,7 +60,9 @@ so this is about the page, and about not labeling things on GitHub.
 - Pages builds with Jekyll. Folders starting with `_` and dotfiles are not published.
   Everything else is, Markdown included. Don't add `.nojekyll`: Jekyll is what keeps the
   folders below off the site.
-- `_ref/` holds docs: the code map (`_ref/MAP.md`) and the to-do list (`_ref/TODO.md`).
+- `_ref/` holds docs: the code map (`_ref/MAP.md`), the to-do list (`_ref/TODO.md`), the
+  game design (`_ref/DESIGN.md`) and how it's built (`_ref/BUILD.md`). Read the design and
+  build docs before working on the game.
 - `_labs/` holds dev tools: slider pages, test pages, build scripts. Tracked, so we both
   have them; never published.
 - Nothing either of us might need gets git-ignored. `.gitignore` is for OS and tool junk.
