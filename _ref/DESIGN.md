@@ -93,6 +93,14 @@ ending of sorts (see **The little guy**).
       flat foot, a thin stem and a bowl widening to the rim. Tipping, each part leans out
       by its height and gets its own outline, so a flute going over reads as foot, stem
       and bowl. Upright they look as before. `_labs/objects.html` has a slider to tip them.
+    - **Update (Paul): the centerpiece is a real stack.** The charger is on the cloth,
+      the dinner plate on it at level 3, the salad plate at 4 and the consommé cup at
+      5, each its own object. *Prototype choices:* whatever slides off a layer falls all
+      the way to the cloth, with everything on top of it, landing on the first clear
+      spot outside the whole stack, pieces falling together spread apart with room for
+      a guy between them (`DROP_ROOM_MM`). The guys rebuild from the bottom up: a piece
+      goes back only once the one under it is back in place, and a guy climbs as many
+      levels as he needs to (the climb takes `GUY_CLIMB_UP_TIME` per level).
     - A cup on its saucer counts as put back wherever the saucer is; the guys put the
       saucer back like any other object, cup and all.
 - Every object collides with every other object.
@@ -125,6 +133,12 @@ where it was, and you can knock him around.
     to bump something, or is touching it, he slows to `GUY_HAUL_CARE` of his carrying
     speed and keeps his pull close behind it (`GUY_HAUL_LEAD_MM`), so it nudges things
     aside rather than launching them off the table.
+  - **Update (Paul):** guys kept getting boxed in between things. Stuck on foot for
+    `GUY_STALL_TIME`, a guy climbs over what's in his way, up and across the top
+    (`GUY_CLIMB_OVER_SPEED`) to the first clear spot past it, without moving it. Only
+    with nowhere clear to get to does he barge (`GUY_BARGE_TIME`), shoving with his full
+    force, which can move cutlery. The setting is also spread out (`SETTING_SPREAD`) to
+    leave the guys room to walk between pieces.
 - **What he works on:** the moment the player grabs something, he goes straight for it, and
   it turns into a tug of war (Paul). Otherwise whatever is furthest from home. If he makes
   no progress for `GUY_PATIENCE`, he gives up on it for `GUY_SULK_TIME` and tries another.

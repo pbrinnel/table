@@ -35,9 +35,10 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       UNUSED. Next: pick, then build it into `js/guy.js` in place of climbing up flat.
 - [x] Levels: cups sit on their saucers at level 3, slide off and tip down a level, and
       only guys can climb up and put them back (Claude, for Paul)
-- [ ] A fallen cup in a crowded spot (by the glasses and the demitasse cup) is one a guy
-      often can't get to: he tries, gives up, tries again. Tested 8 drop spots: 5 put back
-      in 2.5 to 3 s, 3 not. (Claude, for Paul.) Files: `js/guy.js`.
+- [x] Guys boxed in between things climb over them; the setting is spread out (Claude,
+      for Paul). With five things flung about, one guy had everything back in 25 s.
+- [x] The centerpiece is a real four-level stack the guys rebuild bottom-up (Claude, for
+      Paul). Slid off together, the three upper pieces were back in 10 to 15 s.
 - [x] Tall things (cups, glasses) tip as stacked parts with real heights, not flat discs
       (Claude, for Paul). Tipping in the game not yet checked by eye; try it in the
       objects lab's slider first.

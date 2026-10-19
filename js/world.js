@@ -22,17 +22,22 @@ const FALL_DRIFT = 0.3;
 // clear of the edge as it tips, rather than tipping on the spot.
 const FALL_SLIDE = 0.25;
 const MAX_SPEED = 5;             // m/s, so a hard flick can't tunnel or blur
-// Levels: the table is 0, the cloth 1, things on the cloth 2, a thing resting
-// on another thing 3 (DESIGN.md, "levels"). Things only collide on their own
-// level.
+// Levels: the table is 0, the cloth 1, things on the cloth 2, and a thing
+// resting on another is one level above it, so a stack climbs 3, 4, 5
+// (DESIGN.md, "levels"). Things only collide on their own level.
 const LEVEL_ON_CLOTH = 2;
-const LEVEL_ON_TOP = 3;
 const RIDE_FRICTION = 0.3;       // a thing resting on another, sliding against it
-// Tipping down a level, off whatever it was resting on: it tilts over that
-// thing's rim and back flat as it lands just clear of it.
+// Sliding off what it rested on, a thing tips down to the cloth: it tilts over
+// that thing's rim and back flat as it lands on the first clear spot outside
+// the whole stack.
 const DROP_TIME = 0.3;           // seconds from leaving its support to landing
 const DROP_TILT = 50;            // degrees, the most it tilts on the way down
-const DROP_GAP_MM = 4;           // how far clear of its support it lands
+const DROP_GAP_MM = 4;           // how far clear of the stack it lands, at least
+const DROP_SEARCH_MM = 10;       // steps outward when looking for a clear spot to land
+const DROP_SEARCH_STEPS = 40;
+// degrees either side of straight out it tries at each step, nearest first
+const DROP_SPREAD = [0, 25, -25, 50, -50, 75, -75];
+const DROP_ROOM_MM = 70;         // room between pieces landing together, for a guy to get between
 const STEP_HZ = 60;
 const MAX_STEPS_PER_FRAME = 4;   // after a stall, catch up this far and drop the rest
 
@@ -140,8 +145,8 @@ function setLevel(t, level) {
     }
 }
 
-// Rests rider on support, centered on it: a level up, held to it by its own
-// friction, so it rides along until it's jerked off.
+// Rests rider on support, centered on it: a level above it, held to it by its
+// own friction, so it rides along until it's jerked off.
 function placeOn(rider, support) {
     world.destroyJoint(rider.friction);
     const p = support.body.getPosition();
@@ -150,7 +155,7 @@ function placeOn(rider, support) {
     rider.body.setAngularVelocity(0);
     rider.friction = world.createJoint(planck.FrictionJoint({}, support.body, rider.body, p));
     rider.on = support;
-    setLevel(rider, LEVEL_ON_TOP);
+    setLevel(rider, support.level + 1);
     applyFeelTo(rider);
 }
 
@@ -204,17 +209,48 @@ function startFall(t) {
     t.body.setActive(false);
 }
 
-// Slid off what it rested on: it tips over the support's rim and lands on the
-// cloth just clear of it.
+// The thing at the bottom of the stack t rests in, on the cloth.
+function baseOf(t) {
+    while (t.on) t = t.on;
+    return t;
+}
+
+// Where t comes to rest on the cloth, going out from the stack's base around
+// `out`: the nearest spot that's on the table, clear of everything on the
+// cloth, and clear of anything else tipping off right now by DROP_ROOM_MM more,
+// so pieces falling together spread out with room to get at each one.
+function landingFor(t, base, out) {
+    const bp = base.body.getPosition(), r = reachOf(t), room = DROP_ROOM_MM / 1000;
+    const a0 = Math.atan2(out.y, out.x);
+    let d = reachOf(base) + r + DROP_GAP_MM / 1000, spot = null;
+    for (let i = 0; i < DROP_SEARCH_STEPS; i++, d += DROP_SEARCH_MM / 1000) {
+        for (const k of DROP_SPREAD) {
+            const a = a0 + k * Math.PI / 180;
+            const at = Vec2.add(bp, Vec2.mul(Vec2(Math.cos(a), Math.sin(a)), d));
+            if (spot === null) spot = at;
+            const hw = TABLE_W_MM / 2000 - r, hh = TABLE_H_MM / 2000 - r;
+            if (Math.abs(at.x) > hw || Math.abs(at.y) > hh) continue;
+            const clear = !things.some(o => o !== t && onTable(o) && !o.lifted && (o.drop !== undefined
+                ? o.dropTo && Vec2.distance(at, o.dropTo) < reachOf(o) + r + room
+                : o.level === LEVEL_ON_CLOTH && Vec2.distance(at, o.body.getPosition()) < reachOf(o) + r));
+            if (clear) return at;
+        }
+    }
+    return spot;
+}
+
+// Slid off what it rested on, or carried off by what it rested on sliding:
+// it tips over the support's rim and lands on the cloth clear of the stack.
 function startDrop(t) {
     const s = t.on, sp = s.body.getPosition(), p = t.body.getPosition();
     let out = Vec2.sub(p, sp);
-    if (out.length() < 1e-6) out = Vec2(1, 0);
+    // centered on a support that's itself tipping, it goes the same way
+    if (out.length() < 1e-3) out = s.dropOut ? Vec2.clone(s.dropOut) : Vec2(1, 0);
     out.normalize();
     t.dropOut = out;
     t.dropRim = Vec2.add(sp, Vec2.mul(out, rimOf(s)));
     t.dropFrom = Vec2.clone(p);
-    t.dropTo = Vec2.add(sp, Vec2.mul(out, reachOf(s) + reachOf(t) + DROP_GAP_MM / 1000));
+    t.dropTo = landingFor(t, baseOf(s), out);
     t.drop = 0;
     world.destroyJoint(t.friction);
     t.friction = null;
@@ -282,7 +318,7 @@ function stepWorld(dt, eachStep) {
                 startFall(t);
                 continue;
             }
-            if (t.on && Vec2.distance(p, t.on.body.getPosition()) > rimOf(t.on)) {
+            if (t.on && (t.on.drop !== undefined || Vec2.distance(p, t.on.body.getPosition()) > rimOf(t.on))) {
                 startDrop(t);
                 continue;
             }

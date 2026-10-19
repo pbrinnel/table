@@ -71,18 +71,27 @@ const GUY_SQUEEZE_FORCE = 1;     // newtons
 const GUY_HAUL_CARE = 0.2;
 const GUY_HAUL_LEAD_MM = 15;     // furthest his pull point runs ahead of his hands while careful
 
-// Putting a fallen cup back on its saucer (DESIGN.md, "levels"): he hauls it
-// beside the saucer, climbs up, lifts it on, climbs down. Being a level up shows
-// as being a little bigger, seen from above.
-const GUY_CLIMB_UP_TIME = 0.7;   // seconds
+// Putting a fallen piece back on what it rested on (DESIGN.md, "levels"): he
+// hauls it beside the stack, climbs up to the level above that support, lifts
+// it on, climbs down. Being higher shows as being a little bigger, seen from
+// above. The climbs take their time per level climbed.
+const GUY_CLIMB_UP_TIME = 0.7;   // seconds per level
 const GUY_LIFT_TIME = 0.6;       // seconds
-const GUY_CLIMB_DOWN_TIME = 0.5; // seconds
-const GUY_UP_SCALE = 1.12;       // how much bigger he looks a level up
+const GUY_CLIMB_DOWN_TIME = 0.5; // seconds per level
+const GUY_UP_SCALE = 1.12;       // how much bigger he looks one level up
 const GUY_LIFT_BUMP = 0.12;      // how much bigger the cup looks at the top of its lift
 const GUY_LIFT_REACH_MM = 30;    // this close to its spot beside the saucer, he starts
 const GUY_LIFT_SHIFT_MM = 30;    // the saucer moving this far under him ends it
 const GUY_FALLEN_FIRST = 0.5;    // m added to a fallen cup's claim on him, so it comes first
 const GUY_SIDE_TRIES = 8;        // steps each way round a fallen cup looking for room to grab it
+// Stuck on foot, going nowhere for GUY_STALL_TIME, he climbs over what's in his
+// way to the first clear spot past it, the way he climbs up onto a stack. With
+// nowhere clear to get to, he barges instead, pushing with his full GUY_FORCE.
+const GUY_STALL_SPEED = 0.03;    // m/s: slower than this while trying to go somewhere is stuck
+const GUY_STALL_TIME = 1;        // seconds
+const GUY_CLIMB_OVER_SPEED = 0.25; // m/s across the top
+const GUY_OVER_LOOK_MM = 400;    // how far past himself he looks for somewhere to come down
+const GUY_BARGE_TIME = 1.5;      // seconds
 
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
@@ -189,22 +198,22 @@ function reachToward(t, d) {
     return reach;
 }
 
-// A cup that started on its saucer is put back once it's on it again,
-// wherever the saucer is; the saucer is put back like anything else.
+// A piece that started resting on another is put back once it's on it again,
+// wherever that one is; the bottom of a stack is put back like anything else.
 function isTidy(t, slack) {
     if (t.homeOn) return t.on === t.homeOn;
     return Vec2.distance(t.body.getPosition(), t.home) < GUY_TIDY_MM * slack / 1000;
 }
 
-// Where he hauls a thing to: home, or for a fallen cup the cloth just beside
-// its saucer, on the side it's on, ready to be lifted up.
+// Where he hauls a thing to: home, or for a fallen piece the cloth just beside
+// the stack it goes back on, on the side it's on, ready to be lifted up.
 function goalOf(t) {
     if (!t.homeOn || t.on) return t.home;
-    const sp = t.homeOn.body.getPosition();
-    let side = Vec2.sub(t.body.getPosition(), sp);
+    const base = baseOf(t.homeOn), bp = base.body.getPosition();
+    let side = Vec2.sub(t.body.getPosition(), bp);
     if (side.length() < 1e-6) side = Vec2(1, 0);
     side.normalize();
-    return Vec2.add(sp, Vec2.mul(side, reachOf(t.homeOn) + reachOf(t) + DROP_GAP_MM / 1000));
+    return Vec2.add(bp, Vec2.mul(side, reachOf(base) + reachOf(t) + DROP_GAP_MM / 1000));
 }
 
 // The side of t to stand on, as near as there's room to the direction he'd
@@ -237,6 +246,12 @@ function unitFrom(a, b) {
     return len > 1e-6 ? Vec2.mul(d, 1 / len) : Vec2(1, 0);
 }
 
+// A support is ready to have its piece put back on it when it's back in its own
+// place: on what it started on, or on the cloth if it started there.
+function settled(s) {
+    return onTable(s) && s.drop === undefined && !s.lifted && (s.homeOn ? s.on === s.homeOn : !s.on);
+}
+
 // Not to be taken on: tipping down a level, or in some guy's hands, or the
 // saucer another guy is standing on.
 function busy(t) {
@@ -254,6 +269,8 @@ function pickJob(g) {
     let pick = null, far = 0;
     for (const t of things) {
         if (!t.home || isGuy(t) || !onTable(t) || busy(t)) continue;
+        // the stack goes back from the bottom up
+        if (t.homeOn && !t.on && !settled(t.homeOn)) continue;
         if ((g.sulks.get(t) || 0) > g.clock || isTidy(t, 1)) continue;
         if (guys.some(o => o !== g && o.job === t)) continue;
         const d = Vec2.distance(t.body.getPosition(), goalOf(t)) + (t.homeOn ? GUY_FALLEN_FIRST : 0);
@@ -576,7 +593,7 @@ function guyWants(g, h) {
     // A fallen cup lies close by its saucer, often closer than he's wide: he
     // takes it from the far side, which is also the side to haul it home from,
     // or the nearest side to that with room for him.
-    if (t.homeOn && !t.on && !g.grip) side = roomySide(g, t, Vec2.sub(p, t.homeOn.body.getPosition()));
+    if (t.homeOn && !t.on && !g.grip) side = roomySide(g, t, Vec2.sub(p, baseOf(t.homeOn).body.getPosition()));
     const touching = reachToward(t, side) + GUY_R_MM / 1000;
     const dist = Vec2.distance(p, goalOf(t));
 
@@ -608,7 +625,7 @@ function guyWants(g, h) {
     // A fallen cup hauled to its saucer: up he goes.
     const saucer = t.homeOn;
     if (saucer && !t.on && dist < GUY_LIFT_REACH_MM / 1000 && !isHeld(t.body)
-        && onTable(saucer) && !busy(saucer) && !isHeld(saucer.body)) {
+        && settled(saucer) && !busy(saucer) && !isHeld(saucer.body)) {
         startLift(g, t);
         return Vec2(0, 0);
     }
@@ -678,10 +695,11 @@ function startLift(g, cup) {
         onto: Vec2.add(sp, Vec2.mul(toCup, rimOf(saucer) * 0.45)),
         cupFrom: Vec2.clone(cup.body.getPosition()),
         saucerAt: Vec2.clone(sp),
+        levels: saucer.level - 1,      // how many levels he climbs
     };
     b.setActive(false);
     g.thing.lifted = true;
-    setLevel(g.thing, LEVEL_ON_TOP);
+    setLevel(g.thing, saucer.level + 1);
 }
 
 function easeLift(u) {
@@ -700,14 +718,15 @@ function stepLift(g, h) {
     }
     L.t += h;
     if (L.phase === 'up') {
-        const u = easeLift(Math.min(1, L.t / GUY_CLIMB_UP_TIME));
+        const time = GUY_CLIMB_UP_TIME * L.levels;
+        const u = easeLift(Math.min(1, L.t / time));
         b.setTransform(Vec2.add(L.floor, Vec2.mul(Vec2.sub(L.onto, L.floor), u)), 0);
-        g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * u;
-        if (L.t >= GUY_CLIMB_UP_TIME) {
+        g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * L.levels * u;
+        if (L.t >= time) {
             L.phase = 'lift'; L.t = 0;
             L.cup.lifted = true;
             L.cup.body.setActive(false);
-            setLevel(L.cup, LEVEL_ON_TOP);
+            setLevel(L.cup, L.saucer.level + 1);
         }
     } else if (L.phase === 'lift') {
         const v = Math.min(1, L.t / GUY_LIFT_TIME);
@@ -718,10 +737,11 @@ function stepLift(g, h) {
             L.phase = 'down'; L.t = 0;
         }
     } else {
-        const u = easeLift(Math.min(1, L.t / GUY_CLIMB_DOWN_TIME));
+        const time = GUY_CLIMB_DOWN_TIME * L.levels;
+        const u = easeLift(Math.min(1, L.t / time));
         b.setTransform(Vec2.add(L.onto, Vec2.mul(Vec2.sub(L.floor, L.onto), u)), 0);
-        g.thing.drawScale = GUY_UP_SCALE - (GUY_UP_SCALE - 1) * u;
-        if (L.t >= GUY_CLIMB_DOWN_TIME) endLift(g);
+        g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * L.levels * (1 - u);
+        if (L.t >= time) endLift(g);
     }
     const look = L.phase === 'down' ? Vec2.sub(L.floor, L.onto) : Vec2.sub(L.cup.body.getPosition(), b.getPosition());
     if (look.length() > 1e-6) g.facing = Math.atan2(look.y, look.x);
@@ -748,6 +768,49 @@ function endLift(g) {
     setLevel(g.thing, LEVEL_ON_CLOTH);
     g.expect = null;
     g.lift = null;
+}
+
+// Over the top of whatever has him boxed in, toward where he wants to go: to
+// the first spot past it with room for him. False if there's nowhere.
+function startClimbOver(g, want) {
+    const b = g.thing.body, at = b.getPosition();
+    const dir = Vec2.mul(want, 1 / want.length());
+    for (let d = GUY_R_MM * 2; d <= GUY_OVER_LOOK_MM; d += 10) {
+        const spot = Vec2.add(at, Vec2.mul(dir, d / 1000));
+        if (!hasRoom(g, spot, null)) continue;
+        g.over = { from: Vec2.clone(at), to: spot, t: 0, time: d / 1000 / GUY_CLIMB_OVER_SPEED };
+        b.setActive(false);
+        g.thing.lifted = true;
+        letGoOfJob(g);
+        g.facing = Math.atan2(dir.y, dir.x);
+        // drawn over what he climbs, whatever level it's at
+        setLevel(g.thing, Math.max(...things.filter(o => o !== g.thing).map(o => o.level)) + 1);
+        return true;
+    }
+    return false;
+}
+
+function stepClimbOver(g, h) {
+    const O = g.over, b = g.thing.body;
+    O.t += h;
+    const u = Math.min(1, O.t / O.time);
+    b.setTransform(Vec2.add(O.from, Vec2.mul(Vec2.sub(O.to, O.from), u)), 0);
+    // up and over: biggest at the top of the climb
+    g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * Math.sin(Math.PI * u);
+    g.stride += GUY_CLIMB_OVER_SPEED * h * 1000;
+    if (u >= 1) endClimbOver(g);
+}
+
+function endClimbOver(g) {
+    const b = g.thing.body;
+    b.setTransform(g.over.to, 0);
+    b.setLinearVelocity(Vec2(0, 0));
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.thing.drawScale = 1;
+    setLevel(g.thing, LEVEL_ON_CLOTH);
+    g.expect = null;
+    g.over = null;
 }
 
 // Touching anything but his job, he slides along it rather than leaning into it:
@@ -787,6 +850,13 @@ function stepGuy(g, h) {
         return;
     }
 
+    // climbing over something, unless he's grabbed: then he's down where he
+    // was headed
+    if (g.over) {
+        if (!isHeld(b)) { stepClimbOver(g, h); return; }
+        endClimbOver(g);
+    }
+
     // up on a saucer putting a cup back, unless he's grabbed
     if (g.lift) {
         if (!isHeld(b)) { stepLift(g, h); return; }
@@ -814,8 +884,20 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
-    // squeezing past something that isn't his job, he can't shove it; hauling is different
-    const squeezing = !g.grip && sidestep(b, g.job, want);
+    // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
+    // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
+    const speed0 = v.length();
+    if (!g.grip && want.length() > GUY_STALL_SPEED && speed0 < GUY_STALL_SPEED) g.stall = (g.stall || 0) + h;
+    else g.stall = 0;
+    if (g.stall > GUY_STALL_TIME) {
+        g.stall = 0;
+        if (!startClimbOver(g, want)) g.barge = GUY_BARGE_TIME;
+        else return;
+    }
+    g.barge = Math.max(0, (g.barge || 0) - h);
+    // squeezing past something that isn't his job, he can't shove it; hauling,
+    // or barging, is different
+    const squeezing = !g.grip && !g.barge && sidestep(b, g.job, want);
     if (squeezing) want.mul(GUY_SQUEEZE_PACE);
     const f = Vec2.mul(Vec2.sub(want, v), m / h);
     const fl = f.length();

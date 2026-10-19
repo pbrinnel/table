@@ -251,10 +251,11 @@ const KINDS = {
 
     // ---- a traditional formal place setting, one kind per piece ----
 
-    // charger with the dinner plate, salad plate and consommé cup on it: one
-    // object, since nothing here stacks
-    chargerSetting: {
-        mass: 1850,
+    // The centerpiece is a stack (DESIGN.md, "levels"): the charger on the
+    // cloth, the dinner plate (above) on it, the salad plate on that, and the
+    // consommé cup on top.
+    charger: {
+        mass: 800,
         pieces: [{ circle: 165 }],
         draw(c) {
             c.beginPath();
@@ -263,13 +264,28 @@ const KINDS = {
             c.beginPath();
             ring(c, 0, 0, 150);
             inkLine(c);
-            c.beginPath();
-            ring(c, 0, 0, 132);
-            inkShape(c);
+        },
+    },
+
+    saladPlate: {
+        mass: 300,
+        pieces: [{ circle: 100 }],
+        draw(c) {
             c.beginPath();
             ring(c, 0, 0, 100);
             inkShape(c);
-            // the two handles, then the cup over their roots
+            c.beginPath();
+            ring(c, 0, 0, 72);
+            inkLine(c);
+        },
+    },
+
+    // two-handled, for soup
+    consommeCup: {
+        mass: 250,
+        pieces: [{ circle: 48 }],
+        tall: { parts: [[0, 32, 45, 48]] },
+        draw(c) {
             for (const s of [-1, 1]) {
                 c.beginPath();
                 c.roundRect(s > 0 ? 38 : -70, -11, 32, 22, 9);

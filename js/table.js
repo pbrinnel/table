@@ -20,12 +20,20 @@ const UP = -Math.PI / 2, DOWN = Math.PI / 2;
 
 // on: the kind of an earlier piece in the layout that this one rests on, a
 // level up (DESIGN.md, "levels"), placed at that piece's center.
+// SETTING_SPREAD stretches every offset from the charger, giving the guys
+// room to walk between the pieces (Paul).
+const SETTING_SPREAD = 1.25;
+
 function at(kind, dx, dy, angle, on) {
-    return { kind, x: SETTING_X + dx, y: SETTING_Y + dy, angle: angle || 0, on };
+    return { kind, x: SETTING_X + dx * SETTING_SPREAD, y: SETTING_Y + dy * SETTING_SPREAD, angle: angle || 0, on };
 }
 
 const TEST_LAYOUT = [
-    at('chargerSetting', 0, 0),
+    // the centerpiece, a stack: charger, dinner plate, salad plate, consommé cup
+    at('charger', 0, 0),
+    at('dinnerPlate', 0, 0, 0, 'charger'),
+    at('saladPlate', 0, 0, 0, 'dinnerPlate'),
+    at('consommeCup', 0, 0, 0, 'saladPlate'),
     // left of it, outside in: napkin, salad, fish and meat forks (tines up)
     at('napkin', -400, 20, DOWN),
     at('saladFork', -303, 35, UP),
