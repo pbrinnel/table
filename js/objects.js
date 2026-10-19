@@ -185,6 +185,11 @@ function drawCup(c, cup, inner, handleFrom, handleTo, handleW) {
 // shows the hem line, as the napkin does flat; once tipped past edge-on, its
 // plain underside shows.
 const NAP_SEAM_MM = 1;   // the paper line painted over the fold's seam
+// The crease along the fold, only on the corner's underside: none until the
+// corner passes upright, where its edges lie along the fold anyway, then it
+// grows in from both ends of the fold over this much more tilt, joined to the
+// outline, rather than popping in all at once (which reads as a flash). Radians.
+const NAP_CREASE_GROW = 0.8;
 
 function drawNapkinFlap(c, f) {
     const corners = [[-100, -60], [100, -60], [100, 60], [-100, 60]];
@@ -222,6 +227,18 @@ function drawNapkinFlap(c, f) {
     };
     const corner = close => poly([P1, K, P2], close);
     const clipped = (path, draw) => { c.save(); path(); c.clip(); draw(); c.restore(); };
+    // the crease, grown in from both ends of the fold to its share for this tilt
+    const crease = () => {
+        const q = Math.max(0, Math.min(1, (Math.abs(f.tilt) - Math.PI / 2) / NAP_CREASE_GROW));
+        if (q <= 0) return;
+        const hx = (P2[0] - P1[0]) / 2 * q, hy = (P2[1] - P1[1]) / 2 * q;
+        c.beginPath();
+        c.moveTo(P1[0], P1[1]);
+        c.lineTo(P1[0] + hx, P1[1] + hy);
+        c.moveTo(P2[0], P2[1]);
+        c.lineTo(P2[0] - hx, P2[1] - hy);
+        inkLine(c);
+    };
     // the main part's outline, all but the fold: from just past the fold's end
     const i2 = pts.findIndex(p => p === P2 || p === P1);
     const outline = pts.slice(i2 + 1).concat(pts.slice(0, i2 + 1));
@@ -248,7 +265,8 @@ function drawNapkinFlap(c, f) {
         poly(pts, true); fillPaper();
         clipped(() => poly(pts, true), hem);
         poly(outline, false); inkLine(c);
-        onCorner(() => { corner(true); fillPaper(); inkLine(c); });
+        onCorner(() => { corner(true); fillPaper(); corner(false); inkLine(c); });
+        crease();
     }
 }
 
