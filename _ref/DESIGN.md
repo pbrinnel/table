@@ -88,6 +88,11 @@ ending of sorts (see **The little guy**).
       saucer (`GUY_CLIMB_UP_TIME`), lifts the cup up onto it (`GUY_LIFT_TIME`) and climbs
       down (`GUY_CLIMB_DOWN_TIME`). Seen from above, being a level higher shows as being
       a little bigger (`GUY_UP_SCALE`). Grabbing him partway stops it.
+    - **Update (Paul): height.** Tall things (cups, glasses) don't tip like flat discs.
+      Each is a stack of round parts with real heights: a cup is one, a stemmed glass a
+      flat foot, a thin stem and a bowl widening to the rim. Tipping, each part leans out
+      by its height and gets its own outline, so a flute going over reads as foot, stem
+      and bowl. Upright they look as before. `_labs/objects.html` has a slider to tip them.
     - A cup on its saucer counts as put back wherever the saucer is; the guys put the
       saucer back like any other object, cup and all.
 - Every object collides with every other object.

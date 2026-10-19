@@ -37,9 +37,12 @@ function drawThings(c) {
         let pos = falling ? t.fallAt : t.body.getPosition();
         c.save();
         let shrink = t.drawScale || 1;
+        let tilt = 0, tiltOut = null;
         if (falling) {
             // tipping over the table's edge, gravity speeding the tilt up
-            squashToward(c, t.edgeAt, t.edgeOut, Math.min(1, (t.fall / TIP_TIME) ** 2) * TIP_MAX * Math.PI / 180);
+            tilt = Math.min(1, (t.fall / TIP_TIME) ** 2) * TIP_MAX * Math.PI / 180;
+            tiltOut = t.edgeOut;
+            squashToward(c, t.edgeAt, t.edgeOut, tilt);
             // then, free of the table, falling away is shrinking
             const u = Math.max(0, (t.fall - TIP_TIME) / (FALL_TIME - TIP_TIME));
             shrink = 1 - u * u;
@@ -48,13 +51,16 @@ function drawThings(c) {
             // it lands, sliding clear of it on the way
             const u = Math.min(1, t.drop / DROP_TIME);
             pos = Vec2.add(t.dropFrom, Vec2.mul(Vec2.sub(t.dropTo, t.dropFrom), u * u * (3 - 2 * u)));
-            squashToward(c, t.dropRim, t.dropOut, Math.sin(Math.PI * u) * DROP_TILT * Math.PI / 180);
+            tilt = Math.sin(Math.PI * u) * DROP_TILT * Math.PI / 180;
+            tiltOut = t.dropOut;
+            squashToward(c, t.dropRim, t.dropOut, tilt);
         }
         const at = mmToFrame(pos.x * 1000, pos.y * 1000);
         c.translate(at.x, at.y);
         c.rotate(t.body.getAngle());
         c.scale(shrink / MM_PER_UNIT, shrink / MM_PER_UNIT);
-        t.kind.draw(c, t);
+        if (t.kind.tall) drawTall(c, t.kind, t, tilt, tiltOut || Vec2(1, 0), shrink / MM_PER_UNIT);
+        else t.kind.draw(c, t);
         c.restore();
     }
 }

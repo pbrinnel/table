@@ -38,8 +38,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] A fallen cup in a crowded spot (by the glasses and the demitasse cup) is one a guy
       often can't get to: he tries, gives up, tries again. Tested 8 drop spots: 5 put back
       in 2.5 to 3 s, 3 not. (Claude, for Paul.) Files: `js/guy.js`.
-- [ ] Tall things (cups, glasses) look like flat discs when they tip: fake their height
-      (Claude, for Paul; see the ideas in the next session).
+- [x] Tall things (cups, glasses) tip as stacked parts with real heights, not flat discs
+      (Claude, for Paul). Tipping in the game not yet checked by eye; try it in the
+      objects lab's slider first.
 - [ ] Pick the arrival: `_labs/spawn.html` Keep section has 1a, 1a2, 1a3, 1c, 1c2 (Paul)
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once

@@ -14,6 +14,15 @@
 // side; js/table.js turns them to lie as a place setting does.
 // fixedRotation, if set, keeps the body from turning (the little guy turns
 // himself, in js/guy.js).
+// tall, for things with height that can be seen when they tip (cups, glasses):
+//   { parts: [[z0, r0, z1, r1], ...] } in mm, from the bottom up: each part a
+//   round section from height z0 with radius r0 to height z1 with radius r1. A
+//   cup is one part; a stemmed glass is a flat foot, a thin stem, and a bowl
+//   widening to the rim. Tipping, each part's top slides out from its bottom
+//   by its height, and js/start.js wraps an outline round each, so it reads as
+//   the object leaning over; draw(c) then draws only what's at the rim (the
+//   rim and what's inside it, a handle), at the top part's top.
+// Heights are real ones: a wine glass stands about 200 mm.
 
 // ---- drawing helpers for the place setting's kinds ----
 // All in mm, along the x axis, centered on the origin.
@@ -422,30 +431,36 @@ const KINDS = {
     waterGoblet: {
         mass: 200,
         pieces: [{ circle: 45 }],
+        tall: { parts: [[0, 38, 3, 38], [3, 6, 70, 6], [70, 28, 170, 45]] },
         draw(c) { drawGlass(c, 45, 38, 0, 7); },
     },
 
     champagneFlute: {
         mass: 120,
         pieces: [{ circle: 34 }],
-        draw(c) { drawGlass(c, 28, 21, 34, 5); },
+        // its foot is wider than its rim; the foot's outline shows it
+        tall: { parts: [[0, 34, 3, 34], [3, 4, 110, 4], [110, 15, 220, 28]] },
+        draw(c) { drawGlass(c, 28, 21, 0, 5); },
     },
 
     whiteWineGlass: {
         mass: 140,
         pieces: [{ circle: 38 }],
+        tall: { parts: [[0, 36, 3, 36], [3, 4, 90, 4], [90, 22, 200, 38]] },
         draw(c) { drawGlass(c, 38, 31, 0, 6); },
     },
 
     redWineGlass: {
         mass: 160,
         pieces: [{ circle: 48 }],
+        tall: { parts: [[0, 40, 3, 40], [3, 4, 85, 4], [85, 26, 210, 48]] },
         draw(c) { drawGlass(c, 48, 41, 0, 7); },
     },
 
     cordialGlass: {
         mass: 60,
         pieces: [{ circle: 25 }],
+        tall: { parts: [[0, 25, 3, 25], [3, 3, 50, 3], [50, 12, 110, 25]] },
         draw(c) { drawGlass(c, 25, 19, 0, 5); },
     },
 
@@ -460,6 +475,7 @@ const KINDS = {
     coffeeCup: {
         mass: 200,
         pieces: [{ circle: 40 }],
+        tall: { parts: [[0, 28, 70, 40]] },
         draw(c) { drawCup(c, 40, 30, 34, 66, 26); },
     },
 
@@ -472,6 +488,7 @@ const KINDS = {
     demitasseCup: {
         mass: 120,
         pieces: [{ circle: 30 }],
+        tall: { parts: [[0, 21, 55, 30]] },
         draw(c) { drawCup(c, 30, 22, 26, 53, 20); },
     },
 };
