@@ -1,7 +1,7 @@
 // The little guy talks: an RPG-style dialog box at the bottom of the screen,
 // his portrait on the left and the words typed out beside it. say() is the
 // general mechanism; startTalk() and listenForTalk() are the opening sequence
-// built on it.
+// built on it, and callForBackup() and allIsLost() are what he says when objects go over.
 //
 // The box is drawn upright on the screen, through frame.js's uprightView(),
 // not in the table's frame: on a portrait phone the table is turned, and text
@@ -10,6 +10,8 @@
 
 const TALK_CHARS_PER_SEC = 40;   // the typewriter
 const TALK_MAD_TIME = 5;         // seconds the MAD line stays once fully typed
+const TALK_BACKUP_TIME = 2;      // seconds the backup line stays once fully typed
+const TALK_LOST_TIME = 4;        // seconds "All is lost..." stays once fully typed
 const TALK_FADE_TIME = 0.3;      // seconds to fade out after that
 
 // Layout, in frame units
@@ -23,47 +25,59 @@ const TALK_FONT = TALK_FONT_PX + 'px "Patrick Hand"';
 
 const TALK_DARE = "Don't you DARE touch my plates!";
 const TALK_MAD = "Now you've made me MAD!";
+const TALK_BACKUP = "Calling for backup!";
+const TALK_LOST = "All is lost...";
 
 const PORTRAIT_SIZE = 200;       // the art's coordinates are a 200 x 200 box
 
-// head, ears, neck, shoulders and collar: the same in every mood
+// head, ears, neck, shoulders: the same in every mood
 const PORTRAIT_BASE = [
-    ['shape', 'M66 200 L90 174 L110 168 L130 168 L152 176 L174 200'],
-    ['line', 'M108 142 L106 170 M128 142 L131 170'],
-    ['shape', 'M152 56 L196 24 L180 88 L162 96 Z'],
-    ['shape', 'M68 70 L6 34 L22 96 L64 116 Z'],
-    ['shape', 'M64 116 C54 90 56 50 82 30 C104 12 142 14 158 40 C168 58 170 82 166 100 L154 134 L130 152 L104 150 L82 138 Z'],
-    ['ink', 'M58 76 L20 48 L30 88 L58 102 Z'],
-    ['ink', 'M164 62 L188 38 L176 80 L168 84 Z'],
-    ['ink', 'M82 138 L104 150 L130 152 L127 162 L108 160 Z'],
-    ['shape', 'M106 170 L118 182 L110 186 Z M131 170 L122 182 L132 186 Z'],
+    ['shape', 'M0 200 L0 188 L34 174 L86 166 L150 170 L192 182 L200 188 L200 200 Z'],
+    ['shape', 'M90 138 L88 176 C106 184 136 184 154 176 L152 160 Z'],
+    ['shape', 'M74 84 C58 74 44 86 48 104 C50 120 62 126 74 122 Z'],
+    ['ink', 'M68 90 C58 86 54 96 56 106 C58 114 64 116 68 114 C62 108 62 98 68 90 Z'],
+    ['shape', 'M72 120 C64 92 66 50 86 30 C104 14 140 14 156 34 L162 60 L166 92 L174 140 L168 166 L132 174 L84 156 L74 146 Z'],
+    ['ink', 'M76 104 C66 80 66 50 78 34 C90 16 116 4 148 4 C166 4 180 12 178 24 C176 34 168 40 160 46 C150 42 136 42 120 46 C106 48 96 56 92 68 L90 100 Z'],
+    ['paper', 'M96 36 C110 22 132 14 158 12 C140 18 120 26 104 40 Z'],
+    ['paper', 'M108 44 C122 32 144 26 166 26 C148 32 132 38 120 46 Z'],
+    ['ink', 'M84 156 L132 174 L168 166 L162 178 L130 184 L92 168 Z'],
+    ['line', 'M160 158 L158 168'],
 ];
 
 const PORTRAIT_FACES = {
-  stern: [
-    ['ink', 'M80 58 C96 56 114 60 128 70 L124 78 C110 70 96 68 84 70 Z'],
-    ['ink', 'M140 74 C146 66 154 60 164 58 L165 66 C156 68 150 74 144 80 Z'],
-    ['ink', 'M92 78 C102 74 114 76 122 82 C114 90 100 90 92 84 Z'],
-    ['ink', 'M146 84 C150 80 156 78 162 78 C160 86 152 90 146 88 Z'],
-    ['paper', 'M112 82 m-2.2 0 a2.2 2.2 0 1 0 4.4 0 a2.2 2.2 0 1 0 -4.4 0'],
-    ['paper', 'M156 83 m-1.6 0 a1.6 1.6 0 1 0 3.2 0 a1.6 1.6 0 1 0 -3.2 0'],
-    ['shape', 'M132 84 C140 92 160 104 178 112 C166 118 150 120 140 118 C134 114 132 108 134 100'],
-    ['ink', 'M136 102 C140 110 148 116 160 117 C150 120 142 119 138 116 C134 112 134 106 136 102 Z'],
-    ['line', 'M112 132 C122 126 136 125 150 129'],
-    ['ink', 'M122 136 C130 138 138 138 144 135 C140 141 128 142 122 136 Z'],
-  ],
-  mad: [
-    ['ink', 'M78 52 C96 56 116 64 130 78 L124 84 C110 74 96 68 82 64 Z'],
-    ['ink', 'M140 82 C145 72 152 64 160 60 L162 67 C154 72 150 78 146 86 Z'],
-    ['ink', 'M94 82 C104 80 114 82 122 88 C114 92 102 92 94 86 Z'],
-    ['ink', 'M148 88 C152 86 158 84 162 84 C160 90 152 92 148 92 Z'],
-    ['paper', 'M112 86 m-1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0'],
-    ['paper', 'M156 88 m-1.4 0 a1.4 1.4 0 1 0 2.8 0 a1.4 1.4 0 1 0 -2.8 0'],
-    ['shape', 'M132 84 C140 92 160 104 178 112 C166 118 150 120 140 118 C134 114 132 108 134 100'],
-    ['ink', 'M136 102 C140 110 148 116 160 117 C150 120 142 119 138 116 C134 112 134 106 136 102 Z'],
-    ['ink', 'M108 128 C120 122 138 121 154 126 C150 138 136 144 122 142 C114 140 110 134 108 128 Z'],
-    ['shape', 'M113 129 C124 125 138 124 151 127 L148 133 L144 129 L140 134 L136 129 L132 134 L128 129 L124 134 L120 130 L116 134 Z'],
-  ],
+    stern: [
+        ['ink', 'M86 64 L134 62 L136 74 L90 78 Z'],
+        ['ink', 'M144 62 L166 60 L166 70 L146 74 Z'],
+        ['ink', 'M96 80 L130 78 L126 88 L100 88 Z'],
+        ['ink', 'M148 78 L162 77 L160 85 L150 85 Z'],
+        ['paper', 'M118 83 m-2 0 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0'],
+        ['paper', 'M157 81 m-1.5 0 a1.5 1.5 0 1 0 3 0 a1.5 1.5 0 1 0 -3 0'],
+        ['shape', 'M146 78 L152 104 L174 116 L164 122 L150 120'],
+        ['line', 'M126 142 C138 142 152 140 166 132'],
+        ['ink', 'M136 147 C146 148 154 147 160 144 C156 151 144 152 136 147 Z'],
+    ],
+    mad: [
+        ['ink', 'M84 58 L136 70 L134 80 L88 70 Z'],
+        ['ink', 'M142 72 L166 58 L168 66 L146 80 Z'],
+        ['ink', 'M98 80 L130 84 L126 90 L102 88 Z'],
+        ['ink', 'M148 84 L162 80 L160 87 L150 88 Z'],
+        ['paper', 'M118 86 m-1.8 0 a1.8 1.8 0 1 0 3.6 0 a1.8 1.8 0 1 0 -3.6 0'],
+        ['paper', 'M156 84 m-1.4 0 a1.4 1.4 0 1 0 2.8 0 a1.4 1.4 0 1 0 -2.8 0'],
+        ['shape', 'M146 78 L152 104 L174 116 L164 122 L150 120'],
+        ['ink', 'M120 136 L166 130 L164 146 L124 150 Z'],
+        ['shape', 'M124 138 L163 133 L162 141 L126 145 Z'],
+        ['line', 'M134 137 L135 144 M144 136 L145 142 M154 135 L154 141'],
+    ],
+    sad: [
+        ['ink', 'M88 74 L132 64 L134 72 L92 82 Z'],
+        ['ink', 'M144 64 L164 70 L163 77 L144 72 Z'],
+        ['ink', 'M100 86 L128 84 L126 90 L102 90 Z'],
+        ['ink', 'M148 84 L160 85 L159 90 L149 90 Z'],
+        ['paper', 'M114 89 m-1.6 0 a1.6 1.6 0 1 0 3.2 0 a1.6 1.6 0 1 0 -3.2 0'],
+        ['paper', 'M153 89 m-1.2 0 a1.2 1.2 0 1 0 2.4 0 a1.2 1.2 0 1 0 -2.4 0'],
+        ['shape', 'M146 78 L152 104 L174 116 L164 122 L150 120'],
+        ['line', 'M126 148 C138 140 152 139 166 144'],
+    ],
 };
 
 let portraitPaths = null;
@@ -198,6 +212,22 @@ function drawTalk(c, dt) {
 function startTalk() {
     say(TALK_DARE, 'stern', null);
     talkWaitingForGrab = true;
+}
+
+// An object has gone over the edge: he calls for backup, in the mad face. It
+// replaces whatever the box is showing, the opening included, and so the
+// opening has nothing left to wait for. Each call restarts the line.
+function callForBackup() {
+    talkWaitingForGrab = false;
+    say(TALK_BACKUP, 'mad', TALK_BACKUP_TIME);
+}
+
+// The last object has gone over the edge. Said once, as the guys freeze, and
+// it replaces whatever the box is showing. The frozen and looking phases in
+// guy.js last longer than this line, so they trudge off after it is gone.
+function allIsLost() {
+    talkWaitingForGrab = false;
+    say(TALK_LOST, 'sad', TALK_LOST_TIME);
 }
 
 function listenForTalk() {

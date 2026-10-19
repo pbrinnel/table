@@ -1,11 +1,14 @@
-// The little guy. He runs around grabbing things and hauling them back to
-// where they started, fast, with no care for what's in the way. His grip is a
+// The little guys. The first runs around grabbing things and hauling them back
+// to where they started, fast, with no care for what's in the way. His grip is a
 // capped spring like the player's, so heavy things still drag on him. Anything
-// that hits him hard enough knocks him flat for a while. When the last thing
-// goes over the edge, he follows it, slowly: there's nothing left for him. The
+// that hits him hard enough knocks him flat for a while. Every time an object
+// goes over the edge (and something is still left), he calls for backup and one
+// more guy climbs up where it fell, for the rest of the run. They share the
+// work: each takes a different job. When the last thing goes over the edge,
+// every one of them follows it, slowly: there's nothing left for them. The
 // table stays empty after that.
 //
-// He has no friction joint pulling on him while he's on his feet: his own
+// A guy has no friction joint pulling on him while he's on his feet: his own
 // walking force is his grip on the cloth. Knocked down or held, he slides like
 // any other object.
 
@@ -25,6 +28,7 @@ const GUY_PATIENCE = 3;          // seconds without progress before he tries ano
 const GUY_SULK_TIME = 5;         // seconds before he'll go back to one he gave up on
 const GUY_TIDY_MM = 20;          // this close to home counts as put back
 const GUY_CLIMB_TIME = 3;        // seconds after being knocked off before he's back up
+const GUY_BACKUP_DELAY = 1.5;    // seconds from an object going over to the backup climbing up
 // The end: frozen, then a slow look at the empty spots, a trudge to the edge,
 // a pause there, and one step more.
 const GUY_SAD_SPEED = 0.075;     // m/s
@@ -37,22 +41,42 @@ const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
 const GUY_STRIDE_MM = 22;        // how far one step of his feet carries him
 
-let guy = null;
+// Every guy, the first and each backup. Each has his own body and his own grip.
+let guys = [];
+// Backups on their way: { at: guyClock time they arrive, pos: where, in meters }
+let backups = [];
+// Objects already counted as dropped, so each one calls for backup once
+let countedDrops = new Set();
+let guyClock = 0;
+
+// Objects and guys share the world's list of things; this tells them apart.
+function isGuy(t) {
+    return t.kind === GUY_KIND;
+}
 
 const GUY_KIND = {
     get mass() { return GUY_MASS; },
     bullet: true,
     fixedRotation: true,
     pieces: [{ circle: GUY_R_MM }],
-    draw(c) {
-        if (guy.down > 0) drawGuyFlat(c);
-        else drawGuyStanding(c);
+    // t.guy is the guy this thing is, so each is drawn in his own pose
+    draw(c, t) {
+        if (t.guy.down > 0) drawGuyFlat(c, t.guy);
+        else drawGuyStanding(c, t.guy);
     },
 };
 
+// A new table starts with no guys and no backups on the way.
+function resetGuys() {
+    guys = [];
+    backups = [];
+    countedDrops = new Set();
+    guyClock = 0;
+}
+
 function addGuy(xMm, yMm) {
     const thing = addThing(GUY_KIND, xMm, yMm, 0);
-    guy = {
+    const g = {
         thing,
         rest: Vec2(xMm / 1000, yMm / 1000),
         down: 0,          // seconds left on the floor; 0 when he's up
@@ -72,18 +96,21 @@ function addGuy(xMm, yMm) {
         leaving: null,    // once nothing is left: { phase, t, looks, brink, over }
         faceTo: null,     // an angle to face slowly instead of where he's going
     };
+    thing.guy = g;
+    guys.push(g);
+    return g;
 }
 
-function letGoOfJob() {
-    if (guy.grip) world.destroyJoint(guy.grip);
-    guy.grip = null;
-    guy.job = null;
+function letGoOfJob(g) {
+    if (g.grip) world.destroyJoint(g.grip);
+    g.grip = null;
+    g.job = null;
 }
 
-function knockDown() {
-    guy.down = GUY_STUN_TIME;
-    guy.floored = true;
-    letGoOfJob();
+function knockDown(g) {
+    g.down = GUY_STUN_TIME;
+    g.floored = true;
+    letGoOfJob(g);
 }
 
 // How far an object reaches from its center in direction d (a unit Vec2), from
@@ -110,16 +137,19 @@ function isTidy(t, slack) {
     return Vec2.distance(t.body.getPosition(), t.home) < GUY_TIDY_MM * slack / 1000;
 }
 
-// Whatever the player has just picked up comes first: he goes straight for
-// it, and it turns into a tug of war. Otherwise, whatever is furthest from home.
-function pickJob() {
+// Whatever the player has just picked up comes first: every guy goes straight
+// for it, and it turns into a tug of war. Otherwise, whatever is furthest from
+// home that no other guy is working on, so the work is shared. With nothing
+// free, he goes back to his rest spot.
+function pickJob(g) {
     for (const t of things) {
-        if (t !== guy.thing && t.home && onTable(t) && isHeld(t.body)) return t;
+        if (!isGuy(t) && t.home && onTable(t) && isHeld(t.body)) return t;
     }
     let pick = null, far = 0;
     for (const t of things) {
-        if (!t.home || t === guy.thing || !onTable(t)) continue;
-        if ((guy.sulks.get(t) || 0) > guy.clock || isTidy(t, 1)) continue;
+        if (!t.home || isGuy(t) || !onTable(t)) continue;
+        if ((g.sulks.get(t) || 0) > g.clock || isTidy(t, 1)) continue;
+        if (guys.some(o => o !== g && o.job === t)) continue;
         const d = Vec2.distance(t.body.getPosition(), t.home);
         if (d > far) { far = d; pick = t; }
     }
@@ -140,9 +170,9 @@ function overNearestEdge(at) {
     return [Vec2(hw + out, at.y), Vec2(-hw - out, at.y), Vec2(at.x, hh + out), Vec2(at.x, -hh - out)][i];
 }
 
-// Nothing left on the table, and so nothing left for him.
-function leaving(at, h) {
-    const s = guy.leaving;
+// Nothing left on the table, and so nothing left for any of them.
+function leaving(g, at, h) {
+    const s = g.leaving;
     s.t += h;
     const next = phase => { s.phase = phase; s.t = 0; };
     const toward = p => Math.atan2(p.y - at.y, p.x - at.x);
@@ -154,7 +184,7 @@ function leaving(at, h) {
     if (s.phase === 'looking') {
         const i = Math.floor(s.t / GUY_LOOK_TIME);
         if (i < s.looks.length) {
-            guy.faceTo = toward(s.looks[i]);
+            g.faceTo = toward(s.looks[i]);
             return Vec2(0, 0);
         }
         s.over = overNearestEdge(at);
@@ -169,7 +199,7 @@ function leaving(at, h) {
         // out over the edge, one look back at the table, then out again
         const out = toward(s.over);
         const u = s.t / GUY_BRINK_TIME;
-        guy.faceTo = u > 0.45 && u < 0.7 ? out + Math.PI * 0.8 : out;
+        g.faceTo = u > 0.45 && u < 0.7 ? out + Math.PI * 0.8 : out;
         if (s.t > GUY_BRINK_TIME) next('stepping');
         return Vec2(0, 0);
     }
@@ -183,36 +213,38 @@ function walkTo(at, to, top) {
 }
 
 // The velocity he wants this step.
-function guyWants(h) {
-    const at = guy.thing.body.getPosition();
+function guyWants(g, h) {
+    const at = g.thing.body.getPosition();
 
-    guy.faceTo = null;
-    if (!guy.leaving && !things.some(t => t !== guy.thing && onTable(t))) {
-        letGoOfJob();
+    g.faceTo = null;
+    if (!g.leaving && !things.some(t => !isGuy(t) && onTable(t))) {
+        letGoOfJob(g);
         // the nearest of the spots things used to be
-        const homes = things.filter(t => t.home && t !== guy.thing).map(t => t.home)
+        const homes = things.filter(t => t.home && !isGuy(t)).map(t => t.home)
             .sort((a, b) => Vec2.distance(a, at) - Vec2.distance(b, at));
-        guy.leaving = { phase: 'frozen', t: 0, looks: homes.slice(0, GUY_SAD_LOOKS) };
+        // the first of them to notice says it, once for all
+        if (!guys.some(o => o.leaving)) allIsLost();
+        g.leaving = { phase: 'frozen', t: 0, looks: homes.slice(0, GUY_SAD_LOOKS) };
     }
-    if (guy.leaving) return leaving(at, h);
+    if (g.leaving) return leaving(g, at, h);
 
     // Half the slack to finish as to start, so he doesn't twitch at the
     // threshold.
-    const j = guy.job;
-    if (j && (!onTable(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob();
+    const j = g.job;
+    if (j && (!onTable(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
     // drop what he's doing for anything the player has just grabbed
-    if (guy.job && !isHeld(guy.job.body) && !guy.grip) {
-        const grabbed = things.find(t => t !== guy.thing && t.home && onTable(t) && isHeld(t.body));
-        if (grabbed) guy.job = null;
+    if (g.job && !isHeld(g.job.body) && !g.grip) {
+        const grabbed = things.find(t => !isGuy(t) && t.home && onTable(t) && isHeld(t.body));
+        if (grabbed) g.job = null;
     }
-    if (!guy.job) {
-        guy.job = pickJob();
-        guy.best = Infinity;
-        guy.stuck = 0;
+    if (!g.job) {
+        g.job = pickJob(g);
+        g.best = Infinity;
+        g.stuck = 0;
     }
-    if (!guy.job) return walkTo(at, guy.rest, GUY_WALK_SPEED);
+    if (!g.job) return walkTo(at, g.rest, GUY_WALK_SPEED);
 
-    const t = guy.job, p = t.body.getPosition();
+    const t = g.job, p = t.body.getPosition();
     const toGuy = Vec2.sub(at, p);
     const apart = toGuy.length();
     const side = apart > 1e-6 ? Vec2.mul(toGuy, 1 / apart) : Vec2(1, 0);
@@ -221,104 +253,133 @@ function guyWants(h) {
 
     // Running to it counts as progress as much as hauling it does, so he
     // can't stand wedged somewhere forever.
-    const left = dist + (guy.grip ? 0 : Math.max(0, apart - touching));
-    if (left < guy.best - 0.005) { guy.best = left; guy.stuck = 0; }
-    else if ((guy.stuck += h) > GUY_PATIENCE) {
-        guy.sulks.set(t, guy.clock + GUY_SULK_TIME);
-        letGoOfJob();
+    const left = dist + (g.grip ? 0 : Math.max(0, apart - touching));
+    if (left < g.best - 0.005) { g.best = left; g.stuck = 0; }
+    else if ((g.stuck += h) > GUY_PATIENCE) {
+        g.sulks.set(t, g.clock + GUY_SULK_TIME);
+        letGoOfJob(g);
         return Vec2(0, 0);
     }
 
-    if (!guy.grip) {
+    if (!g.grip) {
         if (apart > touching + GUY_REACH_MM / 1000) {
             return walkTo(at, standable(Vec2.add(p, Vec2.mul(side, touching))), GUY_WALK_SPEED);
         }
         // Got it: grab the near edge, and keep to the side he grabbed it from.
         const edge = Vec2.add(p, Vec2.mul(side, touching - GUY_R_MM / 1000));
-        guy.grip = world.createJoint(planck.MouseJoint({
+        g.grip = world.createJoint(planck.MouseJoint({
             maxForce: GUY_GRIP_FORCE,
             frequencyHz: GUY_GRIP_HZ,
             dampingRatio: 0.9,
         }, cloth, t.body, edge));
-        guy.hold = Vec2.mul(side, touching);
-        guy.carry = Vec2.clone(edge);
+        g.hold = Vec2.mul(side, touching);
+        g.carry = Vec2.clone(edge);
     }
 
     // Haul: the point he pulls toward runs ahead to home at carrying speed,
     // and he runs along beside it.
-    const grabbed = guy.grip.getAnchorB();
+    const grabbed = g.grip.getAnchorB();
     const goal = Vec2.add(t.home, Vec2.sub(grabbed, p));
-    const ahead = Vec2.sub(goal, guy.carry), aheadLen = ahead.length();
+    const ahead = Vec2.sub(goal, g.carry), aheadLen = ahead.length();
     const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * h);
-    if (aheadLen > 1e-6) guy.carry = Vec2.add(guy.carry, Vec2.mul(ahead, stepLen / aheadLen));
-    guy.grip.setTarget(guy.carry);
+    if (aheadLen > 1e-6) g.carry = Vec2.add(g.carry, Vec2.mul(ahead, stepLen / aheadLen));
+    g.grip.setTarget(g.carry);
     // keep pace with it, plus close whatever gap has opened
-    return Vec2.add(t.body.getLinearVelocity(), walkTo(at, standable(Vec2.add(p, guy.hold)), GUY_WALK_SPEED));
+    return Vec2.add(t.body.getLinearVelocity(), walkTo(at, standable(Vec2.add(p, g.hold)), GUY_WALK_SPEED));
+}
+
+// Counts the objects that have gone over the edge since the last step. Each one
+// calls for backup, unless it was the last: then there's nobody left to call
+// for, and the ending plays instead.
+function noticeDrops() {
+    for (const t of things) {
+        if (isGuy(t) || t.fall === undefined || countedDrops.has(t)) continue;
+        countedDrops.add(t);
+        if (!things.some(o => !isGuy(o) && onTable(o))) continue;
+        callForBackup();
+        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt) });
+    }
+}
+
+// A backup climbs up where the object fell, lying flat the way a guy knocked
+// off the table does, and his rest spot is where he arrived.
+function arriveBackups() {
+    backups = backups.filter(b => {
+        if (b.at > guyClock) return true;
+        addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
+        return false;
+    });
 }
 
 // Runs once per physics step.
-function stepGuy(h) {
-    if (!guy) return;
-    const t = guy.thing, b = t.body;
-    guy.clock += h;
+function stepGuys(h) {
+    guyClock += h;
+    noticeDrops();
+    arriveBackups();
+    for (const g of guys) stepGuy(g, h);
+}
+
+function stepGuy(g, h) {
+    const t = g.thing, b = t.body;
+    g.clock += h;
 
     if (!onTable(t)) {
-        guy.expect = null;
-        letGoOfJob();
-        if (!guy.leaving && t.fall > GUY_CLIMB_TIME) {
+        g.expect = null;
+        letGoOfJob(g);
+        if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             // knocked off with work still to do: he climbs back on where he went over
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);
             t.fall = undefined;
-            guy.down = GUY_STUN_TIME;
+            g.down = GUY_STUN_TIME;
         }
         return;
     }
 
     const v = b.getLinearVelocity();
     const m = b.getMass();
-    if (guy.expect && Vec2.distance(v, guy.expect) > GUY_KNOCK_SPEED + GUY_FORCE * h / m) knockDown();
-    guy.expect = null;
-    if (isHeld(b)) guy.down = Math.max(guy.down, GUY_STUN_TIME);
-    if (guy.floored) {
-        guy.flatAngle = v.length() > 0.05 ? Math.atan2(v.y, v.x) : guy.facing;
-        guy.floored = false;
+    if (g.expect && Vec2.distance(v, g.expect) > GUY_KNOCK_SPEED + GUY_FORCE * h / m) knockDown(g);
+    g.expect = null;
+    if (isHeld(b)) g.down = Math.max(g.down, GUY_STUN_TIME);
+    if (g.floored) {
+        g.flatAngle = v.length() > 0.05 ? Math.atan2(v.y, v.x) : g.facing;
+        g.floored = false;
     }
 
-    if (guy.down > 0) {
-        letGoOfJob();     // nobody keeps hold of anything lying flat, or held up by the scruff
-        guy.down = Math.max(0, guy.down - h);
-        guy.expect = Vec2.clone(v);
+    if (g.down > 0) {
+        letGoOfJob(g);     // nobody keeps hold of anything lying flat, or held up by the scruff
+        g.down = Math.max(0, g.down - h);
+        g.expect = Vec2.clone(v);
         applyFeelTo(t);   // back on the cloth's friction, like everything else
         return;
     }
     t.friction.setMaxForce(0);
     t.friction.setMaxTorque(0);
 
-    const want = guyWants(h);
+    const want = guyWants(g, h);
     const f = Vec2.mul(Vec2.sub(want, v), m / h);
     const fl = f.length();
     if (fl > GUY_FORCE) f.mul(GUY_FORCE / fl);
     b.applyForceToCenter(f, true);
-    guy.expect = Vec2.add(v, Vec2.mul(f, h / m));
+    g.expect = Vec2.add(v, Vec2.mul(f, h / m));
 
     const speed = v.length();
-    guy.stride += speed * h * 1000;
+    g.stride += speed * h * 1000;
     // He faces what he's holding, otherwise where he's going.
-    let face = guy.facing;
-    if (guy.faceTo !== null) {
-        face = guy.faceTo;
-    } else if (guy.grip) {
-        const g = guy.grip.getAnchorB();
-        face = Math.atan2(g.y - b.getPosition().y, g.x - b.getPosition().x);
+    let face = g.facing;
+    if (g.faceTo !== null) {
+        face = g.faceTo;
+    } else if (g.grip) {
+        const hands = g.grip.getAnchorB();
+        face = Math.atan2(hands.y - b.getPosition().y, hands.x - b.getPosition().x);
     } else if (speed > 0.05) {
         face = Math.atan2(v.y, v.x);
     }
-    let turn = face - guy.facing;
+    let turn = face - g.facing;
     turn = Math.atan2(Math.sin(turn), Math.cos(turn));
     // brisk at work; slow once there's nothing left
-    guy.facing += turn * Math.min(1, h * (guy.leaving ? 2.5 : 12));
+    g.facing += turn * Math.min(1, h * (g.leaving ? 2.5 : 12));
 }
 
 // His look, from Paul's references: gangly and fussy, a big head with ears,
@@ -352,14 +413,14 @@ function drawHead(c, x) {
 // Running, legs and arms swinging opposite each other; reaching out in front
 // with both hands while he has hold of something. Once there's nothing left,
 // he slumps: short steps, arms hanging, head hung forward.
-function drawGuyStanding(c) {
-    c.rotate(guy.facing);
-    const swing = Math.sin(guy.stride / GUY_STRIDE_MM * Math.PI);
-    const sad = !!guy.leaving;
+function drawGuyStanding(c, g) {
+    c.rotate(g.facing);
+    const swing = Math.sin(g.stride / GUY_STRIDE_MM * Math.PI);
+    const sad = !!g.leaving;
     c.beginPath();
     for (const s of [-1, 1]) {
         limb(c, -2, s * 5, swing * s * (sad ? 7 : 16), s * 9, 5);
-        if (guy.grip) limb(c, 2, s * 11, 24, s * 8, 6);
+        if (g.grip) limb(c, 2, s * 11, 24, s * 8, 6);
         else if (sad) limb(c, -1, s * 10, -swing * s * 3 - 2, s * 15, 5);
         else limb(c, 0, s * 11, -swing * s * 13, s * 26, 6);
     }
@@ -371,8 +432,8 @@ function drawGuyStanding(c) {
 }
 
 // Flat on his back, arms and legs flung out, laid the way he was knocked.
-function drawGuyFlat(c) {
-    c.rotate(guy.flatAngle);
+function drawGuyFlat(c, g) {
+    c.rotate(g.flatAngle);
     c.beginPath();
     for (const s of [-1, 1]) {
         limb(c, -12, s * 5, -40, s * 18, 5);   // legs

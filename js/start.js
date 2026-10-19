@@ -3,6 +3,7 @@
 function setTable(layout) {
     letGoOfEverything();
     buildWorld();
+    resetGuys();
     for (const o of layout) addThing(o.kind, o.x, o.y, o.angle);
     addGuy(GUY_START.x, GUY_START.y);
     startTalk();
@@ -35,7 +36,7 @@ function drawThings(c) {
         c.translate(at.x, at.y);
         c.rotate(t.body.getAngle());
         c.scale(shrink / MM_PER_UNIT, shrink / MM_PER_UNIT);
-        t.kind.draw(c);
+        t.kind.draw(c, t);
         c.restore();
     }
 }
@@ -46,7 +47,7 @@ function loop(time) {
     // a hidden tab stops the clock; don't replay the gap
     const dt = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.25);
     lastTime = time;
-    stepWorld(dt, stepGuy);
+    stepWorld(dt, stepGuys);
     dropFallen();
 
     ctx.fillStyle = PAPER;
