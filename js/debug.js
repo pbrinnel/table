@@ -48,7 +48,9 @@ function dbgGuyState(g) {
     if (!onTable(g.thing)) return 'fallen';
     if (g.leaving) return 'leaving: ' + g.leaving.phase;
     if (g.down > 0) return 'down, ' + dbgOneDec(g.down) + ' s left';
-    if (g.lift) return 'putting a cup back: ' + g.lift.phase;
+    if (g.entrance) return 'arriving (' + g.entrance.kind + ')';
+    if (g.over) return 'climbing over';
+    if (g.lift) return 'putting a piece back: ' + g.lift.phase;
     if (g.grip) return 'hauling';
     if (g.job) return 'working';
     return 'wandering';

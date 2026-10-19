@@ -179,6 +179,57 @@ function drawCup(c, cup, inner, handleFrom, handleTo, handleW) {
     inkLine(c);
 }
 
+// The napkin with one corner (local signs sx, sy) tipped up about a fold that
+// lies `fold` mm back from it, across its diagonal, by `tilt`: 0 flat, PI laid
+// back over itself, drawn squashed toward the fold by cos(tilt). Its top side
+// shows the hem line, as the napkin does flat; once tipped past edge-on, its
+// plain underside shows.
+function drawNapkinFlap(c, f) {
+    const corners = [[-100, -60], [100, -60], [100, 60], [-100, 60]];
+    const K = [f.sx * 100, f.sy * 60], leg = f.fold * Math.SQRT2;
+    const P1 = [K[0] - f.sx * leg, K[1]], P2 = [K[0], K[1] - f.sy * leg];   // where the fold meets the edges
+    const hem = () => {
+        c.beginPath();
+        c.moveTo(-100, -42);
+        c.lineTo(100, -42);
+    };
+    // the rest of the napkin, its corner cut across the fold
+    const pts = [];
+    corners.forEach(([x, y], i) => {
+        // arriving along the horizontal edge meets the fold at P1 first
+        if (x === K[0] && y === K[1]) pts.push(...(corners[(i + 3) % 4][1] === y ? [P1, P2] : [P2, P1]));
+        else pts.push([x, y]);
+    });
+    c.beginPath();
+    pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y));
+    c.closePath();
+    inkShape(c);
+    c.save();
+    c.clip();
+    hem();
+    inkLine(c);
+    c.restore();
+    // the corner
+    c.save();
+    const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2;
+    const k = Math.cos(f.tilt) - 1, nx = f.sx / Math.SQRT2, ny = f.sy / Math.SQRT2;
+    c.translate(mx, my);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-mx, -my);
+    c.beginPath();
+    c.moveTo(P1[0], P1[1]);
+    c.lineTo(K[0], K[1]);
+    c.lineTo(P2[0], P2[1]);
+    c.closePath();
+    inkShape(c);
+    if (Math.cos(f.tilt) > 0) {
+        c.clip();
+        hem();
+        inkLine(c);
+    }
+    c.restore();
+}
+
 // The pieces of a fork, spoon or knife: the long handle and the working end.
 function endPieces(L, handleW, endLen, endW) {
     return [
@@ -316,7 +367,12 @@ const KINDS = {
     napkin: {
         mass: 30,
         pieces: [{ box: [200, 120] }],
-        draw(c) {
+        // t.flap, while a guy comes out from under it, has one corner tipped up
+        draw(c, t) {
+            if (t && t.flap) {
+                drawNapkinFlap(c, t.flap);
+                return;
+            }
             c.beginPath();
             c.roundRect(-100, -60, 200, 120, 3);
             inkShape(c);

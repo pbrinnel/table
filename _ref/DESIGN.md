@@ -207,6 +207,14 @@ gets messier (dhfm91).
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
   as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
   backups wander like the first guy.
+  - **Update (Paul): how backups arrive.** A backup crawls out from under something
+    still on the table, picked from Paul's spawn lab (`_labs/spawn.html`): from under the
+    napkin while it's free, its corner lifting with a true tilt and flipping over, then
+    dropping back with a little bounce (1c2); otherwise from under the nearest round
+    thing to where the object fell, which tilts up while he peeks out, looks both ways,
+    wriggles out and shakes himself off (1a). With nothing free to come out from under,
+    he climbs up lying flat as before. Grabbing him or his cover, or moving it, ends his
+    arrival at once.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.

@@ -6,7 +6,8 @@
 // that hits him hard enough knocks him flat for a while. With nothing to do, a
 // guy wanders, spreading out from the other idle guys. Every time an object
 // goes over the edge (and something is still left), he calls for backup and one
-// more guy climbs up where it fell, for the rest of the run. They share the
+// more guy comes out from under something on the table, for the rest of the
+// run. They share the
 // work: each takes a different job. When the last thing goes over the edge,
 // every one of them follows it, slowly: there's nothing left for them. The
 // table stays empty after that.
@@ -93,6 +94,47 @@ const GUY_CLIMB_OVER_SPEED = 0.25; // m/s across the top
 const GUY_OVER_LOOK_MM = 400;    // how far past himself he looks for somewhere to come down
 const GUY_BARGE_TIME = 1.5;      // seconds
 
+// How a backup arrives (DESIGN.md, "The little guy"): out from under the napkin
+// if it's on the table (GUY_NAP_*), else from under the nearest round thing
+// that lies on the cloth (GUY_PEEK_*). Times are seconds, lengths mm, angles
+// radians, from the spawn lab's candidates 1c2 and 1a.
+const GUY_ENTER_MOVE_MM = 20;    // the thing he's under moving this far ends it
+const GUY_ENTER_TURN = 0.3;      // or turning this far
+const GUY_ENTER_DIRS = 16;       // directions tried for a clear spot to come out at
+
+// 1a: the thing's rim lifts on the side he comes out on, he peeks and looks both
+// ways, wriggles out, stands and shakes himself off.
+const GUY_PEEK_SQUASH = 0.8;     // the thing's width at its most lifted, as a fraction (it tips about its far rim)
+const GUY_PEEK_HIDE_MM = -7;     // his center, from the thing's center, while hidden
+const GUY_PEEK_PEEK_MM = -32;    // from its rim, while he peeks
+const GUY_PEEK_OUT_MM = 50;      // from its rim, once he's crawled out
+const GUY_PEEK_STEP_MM = 10;     // the step he takes standing up
+const GUY_PEEK_LIFT_T0 = 0.4, GUY_PEEK_LIFT_T = 0.5;
+const GUY_PEEK_HEAD_T = 0.5;     // his head comes out
+const GUY_PEEK_LOOK_T = 2.0, GUY_PEEK_LOOK_SWINGS = 1.5, GUY_PEEK_LOOK_ANGLE = 0.6;   // swings are full cycles over LOOK_T
+const GUY_PEEK_OUT_T = 1.6;      // wriggling out
+const GUY_PEEK_WRIGGLE_HZ = 2;
+const GUY_PEEK_SETTLE_T = 0.4;   // the thing comes back down as he gets out
+const GUY_PEEK_RISE_T = 0.7;
+const GUY_PEEK_SHAKE_T = 1.5, GUY_PEEK_SHAKE_HZ = 3, GUY_PEEK_SHAKE_ANGLE = 0.55;
+const GUY_PEEK_HOLD_T = 0.4;
+
+// 1c2: a corner of the napkin tips up about its fold, passing edge-on and
+// showing its plain underside, he crawls out under it, it drops back with a
+// bounce, and he rises and brushes himself off.
+const GUY_NAP_FOLD_MM = 32;      // the fold lies this far back from the corner, across it
+const GUY_NAP_START_MM = -50;    // his center along the corner's diagonal, from the corner, while hidden
+const GUY_NAP_OUT_MM = 44;       // once he's crawled out
+const GUY_NAP_STAND_MM = 54;     // standing
+const GUY_NAP_TWITCH_T0 = 0.3, GUY_NAP_TWITCH_T = 0.6, GUY_NAP_TWITCH_HZ = 2, GUY_NAP_TWITCH = 0.25;   // the corner stirs
+const GUY_NAP_LIFT_T0 = 1.0, GUY_NAP_LIFT_T = 0.9;
+const GUY_NAP_CRAWL_T = 2.4, GUY_NAP_WRIGGLE_HZ = 2;
+const GUY_NAP_RISE_T = 0.9, GUY_NAP_RISE_TILT = 0.95;
+const GUY_NAP_DROP_T0 = 0.5, GUY_NAP_DROP_T = 0.5;   // the corner drops, from this long into his rise
+const GUY_NAP_BOUNCE = 0.35, GUY_NAP_BOUNCE_DECAY = 5, GUY_NAP_BOUNCE_HZ = 1.2;
+const GUY_NAP_BRUSH_T = 1.5, GUY_NAP_BRUSH_HZ = 2.5;
+const GUY_NAP_HOLD_T = 0.4;
+
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
 const GUY_STRIDE_MM = 22;        // how far one step of his feet carries him
@@ -124,6 +166,7 @@ const GUY_KIND = {
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
         if (isHeld(t.body)) drawGuyFlailing(c, t.guy);
+        else if (t.guy.entrance) drawGuyEntrance(c, t.guy);
         else if (t.guy.down > 0) drawGuyFlat(c, t.guy);
         else drawGuyStanding(c, t.guy);
     },
@@ -160,6 +203,7 @@ function addGuy(xMm, yMm) {
         roam: null,       // where he's wandering to, in meters, while idle
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
+        entrance: null,   // while he comes out from under something: see startEntrance()
     };
     thing.guy = g;
     guys.push(g);
@@ -253,9 +297,10 @@ function settled(s) {
 }
 
 // Not to be taken on: tipping down a level, or in some guy's hands, or the
-// saucer another guy is standing on.
+// saucer another guy is standing on, or what a backup is coming out from under.
 function busy(t) {
-    return t.drop !== undefined || t.lifted || guys.some(o => o.lift && o.lift.saucer === t);
+    return t.drop !== undefined || t.lifted
+        || guys.some(o => (o.lift && o.lift.saucer === t) || (o.entrance && o.entrance.src === t));
 }
 
 // Whatever the player has just picked up comes first: every guy goes straight
@@ -490,7 +535,7 @@ function steer(g, want, toGo) {
 
 // Standing, not knocked down, and nothing to do.
 function isIdle(g) {
-    return !g.job && g.down <= 0 && !g.leaving && onTable(g.thing);
+    return !g.job && g.down <= 0 && !g.leaving && !g.entrance && onTable(g.thing);
 }
 
 // Is there an object (not a guy) where he'd stand at p? Tested at a grid of
@@ -658,16 +703,19 @@ function noticeDrops() {
         countedDrops.add(t);
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
-        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt) });
+        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt), edge: Vec2.clone(t.edgeAt) });
     }
 }
 
-// A backup climbs up where the object fell, lying flat the way a guy knocked
-// off the table does.
+// A backup comes out from under something on the table (see chooseEntrance).
+// With nothing to come out from, he climbs up where the object fell, lying flat
+// the way a guy knocked off the table does.
 function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
-        addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
+        const how = chooseEntrance(b.edge);
+        if (how) startEntrance(how);
+        else addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
         return false;
     });
 }
@@ -813,6 +861,200 @@ function endClimbOver(g) {
     g.over = null;
 }
 
+// ---- Arriving ----
+// A backup doesn't climb up lying flat: he comes out from under something that
+// lies on the cloth (DESIGN.md, "The little guy"). His body is switched off and
+// moved by hand for the whole entrance, drawn a level below the cloth's things
+// so he's under whatever hides him, and switched on standing at a clear spot
+// when it's over. It ends at once, with him out at that spot, if he's grabbed,
+// or what he's under is grabbed, moves, or starts to fall.
+
+// The corner of a napkin at `at` turned by `angle` (local signs sx, sy), and the
+// unit vector along its diagonal, out of the corner.
+function napkinCorner(kind, at, angle, sx, sy) {
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const [bw, bh] = kind.pieces[0].box;
+    const lx = sx * bw / 2000, ly = sy * bh / 2000;
+    return {
+        corner: Vec2(at.x + lx * cos - ly * sin, at.y + lx * sin + ly * cos),
+        dir: Vec2((sx * cos - sy * sin) / Math.SQRT2, (sx * sin + sy * cos) / Math.SQRT2),
+    };
+}
+
+// How a backup comes in, or null if nothing will do. The napkin if it's free to
+// come out from under; otherwise whatever round thing on the cloth is nearest
+// where the object fell (edge, in meters). Each must have a clear spot to come
+// out at.
+function chooseEntrance(edge) {
+    const free = things.filter(t => !isGuy(t) && onTable(t) && t.level === LEVEL_ON_CLOTH
+        && !isHeld(t.body) && !busy(t) && !things.some(o => o.on === t) && !guys.some(o => o.job === t));
+    const probe = { thing: { level: LEVEL_ON_CLOTH } };    // stands in for him, who doesn't exist yet
+    const napkin = free.find(t => t.kind === KINDS.napkin);
+    const round = free.filter(t => t.kind.pieces.length === 1 && t.kind.pieces[0].circle)
+        .sort((a, b) => Vec2.distance(a.body.getPosition(), edge) - Vec2.distance(b.body.getPosition(), edge));
+
+    for (const src of napkin ? [napkin, ...round] : round) {
+        const at = src.body.getPosition(), toward = unitFrom(at, edge);
+        if (src === napkin) {
+            // the corner nearest the way to the object that fell, with room past it
+            const corners = [];
+            for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+                const k = napkinCorner(src.kind, at, src.body.getAngle(), sx, sy);
+                corners.push({ sx, sy, dir: k.dir, exit: Vec2.add(k.corner, Vec2.mul(k.dir, GUY_NAP_STAND_MM / 1000)) });
+            }
+            corners.sort((a, b) => Vec2.dot(b.dir, toward) - Vec2.dot(a.dir, toward));
+            const c = corners.find(o => hasRoom(probe, o.exit, null));
+            if (c) return { kind: '1c2', src, sx: c.sx, sy: c.sy, dir: c.dir, exit: c.exit };
+        } else {
+            // the direction nearest that way with room past the rim
+            const a0 = Math.atan2(toward.y, toward.x), far = reachOf(src) + (GUY_PEEK_OUT_MM + GUY_PEEK_STEP_MM) / 1000;
+            for (let i = 0; i <= GUY_ENTER_DIRS / 2; i++) {
+                for (const sgn of i ? [1, -1] : [1]) {
+                    const a = a0 + sgn * i * Math.PI * 2 / GUY_ENTER_DIRS;
+                    const dir = Vec2(Math.cos(a), Math.sin(a)), exit = Vec2.add(at, Vec2.mul(dir, far));
+                    if (hasRoom(probe, exit, null)) return { kind: '1a', src, dir, exit };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function startEntrance(how) {
+    const src = how.src, at = src.body.getPosition();
+    const g = addGuy(at.x * 1000, at.y * 1000);
+    g.thing.body.setActive(false);
+    g.thing.lifted = true;
+    setLevel(g.thing, LEVEL_ON_CLOTH - 1);
+    g.facing = Math.atan2(how.dir.y, how.dir.x);
+    g.entrance = {
+        kind: how.kind, src, t: 0, dir: how.dir, exit: how.exit,
+        sx: how.sx, sy: how.sy,
+        from: Vec2.clone(at), angle: src.body.getAngle(),     // where the thing was when he started
+        pose: ENTER_TUCK, sw: 0, head: 0, shake: 0, rise: 0,  // how he's drawn this step
+    };
+}
+
+const enterSeg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const enterLerp = (a, b, u) => a + (b - a) * u;
+const enterMix = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u);
+// a bounce that dies away, s seconds in
+const enterSettle = (s, amp, decay, hz) => amp * Math.exp(-decay * s) * Math.abs(Math.sin(s * hz * Math.PI * 2));
+
+// When each stage of 1a ends, in seconds.
+function peekEnds() {
+    const liftEnd = GUY_PEEK_LIFT_T0 + GUY_PEEK_LIFT_T, headEnd = liftEnd + GUY_PEEK_HEAD_T;
+    const lookEnd = headEnd + GUY_PEEK_LOOK_T, outEnd = lookEnd + GUY_PEEK_OUT_T, riseEnd = outEnd + GUY_PEEK_RISE_T;
+    return { liftEnd, headEnd, lookEnd, outEnd, riseEnd, end: riseEnd + GUY_PEEK_SHAKE_T + GUY_PEEK_HOLD_T };
+}
+
+// And of 1c2.
+function napEnds() {
+    const liftEnd = GUY_NAP_LIFT_T0 + GUY_NAP_LIFT_T, crawlEnd = liftEnd + GUY_NAP_CRAWL_T, riseEnd = crawlEnd + GUY_NAP_RISE_T;
+    const dropT0 = crawlEnd + GUY_NAP_DROP_T0;
+    return { liftEnd, crawlEnd, riseEnd, dropT0, dropEnd: dropT0 + GUY_NAP_DROP_T, end: riseEnd + GUY_NAP_BRUSH_T + GUY_NAP_HOLD_T };
+}
+
+// 1a: the rim on the side he comes out on lifts (the thing tips about its far
+// rim, drawn squashed toward it), he peeks and looks both ways, wriggles out
+// and stands, and shakes himself off.
+function stepPeek(g, E) {
+    const s = E.src, t = E.t, e = peekEnds();
+    const rim = reachOf(s) * 1000;
+    const lift = easeLift(enterSeg(t, GUY_PEEK_LIFT_T0, e.liftEnd)) * (1 - easeLift(enterSeg(t, e.outEnd - GUY_PEEK_SETTLE_T, e.outEnd)));
+    const hu = easeLift(enterSeg(t, e.liftEnd, e.headEnd));
+    const ou = easeLift(enterSeg(t, e.lookEnd, e.outEnd));
+    const ru = easeLift(enterSeg(t, e.outEnd, e.riseEnd));
+    const sh = enterSeg(t, e.riseEnd, e.riseEnd + GUY_PEEK_SHAKE_T);
+    const along = enterLerp(enterLerp(GUY_PEEK_HIDE_MM, rim + GUY_PEEK_PEEK_MM, hu), rim + GUY_PEEK_OUT_MM, ou) + ru * GUY_PEEK_STEP_MM;
+    g.thing.body.setTransform(Vec2.add(E.from, Vec2.mul(E.dir, along / 1000)), 0);
+
+    E.head = t < e.lookEnd ? Math.sin(enterSeg(t, e.headEnd, e.lookEnd) * GUY_PEEK_LOOK_SWINGS * Math.PI * 2) * GUY_PEEK_LOOK_ANGLE : 0;
+    E.shake = 0;
+    E.sw = 0;
+    if (t > e.lookEnd && t < e.outEnd) E.sw = Math.sin(t * GUY_PEEK_WRIGGLE_HZ * Math.PI * 2);
+    else if (t >= e.riseEnd) {
+        E.shake = Math.sin(t * GUY_PEEK_SHAKE_HZ * Math.PI * 2) * GUY_PEEK_SHAKE_ANGLE * (1 - sh);
+        E.sw = Math.sin(t * GUY_PEEK_SHAKE_HZ * Math.PI * 2 + 1) * (1 - sh);
+    }
+    E.pose = enterMix(enterMix(ENTER_TUCK, ENTER_FLAT, ou), ENTER_STAND, ru);
+    // the hinge is the rim behind him, so the near rim comes up; `n` points at
+    // the hinge, which is the way a tall thing's top leans
+    s.enterTilt = {
+        at: Vec2.sub(s.body.getPosition(), Vec2.mul(E.dir, rim / 1000)),
+        n: Vec2(-E.dir.x, -E.dir.y),
+        tilt: Math.acos(1 - lift * (1 - GUY_PEEK_SQUASH)),
+    };
+}
+
+// 1c2: the napkin's corner tips up about its fold (drawn by the napkin's own
+// draw, from `flap`), he crawls out under it, it drops back and bounces, and he
+// rises with a tilt and brushes himself off.
+function stepNap(g, E) {
+    const s = E.src, t = E.t, e = napEnds();
+    const k = napkinCorner(s.kind, E.from, E.angle, E.sx, E.sy);
+    const lu = easeLift(enterSeg(t, GUY_NAP_LIFT_T0, e.liftEnd));
+    const du = easeLift(enterSeg(t, e.dropT0, e.dropEnd));
+    let tilt;
+    if (t < GUY_NAP_LIFT_T0) {
+        tilt = Math.max(0, Math.sin(enterSeg(t, GUY_NAP_TWITCH_T0, GUY_NAP_TWITCH_T0 + GUY_NAP_TWITCH_T)
+            * GUY_NAP_TWITCH_HZ * GUY_NAP_TWITCH_T * Math.PI * 2)) * GUY_NAP_TWITCH;
+    } else if (t < e.dropEnd) {
+        tilt = Math.PI * lu * (1 - du);
+    } else {
+        tilt = enterSettle(t - e.dropEnd, GUY_NAP_BOUNCE, GUY_NAP_BOUNCE_DECAY, GUY_NAP_BOUNCE_HZ);
+    }
+    s.flap = { sx: E.sx, sy: E.sy, fold: GUY_NAP_FOLD_MM, tilt };
+
+    const cu = easeLift(enterSeg(t, e.liftEnd, e.crawlEnd));
+    const ru = easeLift(enterSeg(t, e.crawlEnd, e.riseEnd));
+    const along = enterLerp(GUY_NAP_START_MM, GUY_NAP_OUT_MM, cu) + ru * (GUY_NAP_STAND_MM - GUY_NAP_OUT_MM);
+    g.thing.body.setTransform(Vec2.add(k.corner, Vec2.mul(k.dir, along / 1000)), 0);
+
+    E.head = 0;
+    E.shake = 0;
+    E.sw = 0;
+    if (t > e.liftEnd && t < e.crawlEnd) E.sw = Math.sin(t * GUY_NAP_WRIGGLE_HZ * Math.PI * 2) * (cu > 0 && cu < 1 ? 1 : 0.3);
+    E.pose = enterMix(enterMix(ENTER_TUCK, ENTER_FLAT, easeLift(enterSeg(t, e.liftEnd, e.liftEnd + GUY_NAP_CRAWL_T * 0.5))), ENTER_STAND, ru);
+    if (t >= e.riseEnd) {
+        const bu = enterSeg(t, e.riseEnd, e.riseEnd + GUY_NAP_BRUSH_T);
+        E.pose = ENTER_BRUSH;
+        E.sw = Math.sin(bu * GUY_NAP_BRUSH_HZ * GUY_NAP_BRUSH_T * Math.PI * 2) * (1 - bu * bu);
+    }
+    E.rise = t >= e.crawlEnd && t < e.riseEnd ? Math.sin(Math.PI * ru) * GUY_NAP_RISE_TILT : 0;
+}
+
+function stepEntrance(g, h) {
+    const E = g.entrance, s = E.src;
+    let turn = s.body.getAngle() - E.angle;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    if (isHeld(g.thing.body) || isHeld(s.body) || !onTable(s) || s.drop !== undefined || s.lifted
+        || Vec2.distance(s.body.getPosition(), E.from) > GUY_ENTER_MOVE_MM / 1000
+        || Math.abs(turn) > GUY_ENTER_TURN) {
+        endEntrance(g);
+        return;
+    }
+    E.t += h;
+    if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
+    if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
+}
+
+// Out and standing at the spot he was coming out at, on the cloth's level, and
+// whatever he was under is as it was.
+function endEntrance(g) {
+    const E = g.entrance, b = g.thing.body;
+    E.src.enterTilt = undefined;
+    E.src.flap = undefined;
+    b.setTransform(E.exit, 0);
+    b.setLinearVelocity(Vec2(0, 0));
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.thing.drawScale = 1;
+    setLevel(g.thing, LEVEL_ON_CLOTH);
+    g.expect = null;
+    g.entrance = null;
+}
+
 // Touching anything but his job, he slides along it rather than leaning into it:
 // takes out of `want` any part that points into what he's touching, and says
 // whether he's touching anything at all. Even a light push held for a while
@@ -847,6 +1089,13 @@ function stepGuy(g, h) {
             t.fall = undefined;
             g.down = GUY_STUN_TIME;
         }
+        return;
+    }
+
+    // coming out from under something, unless he's grabbed (or it is, or it
+    // moves): then he's out at once where he was headed
+    if (g.entrance) {
+        stepEntrance(g, h);
         return;
     }
 
@@ -1039,4 +1288,53 @@ function drawGuyFlat(c, g) {
     c.ellipse(-4, 0, 12, 9, 0, 0, Math.PI * 2);
     inkShape(c);
     drawHead(c, 20, g);
+}
+
+// Coming out from under something (startEntrance). A pose is numbers, so two
+// can be blended as he goes from lying to standing:
+// [body x, body rx, body ry, head x,
+//  leg x0, y0, x1, y1, swing,   arm x0, y0, x1, y1, swing]
+// y values are for the +y side and the -y side mirrors; a leg's x1 also moves
+// by swing * side * its swing number, and an arm's by the opposite, as in a run.
+const ENTER_STAND = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   0, 11, 0, 26, 13];
+const ENTER_FLAT = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 18, 38, 6];
+const ENTER_TUCK = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 10, 14, 4];    // arms at his sides, so nothing pokes out from cover
+const ENTER_BRUSH = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   2, 11, 6, 9, 10];         // hands on his front, sweeping
+
+// Squashes what's drawn next toward the line through (ax, ay) with unit normal
+// (nx, ny) by cos(tilt): tilting about that line, seen from above.
+function squashLocal(c, ax, ay, nx, ny, tilt) {
+    const k = Math.cos(tilt) - 1;
+    c.translate(ax, ay);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-ax, -ay);
+}
+
+// A guy in a blended pose, with his head turned by headTurn about his neck.
+function drawGuyPose(c, g, pose, sw, headTurn) {
+    const [bx, brx, bry, hx, lx0, ly0, lx1, ly1, lk, ax0, ay0, ax1, ay1, ak] = pose;
+    c.beginPath();
+    for (const s of [-1, 1]) {
+        limb(c, lx0, s * ly0, lx1 + sw * s * lk, s * ly1, 5);
+        limb(c, ax0, s * ay0, ax1 - sw * s * ak, s * ay1, 6);
+    }
+    inkLine(c);
+    c.beginPath();
+    c.ellipse(bx, 0, brx, bry, 0, 0, Math.PI * 2);
+    inkShape(c);
+    c.save();
+    c.translate(bx + brx, 0);
+    c.rotate(headTurn);
+    c.translate(-(bx + brx), 0);
+    drawHead(c, hx, g);
+    c.restore();
+}
+
+// Coming out from under something, in the pose and turn startEntrance's steps
+// worked out: tilting about his feet as he rises.
+function drawGuyEntrance(c, g) {
+    const E = g.entrance;
+    c.rotate(g.facing + E.shake);
+    if (E.rise) squashLocal(c, E.pose[6], 0, 1, 0, E.rise);
+    drawGuyPose(c, g, E.pose, E.sw, E.head);
 }

@@ -54,6 +54,12 @@ function drawThings(c) {
             tilt = Math.sin(Math.PI * u) * DROP_TILT * Math.PI / 180;
             tiltOut = t.dropOut;
             squashToward(c, t.dropRim, t.dropOut, tilt);
+        } else if (t.enterTilt) {
+            // a guy lifting its near rim to come out from under it: tipping
+            // about the far rim
+            tilt = t.enterTilt.tilt;
+            tiltOut = t.enterTilt.n;
+            squashToward(c, t.enterTilt.at, tiltOut, tilt);
         }
         const at = mmToFrame(pos.x * 1000, pos.y * 1000);
         c.translate(at.x, at.y);
