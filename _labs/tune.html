@@ -26,6 +26,12 @@
         user-select: none;
     }
 
+    @font-face {
+        font-family: "Patrick Hand";
+        src: url("../fonts/patrick-hand-latin-400-normal.woff2") format("woff2");
+        font-display: block;
+    }
+
     #stage { display: block; background: #fff; touch-action: none; max-width: 100%; }
 
     #panel {
@@ -90,10 +96,18 @@ const TUNABLES = [
         ['GUY_SULK_TIME', 0, 30, 0.5],
         ['GUY_TIDY_MM', 2, 100, 1],
         ['GUY_CLIMB_TIME', 0, 10, 0.25],
+        ['GUY_BACKUP_DELAY', 0, 10, 0.25],
         ['GUY_SAD_SPEED', 0.01, 0.5, 0.01],
         ['GUY_DESPAIR_TIME', 0, 10, 0.25],
         ['GUY_LOOK_TIME', 0.2, 5, 0.1],
         ['GUY_BRINK_TIME', 0, 10, 0.25],
+    ]],
+    ['js/talk.js', [
+        ['TALK_CHARS_PER_SEC', 5, 120, 1],
+        ['TALK_MAD_TIME', 0, 15, 0.25],
+        ['TALK_BACKUP_TIME', 0, 10, 0.25],
+        ['TALK_LOST_TIME', 0, 15, 0.25],
+        ['TALK_FADE_TIME', 0, 2, 0.05],
     ]],
     ['js/look.js', [
         ['LINE_WIDTH', 0.5, 8, 0.25],

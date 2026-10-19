@@ -21,7 +21,7 @@ How the design maps onto it:
 | Weight | each fixture's density, set so the body's mass matches the object's real mass |
 | Drag on a spring | a `MouseJoint` per pointer, anchored where the object was grabbed, with `DRAG_MAX_FORCE`, `DRAG_HZ`, `DRAG_DAMPING`. `DRAG_MAX_FORCE` is the same for every object, so heavy ones lag |
 | Falling off | no rim; a body whose center leaves the table is switched off (`setActive(false)`) and drawn tipping (squashed toward the edge line by cos of the tilt) and shrinking from then on |
-| The little guy | a dynamic circle with `fixedRotation`. No cloth friction while he's up: each step, a force capped at `GUY_FORCE` steers him toward the velocity he wants. He grabs with his own `MouseJoint`, capped at `GUY_GRIP_FORCE`. Knockdowns are judged from jolts to his speed, because he's a bullet and Planck doesn't report how hard fast collisions were |
+| The little guy | a dynamic circle with `fixedRotation`; there can be several (a backup joins for each object that goes over the edge), each its own body and its own grip. No cloth friction while he's up: each step, a force capped at `GUY_FORCE` steers him toward the velocity he wants. He grabs with his own `MouseJoint`, capped at `GUY_GRIP_FORCE`. Knockdowns are judged from jolts to his speed, because he's a bullet and Planck doesn't report how hard fast collisions were |
 | No tunneling on a flick | cutlery and other thin, light objects are `bullet` bodies; there's a speed cap (`MAX_SPEED`) |
 
 **Units.** Physics runs in meters and kilograms, the scale Box2D is tuned for. Drawing is in
@@ -54,7 +54,8 @@ In load order. Each declares what the ones after it use.
 | `js/objects.js` | The catalog: each kind of object's real size, mass, physics shape and drawing |
 | `js/world.js` | The Planck world, cloth friction, falling off the edge, the fixed step |
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
-| `js/guy.js` | The little guy: choosing jobs, grabbing and hauling, knockdowns, the end |
+| `js/guy.js` | The little guys: sharing jobs, backups arriving, grabbing and hauling, knockdowns, the end |
+| `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines, the backup call |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
 Positions are in mm from the table's center, x right and y down; the physics divides by
@@ -69,6 +70,9 @@ handle position and rotation, so a drawing never needs to know where its object 
 
 The physics shape is simpler than the drawing where that's invisible: a fork's tines are
 drawn, but it collides as a handle and a head.
+
+The dialog is drawn upright on the screen, through `frame.js`'s upright view, so its text
+never turns with the table on a portrait phone.
 
 ## Labs
 

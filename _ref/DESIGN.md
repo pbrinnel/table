@@ -34,7 +34,7 @@ ending of sorts (see **The little guy**).
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
-- No menus, no text, no buttons in the first playable.
+- No menus and no buttons. The only text is the little guy talking (see **The guy talks**).
 
 ## Moving things
 
@@ -88,7 +88,8 @@ where it was, and you can knock him around.
   he had; let go, he lies stunned, then gets up. *Prototype choice.*
 - **Knocked off the table:** he falls like anything else, then climbs back on where he went
   over after `GUY_CLIMB_TIME`. *Prototype choice.*
-- **The end (Paul):** when the last object has gone over the edge, he follows it, slowly
+- **The end (Paul):** when the last object has gone over the edge, he (every guy, once
+  there are backups) follows it, slowly
   and sadly. He freezes (`GUY_DESPAIR_TIME`), turns slowly to look at the empty spots
   where things were, trudges to the nearest edge with his head hung and arms limp
   (`GUY_SAD_SPEED`), stands at the brink and looks back once (`GUY_BRINK_TIME`), and steps
@@ -100,6 +101,37 @@ where it was, and you can knock him around.
   something; limbs flung out when he's knocked flat.
 
 Every number about him is a slider on the tune page.
+
+## The guy talks
+
+How the game teaches the player, and later how it marks him getting worse as the table
+gets messier (dhfm91).
+
+- **The box:** an RPG-style dialog box at the bottom of the screen: his portrait in a
+  square on the left, his line typed out beside it. Same two colors and same pen as
+  everything else, square corners. It always reads upright, even when the table is turned
+  on a phone. It doesn't block touches.
+- **The portrait (dhfm91):** an original drawing of him, head and shoulders,
+  three-quarter view, in the chiseled-hero type of the "chad" memes without copying any
+  of them: a black pompadour, a huge square jutting jaw with a cleft chin, a heavy
+  brow with the eyes in shadow, a thick neck, broad shoulders. Solid black shapes and the
+  one pen, no grey. Three faces: stern (a smirk), mad (clenched teeth), sad.
+- **The lettering:** Patrick Hand, a hand-lettered font that ships with the game.
+- **The opening (dhfm91):** when the game starts, the box shows the stern face and
+  "Don't you DARE touch my plates!" It stays until the player grabs anything, an object or
+  him. Then it switches to the mad face and "Now you've made me MAD!", which stays
+  `TALK_MAD_TIME` (5 s) once typed, then fades out (`TALK_FADE_TIME`).
+- **Backup (dhfm91):** every object that goes over the edge, unless it was the last, makes
+  him say "Calling for backup!" (mad face, `TALK_BACKUP_TIME`), and one more guy climbs
+  up where it fell `GUY_BACKUP_DELAY` later, lying flat at first like a guy knocked off,
+  and stays for the rest of the run. Each guy takes a different job, so two tidy twice
+  as fast; anything the player grabs, every guy on his feet rushes it. A backup's rest
+  spot is where he arrived.
+- **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
+  says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
+  then every one of them plays the ending.
+- Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
+  nothing flashes.
 
 ## Objects
 
@@ -145,6 +177,8 @@ side plates, two knives and a tray.
   one `LINE_WIDTH` his stick limbs and fingers clump together, so the gangly look from the
   references is lost. Either make him bigger (about 90 mm) or give him a thinner pen than
   everything else, which breaks the one-pen rule. Claude's suggestion: bigger.
+- Guys bump into each other and can knock each other flat on a crowded table. Keep it
+  as slapstick, or let them pass through each other?
 - Whether the guy stays seen from straight above, like everything else, or is drawn
   upright the way Paul's references are.
 - Step 2: one full formal place setting from the reference, or several simpler ones round
