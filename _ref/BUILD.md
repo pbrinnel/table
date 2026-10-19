@@ -20,7 +20,7 @@ How the design maps onto it:
 | Cloth friction stops things | one static "cloth" body; each object gets a `FrictionJoint` to it, with `maxForce = CLOTH_FRICTION * mass * g` and a matching `maxTorque`. That gives real sliding friction: things stop dead, rather than easing out forever the way damping does |
 | Weight | each fixture's density, set so the body's mass matches the object's real mass |
 | Drag on a spring | a `MouseJoint` per pointer, anchored where the object was grabbed, with `DRAG_MAX_FORCE`, `DRAG_HZ`, `DRAG_DAMPING`. `DRAG_MAX_FORCE` is the same for every object, so heavy ones lag |
-| Rim | a static chain of edges around the table, restitution `RIM_BOUNCE` |
+| Falling off | no rim; a body whose center leaves the table is switched off (`setActive(false)`) and drawn tipping and shrinking from then on |
 | No tunneling on a flick | cutlery and other thin, light objects are `bullet` bodies; there's a speed cap (`MAX_SPEED`) |
 
 **Units.** Physics runs in meters and kilograms, the scale Box2D is tuned for. Drawing is in
@@ -51,8 +51,9 @@ In load order. Each declares what the ones after it use.
 | `js/look.js` | Line and fill style (`LINE_WIDTH`, ink, paper) and small drawing helpers |
 | `js/table.js` | The table's size, mm-to-frame conversion, and the starting layout |
 | `js/objects.js` | The catalog: each kind of object's real size, mass, physics shape and drawing |
-| `js/world.js` | The Planck world, cloth friction, the rim, the fixed step |
+| `js/world.js` | The Planck world, cloth friction, falling off the edge, the fixed step |
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
+| `js/guy.js` | The little guy: choosing jobs, grabbing and hauling, knockdowns, the end |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
 Positions are in mm from the table's center, x right and y down; the physics divides by
@@ -70,7 +71,7 @@ drawn, but it collides as a handle and a head.
 ## Labs
 
 - `_labs/tune.html`: the real table with a slider for every feel constant (cloth friction,
-  each drag constant, rim bounce, speed cap, line width, grab slop) and a mass slider per
+  each drag constant, falling, speed cap, line width, grab slop, the guy) and a mass slider per
   object kind. Values apply live. A "copy" button gives the values as `const` lines to paste
   into the code.
 - `_labs/objects.html`: every object kind drawn large, its physics pieces overlaid in a
@@ -82,7 +83,7 @@ Each step is its own branch and PR, and ends with something to try on the slider
 
 1. **Engine and frame.** Vendor Planck. New frame size, the scale cap removed, the portrait
    turn. The table's outline drawn, and one plate that can be dragged around and flung
-   against the rim. `_labs/tune.html` with the drag, friction and rim sliders. The
+   against another. `_labs/tune.html` with the drag and friction sliders. The
    under-construction placeholder in `start.js` is deleted.
    *Lead builds this one: it sets the patterns everything else follows.*
 2. **Objects.** The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
@@ -97,7 +98,7 @@ Each step is its own branch and PR, and ends with something to try on the slider
 - Thin cutlery is hard to grab with a finger: `GRAB_SLOP`.
 - A finger lifted off the screen's edge, or a phone call interrupting a drag: release on
   `pointerup`, `pointercancel` and lost pointer capture alike, so no object stays held.
-- Dragging something hard into the rim: the spring's force ceiling keeps it from
+- Dragging something hard into another object: the spring's force ceiling keeps it from
   shaking or punching through.
 - A fast flick of a fork through a crowd: bullets and the speed cap.
 - Turning the phone mid-drag: the view turns, and held objects are released.

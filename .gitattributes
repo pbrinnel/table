@@ -1,0 +1,2 @@
+# Windows batch files misread labels and blocks with Unix line endings
+*.bat text eol=crlf
