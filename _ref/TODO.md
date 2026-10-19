@@ -18,6 +18,8 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] Careful hauling, so guys don't launch things off the table; the cloth friction bug
       that let nudged things creep off; the first guy's head filled black (Claude, for
       dhfm91)
+- [x] The first guy's pompadour shaped as a quiff from above; the dialog box slightly
+      see-through (Claude, for dhfm91)
 - [ ] Build step 2: the objects and layout from Paul's formal place-setting reference
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once

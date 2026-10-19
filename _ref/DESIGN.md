@@ -119,9 +119,11 @@ where it was, and you can knock him around.
   hands and feet. Same black line on white, seen from straight above. About 50 mm across,
   small next to a plate. Arms swing as he runs and reach forward when he's holding
   something; limbs flung out when he's knocked flat.
-  - **Update (dhfm91):** the first guy's head is filled solid black, his pompadour seen
-    from above (see his portrait under **The guy talks**). Backups keep white heads, so
-    he's the one you can pick out.
+  - **Update (dhfm91):** the first guy wears his pompadour, seen from above: a solid
+    black mass over his head that swells forward past his brow into a quiff of three
+    locks, swept a little to one side, with two white streaks of shine combed back
+    (see his portrait under **The guy talks**). Backups keep white heads, so he's the
+    one you can pick out.
 
 Every number about him is a slider on the tune page.
 
@@ -134,6 +136,9 @@ gets messier (dhfm91).
   square on the left, his line typed out beside it. Same two colors and same pen as
   everything else, square corners. It always reads upright, even when the table is turned
   on a phone. It doesn't block touches.
+  - **Update (dhfm91):** the box's paper is slightly see-through (`TALK_BOX_ALPHA`), so the
+    bottom of the table shows faintly through it, in light grey, the one grey in the
+    game. The portrait and the words stay solid.
 - **The portrait (dhfm91):** an original drawing of him, head and shoulders,
   three-quarter view, in the chiseled-hero type of the "chad" memes without copying any
   of them: a black pompadour, a huge square jutting jaw with a cleft chin, a heavy

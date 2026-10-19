@@ -682,21 +682,47 @@ function limb(c, x0, y0, x1, y1, digits) {
     splay(c, x1, y1, Math.atan2(y1 - y0, x1 - x0), digits);
 }
 
-// The first guy's head is filled black: from above, his pompadour is all you
-// see of it. Backups are bareheaded, so he's the one you can pick out.
+// The first guy wears his pompadour: seen from above, a black mass over his
+// whole head that swells forward past his brow into a quiff of three locks,
+// with two streaks of shine swept back from it, so it reads as hair and not
+// as a black head. Backups are bareheaded, so he's the one you can pick out.
+const QUIFF_MM = 10;             // how far the quiff swells forward of his head
+const QUIFF_STEPS = 48;
 function drawHead(c, x, g) {
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
     inkShape(c);
     c.beginPath();
-    ring(c, x, 0, 13);
-    if (g === guys[0]) {
-        c.fillStyle = INK;
-        c.fill();
-        inkLine(c);
-    } else {
+    if (g !== guys[0]) {
+        ring(c, x, 0, 13);
         inkShape(c);
+        return;
     }
+    for (let i = 0; i <= QUIFF_STEPS; i++) {
+        const a = i / QUIFF_STEPS * Math.PI * 2 - Math.PI;
+        const front = Math.max(0, Math.cos(a - 0.35));
+        // swells toward his front and swept to one side, in three locks with
+        // notches between them
+        const r = 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - 0.35) * 4.5)));
+        const px = x + Math.cos(a) * r, py = Math.sin(a) * r;
+        if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+    }
+    c.closePath();
+    c.fillStyle = INK;
+    c.fill();
+    inkLine(c);
+    // shine: two paper strokes swept back from the quiff
+    c.beginPath();
+    c.moveTo(x + 19, -1);
+    c.quadraticCurveTo(x + 5, -11, x - 9, -5);
+    c.moveTo(x + 19, 7);
+    c.quadraticCurveTo(x + 3, 6, x - 9, 2);
+    c.save();
+    if (inkFrame) c.setTransform(inkFrame);
+    c.lineWidth = LINE_WIDTH;
+    c.strokeStyle = PAPER;
+    c.stroke();
+    c.restore();
 }
 
 // Running, legs and arms swinging opposite each other; reaching out in front
