@@ -87,7 +87,8 @@ function applyFeelTo(t) {
     t.friction.setMaxForce(CLOTH_FRICTION * m * G);
     t.friction.setMaxTorque(CLOTH_FRICTION * CLOTH_SPIN_FRICTION * m * G * gyration);
     for (let f = t.body.getFixtureList(); f; f = f.getNext()) {
-        f.setFriction(OBJECT_FRICTION);
+        // a slick kind (the little guys) brushes past things without dragging them along
+        f.setFriction(t.kind.slick ? 0 : OBJECT_FRICTION);
         f.setRestitution(OBJECT_BOUNCE);
     }
 }

@@ -5,6 +5,9 @@ What the game is and how it should feel. How it's built is in `BUILD.md`.
 Status: the first playable is built and live. Anything under **Open** is undecided; Claude
 doesn't fill those in on its own. *Prototype choice* marks a call Claude made that nobody
 has confirmed; (Paul) or (dhfm91) marks who made a call. Either of them can change any of it.
+When one of them changes the other's call, the original stays as written and the change
+goes right under it, marked **Update (name):**, so both can see what it was and what it
+is now.
 
 ## The idea
 
@@ -20,6 +23,8 @@ ending of sorts (see **The little guy**).
 
 - Black line drawings on white. Simple, simple, simple.
 - Straight overhead, flat 2D. No perspective, no shadows, no shading.
+  - **Update (dhfm91):** the guy's portrait in the dialog box is the one exception: it's
+    shaded in solid black shapes (see **The guy talks**). The table itself stays unshaded.
 - One stroke width for every line (`LINE_WIDTH`). The table's edge is the only frame.
 - Each object is filled white inside its outline, so it covers the cloth's lines (if any)
   and never shows lines through itself.
@@ -34,7 +39,9 @@ ending of sorts (see **The little guy**).
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
-- No menus and no buttons. The only text is the little guy talking (see **The guy talks**).
+- No menus, no text, no buttons in the first playable.
+  - **Update (dhfm91):** still no menus or buttons, but the little guy talks in a dialog
+    box (see **The guy talks**). That's the only text.
 
 ## Moving things
 
@@ -77,10 +84,19 @@ where it was, and you can knock him around.
 - **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
   edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
   like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.
+  - **Update (dhfm91):** he's tiny and doesn't want anything to move, so on foot (going to
+    a job, or wandering) he steers around objects and other guys rather than through them,
+    slowing as he squeezes past. Brushing past something, his push drops to
+    `GUY_SQUEEZE_FORCE`, too weak to shift a plate. Hauling is unchanged: what he's
+    dragging home still shoves aside whatever's in its way.
 - **What he works on:** the moment the player grabs something, he goes straight for it, and
   it turns into a tug of war (Paul). Otherwise whatever is furthest from home. If he makes
   no progress for `GUY_PATIENCE`, he gives up on it for `GUY_SULK_TIME` and tries another.
 - **When everything is back:** he stands still where he started.
+  - **Update (dhfm91):** a guy with nothing to do wanders the table at a fraction of his
+    walking speed (`GUY_WANDER_PACE`), picking spots away from the other idle guys and
+    pushing gently off any that come close (`GUY_SPREAD_MM`, `GUY_SPREAD`), so idle guys
+    spread out evenly, a zone defense.
 - **Knocking him around:** a jolt to his speed bigger than `GUY_KNOCK_SPEED` knocks him
   flat and he lets go; he slides like any other object, lies there for `GUY_STUN_TIME`,
   then gets up and goes back to work.
@@ -88,12 +104,13 @@ where it was, and you can knock him around.
   he had; let go, he lies stunned, then gets up. *Prototype choice.*
 - **Knocked off the table:** he falls like anything else, then climbs back on where he went
   over after `GUY_CLIMB_TIME`. *Prototype choice.*
-- **The end (Paul):** when the last object has gone over the edge, he (every guy, once
-  there are backups) follows it, slowly
+- **The end (Paul):** when the last object has gone over the edge, he follows it, slowly
   and sadly. He freezes (`GUY_DESPAIR_TIME`), turns slowly to look at the empty spots
   where things were, trudges to the nearest edge with his head hung and arms limp
   (`GUY_SAD_SPEED`), stands at the brink and looks back once (`GUY_BRINK_TIME`), and steps
   off. **Nothing resets:** the table stays empty until the page is reloaded (Paul).
+  - **Update (dhfm91):** once there are backups, every guy does this together, and first
+    the box says "All is lost..." (see **The guy talks**).
 - **His look:** from Paul's references (a cartoon fusspot, a bigfoot, a scrawled
   gremlin): gangly, a big head with ears, a small body, stick limbs, splayed three-digit
   hands and feet. Same black line on white, seen from straight above. About 50 mm across,
@@ -125,8 +142,8 @@ gets messier (dhfm91).
   him say "Calling for backup!" (mad face, `TALK_BACKUP_TIME`), and one more guy climbs
   up where it fell `GUY_BACKUP_DELAY` later, lying flat at first like a guy knocked off,
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
-  as fast; anything the player grabs, every guy on his feet rushes it. A backup's rest
-  spot is where he arrived.
+  as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
+  backups wander like the first guy.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.
