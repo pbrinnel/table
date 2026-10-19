@@ -10,7 +10,10 @@ file in.
 ## Who
 
 - Paul (`pbrinnel`) owns the repo and the site it hangs off.
-- `dhfm91` is the collaborator.
+- `dhfm91` is the co-developer, with the same say over the game as Paul: either of them can
+  change gameplay, feel or look, settle anything under **Open** in `_ref/DESIGN.md`, or
+  undo an earlier call, including one marked as the other's. When one of them changes
+  something the other decided, say so in the commit and the PR, so it isn't a surprise.
 
 ## Staying hidden
 
@@ -28,18 +31,22 @@ so this is about the page, and about not labeling things on GitHub.
 ## Git
 
 - `main` is the live page. Nobody pushes to it; a ruleset enforces that. Every change goes
-  through a pull request, squash-merged.
-- One short-lived branch per piece of work, named `person/topic`: `paul/menu`,
-  `dhfm91/collisions`. Pull `main` before you branch.
-- Branch from `main`, not from another unmerged branch. Squash merging rewrites the first
-  branch's commits, so a branch stacked on it conflicts with `main` afterward. If one is
-  stacked anyway, merge `main` into it once the first PR lands; where the conflict is only
-  the duplicated work, keep the branch's side.
+  through a pull request.
+- Each person has one long-lived branch: `paul-dev` and `dhfm91-dev`. All your work goes
+  there, piece after piece. There are no per-topic branches.
+- When your branch is in a good state, open a PR from it to `main` and merge it with
+  **"Create a merge commit"**, never squash. Squashing rewrites the branch's commits, so
+  the next PR from the same branch conflicts with its own earlier work. Keep the branch
+  afterward and carry on with it.
+- When the other person's work lands on `main`, merge `main` into your branch (GitHub's
+  "Update branch", or `git merge origin/main`) before your next PR.
 - You merge your own PR. Ask the other person to look first when it touches what they're
   working on; small fixes can go straight in.
-- Before merging, press "Update branch" (or merge `main` into your branch), check it still
-  works, **then** bump `?v=N`. Doing it last means two PRs never fight over the number.
-- Claude commits on branches only, never on `main`. The person pushes and opens the PR.
+- Before merging, update the branch from `main`, check it still works, **then** bump
+  `?v=N`. Doing it last means two PRs never fight over the number.
+- Claude commits on the person's branch only, never on `main`. The person pushes and opens
+  the PR. A branch Claude creates tracks its own name on GitHub, never `main`: a branch
+  made from `origin/main` tracks `main` by default, and pushing it then targets `main`.
 - Commit only your own changes. Check `git status` and `git diff` before committing; the
   other person, or another Claude session, may have work in the same folder. Claude never
   uses `git stash` or `git add -p`; it stages its own hunks with `git apply --cached`.
@@ -86,10 +93,16 @@ Assume you're picking up from someone else, with none of their conversation.
 - Read this file, then `_ref/TODO.md`, then whichever of `DESIGN.md`, `BUILD.md` and
   `MAP.md` the work touches.
 - `git fetch`, then `git status`. Note any changes that aren't yours and leave them alone.
-  If you're on a branch, check what's already on it (`git log main..`).
+- Work on the person's own branch: `paul-dev` or `dhfm91-dev`. The first time, create it
+  from the latest `main` and make it push to its own name, not `main`:
+  `git checkout -b dhfm91-dev origin/main`, then
+  `git config branch.dhfm91-dev.merge refs/heads/dhfm91-dev`.
+- Check what's already on the branch (`git log origin/main..`) and whether `main` has
+  moved on (`git log ..origin/main`); if it has, merge it in first.
 - Run `_labs/check.sh`. If it fails before you've touched anything, fix that first or say
   so.
-- Put your name (or "Claude, for Paul") on the TODO item you're taking.
+- Put your name (or "Claude, for Paul" / "Claude, for dhfm91") on the TODO item you're
+  taking.
 
 **Finishing a piece of work**
 - Docs: a decision made moves out of **Open** in `DESIGN.md`; an architecture change
@@ -112,7 +125,7 @@ Assume you're picking up from someone else, with none of their conversation.
 - Scratch files, screenshots, browser profiles and one-off scripts go in a temp folder,
   never the repo. Anything worth keeping becomes a tracked page or script in `_labs/`.
 - Stop any server you started.
-- After a PR merges: delete its branch, local and remote, and pull `main`.
+- After a PR merges: pull `main`. Keep your branch; it carries on as before.
 - A lab page that no longer matches the code gets fixed or deleted, not left to rot.
 
 ## Checks

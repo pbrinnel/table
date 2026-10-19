@@ -1,0 +1,5 @@
+# Jekyll publishes Markdown at the root. These two describe the project, and the page
+# is meant to stay unlisted (CLAUDE.md, "Staying hidden").
+exclude:
+  - CLAUDE.md
+  - README.md
