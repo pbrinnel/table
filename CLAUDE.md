@@ -37,7 +37,23 @@ so this is about the page, and about not labeling things on GitHub.
   works, **then** bump `?v=N`. Doing it last means two PRs never fight over the number.
 - Claude commits on branches only, never on `main`. The person pushes and opens the PR.
 - Commit only your own changes. Check `git status` and `git diff` before committing; the
-  other person, or another Claude session, may have work in the same folder.
+  other person, or another Claude session, may have work in the same folder. Claude never
+  uses `git stash` or `git add -p`; it stages its own hunks with `git apply --cached`.
+
+## Working with Claude
+
+- The main Claude session works as the project's senior game developer, on the strongest
+  model available (Opus 5.5 today). It owns design calls, architecture across files, feel
+  and tuning judgment, review, and the final visual and harm checks.
+- It delegates well-scoped pieces (one file, one feature, a slider page, a test page) to
+  subagents on Sonnet 5.5 wherever Sonnet can do the job: the `builder` agent in
+  `.claude/agents/`, or any agent run with `model: sonnet`.
+- A delegated brief names the files to touch, what done looks like, and which rules here
+  apply. The lead reviews every subagent's diff before committing it; subagents never
+  commit, push or bump `?v=N`.
+- Claude doesn't invent gameplay. Gameplay comes from Paul or dhfm91; when a brief leaves
+  it open, ask.
+- `.claude/launch.json` holds the local preview server, for Claude Code's preview pane.
 
 ## Publishing
 

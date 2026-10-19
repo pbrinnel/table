@@ -14,3 +14,4 @@ Not published:
 |---|---|
 | `_ref/` | Docs: this map, `TODO.md` |
 | `_labs/` | Dev tools: slider pages, test pages, build scripts |
+| `.claude/` | Claude Code setup: `launch.json` (local preview server), `agents/builder.md` (the Sonnet subagent for delegated work) |
