@@ -49,14 +49,18 @@ In load order. Each declares what the ones after it use.
 | `js/lib/planck.min.js` | Physics engine (pinned, vendored) |
 | `js/frame.js` | The frame, scaling, the portrait turn, screen-to-frame mapping |
 | `js/look.js` | Line and fill style (`LINE_WIDTH`, ink, paper) and small drawing helpers |
+| `js/table.js` | The table's size, mm-to-frame conversion, and the starting layout |
 | `js/objects.js` | The catalog: each kind of object's real size, mass, physics shape and drawing |
 | `js/world.js` | The Planck world, cloth friction, the rim, the fixed step |
-| `js/table.js` | The table's size, and the starting layout of place settings |
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
+Positions are in mm from the table's center, x right and y down; the physics divides by
+1000 for meters. Event listeners are attached from functions `start.js` calls, never at
+load, so no file reads another's `canvas` while loading.
+
 **An object kind** in `objects.js` is one entry: real size in mm, mass in g, a list of
-physics pieces (circles, boxes, convex polygons, in mm, relative to its center), and a
+physics pieces (circles and boxes so far, in mm, relative to its center), and a
 `draw(ctx)` that draws it centered at the origin, unrotated, in mm. `start.js` and `world.js`
 handle position and rotation, so a drawing never needs to know where its object is.
 

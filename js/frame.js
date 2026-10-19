@@ -1,13 +1,15 @@
 // The field: one fixed logical size, scaled to fit whatever screen it's on.
 // Everything draws in LW x LH units, so a phone and a desktop run the same
-// frame, just bigger or smaller.
+// frame, just bigger or smaller. On a portrait screen the frame is turned a
+// quarter clockwise, so the landscape table still fills it.
 
-const LW = 800, LH = 600;
+const LW = 1200, LH = 800;
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
 
 let frameScale = 1;
+let frameTurned = false;
 let lastFit = '';
 
 function resizeFrame() {
@@ -24,21 +26,47 @@ function resizeFrame() {
     const availW = Math.min(document.body.clientWidth, seenW) - px;
     const availH = Math.min(document.body.clientHeight, seenH) - py;
 
-    // Fit both ways: a phone held sideways runs out of height first.
-    const scale = Math.min(availW / LW, availH / LH, 1);
+    const turned = availH > availW;
+    // the frame's size as it sits on the screen
+    const sw = turned ? LH : LW, sh = turned ? LW : LH;
+
+    // Fit both ways: a phone held sideways runs out of height first. No cap:
+    // line drawings stay sharp at any size, so a big screen gets a big table.
+    const scale = Math.min(availW / sw, availH / sh);
 
     // Assigning canvas.width throws the bitmap away even when nothing changed,
     // and iOS fires resize over and over while its toolbar slides.
-    const fit = scale.toFixed(4) + ':' + dpr;
+    const fit = scale.toFixed(4) + ':' + dpr + ':' + turned;
     if (fit === lastFit) return;
     lastFit = fit;
     frameScale = scale;
 
-    canvas.style.width = Math.floor(LW * scale) + 'px';
-    canvas.style.height = Math.floor(LH * scale) + 'px';
-    canvas.width = LW * dpr;
-    canvas.height = LH * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const cssW = Math.floor(sw * scale), cssH = Math.floor(sh * scale);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+
+    // bitmap pixels per frame unit
+    const k = canvas.width / sw;
+    if (turned) ctx.setTransform(0, k, -k, 0, LH * k, 0);
+    else ctx.setTransform(k, 0, 0, k, 0, 0);
+
+    if (turned !== frameTurned) {
+        frameTurned = turned;
+        // anything held should let go: the finger is no longer where it was
+        dispatchEvent(new Event('frameturn'));
+    }
+}
+
+// A pointer's page position, in frame units. The only place that knows the
+// view can be turned.
+function screenToFrame(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+    const sw = frameTurned ? LH : LW, sh = frameTurned ? LW : LH;
+    const u = (clientX - r.left) / r.width * sw;
+    const v = (clientY - r.top) / r.height * sh;
+    return frameTurned ? { x: v, y: LH - u } : { x: u, y: v };
 }
 
 addEventListener('resize', resizeFrame);
