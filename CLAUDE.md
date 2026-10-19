@@ -14,6 +14,8 @@ file in.
   change gameplay, feel or look, settle anything under **Open** in `_ref/DESIGN.md`, or
   undo an earlier call, including one marked as the other's. When one of them changes
   something the other decided, say so in the commit and the PR, so it isn't a surprise.
+  In `_ref/DESIGN.md`, the original call stays as written and the change goes right under
+  it, marked **Update (name):**, so both can see what it was and what it is now.
 
 ## Staying hidden
 
