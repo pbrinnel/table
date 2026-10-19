@@ -20,9 +20,10 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       dhfm91)
 - [x] The first guy's pompadour shaped as a quiff from above; the dialog box slightly
       see-through (Claude, for dhfm91)
-- [ ] Build step 2: the objects and layout from Paul's formal place-setting reference: every
-      fork, knife, spoon, glass and cup in it (Claude, for Paul). Files: `js/objects.js`,
-      `js/table.js`, new `_labs/objects.html`.
+- [x] Build step 2: the objects and layout from Paul's formal place-setting reference: every
+      fork, knife, spoon, glass and cup in it (Claude, for Paul)
+- [x] Debug mode: select by pressing on the table or clicking the panel; hover in the
+      panel picks a thing out (Claude, for Paul)
 - [x] Click the guy's message to make it vanish; a held guy flails; you beat one or two
       guys in a tug of war, three beat you (Claude, for Paul)
 - [x] Debug mode: a DEBUG button in the corner opens a live list of every object and guy

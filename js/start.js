@@ -54,6 +54,7 @@ function loop(time) {
     ctx.fillRect(0, 0, LW, LH);
     drawTable(ctx);
     drawThings(ctx);
+    drawDebug(ctx);
     drawTalk(ctx, dt);
     requestAnimationFrame(loop);
 }

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>objects</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; color: #000; font: 12px/1.3 system-ui, sans-serif; padding: 16px; }
+    p.note { margin-bottom: 12px; }
+    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+    .cell { border: 1px solid #000; padding: 6px; }
+    .cell canvas { display: block; width: 100%; height: 190px; }
+    .cell h2 { font-size: 12px; font-weight: bold; }
+</style>
+</head>
+<body>
+<p class="note">Every kind in js/objects.js, drawn large (each at its own scale; the size line has the real one),
+with its collision pieces dashed in red. Pieces are shown as given; Planck grows a box by 10 mm all round (its polygon radius), so
+boxes collide 20 mm before they touch.</p>
+<div id="grid"></div>
+
+<script>
+// Only what drawing a kind needs: the pen, the table's helpers and the catalog.
+// Not the world, the guys or start.js, so nothing here runs the game.
+const NEEDED = ['js/look.js', 'js/table.js', 'js/objects.js'];
+const CELL_W = 300, CELL_H = 190, MARGIN = 12, MAX_SCALE = 3;   // CSS px, and px per mm
+const PIECE_COLOR = '#d00';
+
+async function loadGame() {
+    const html = await (await fetch('../index.html')).text();
+    const srcs = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m => m[1].replace(/\?v=.*$/, ''));
+    for (const s of srcs.filter(s => NEEDED.includes(s))) {
+        const r = await fetch('../' + s);
+        if (!r.ok) throw new Error(s + ': ' + r.status);
+        const el = document.createElement('script');
+        el.textContent = await r.text();
+        document.body.appendChild(el);
+    }
+}
+
+// the extent of a kind's pieces, in mm
+function extent(kind) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of kind.pieces) {
+        const x = p.x || 0, y = p.y || 0;
+        const hw = p.circle || p.box[0] / 2, hh = p.circle || p.box[1] / 2;
+        x0 = Math.min(x0, x - hw); x1 = Math.max(x1, x + hw);
+        y0 = Math.min(y0, y - hh); y1 = Math.max(y1, y + hh);
+    }
+    return { w: x1 - x0, h: y1 - y0 };
+}
+
+function drawPieces(c, kind) {
+    c.beginPath();
+    for (const p of kind.pieces) {
+        const x = p.x || 0, y = p.y || 0;
+        if (p.circle) {
+            c.moveTo(x + p.circle, y);
+            c.arc(x, y, p.circle, 0, Math.PI * 2);
+        } else {
+            c.save();
+            c.translate(x, y);
+            c.rotate(p.angle || 0);
+            c.rect(-p.box[0] / 2, -p.box[1] / 2, p.box[0], p.box[1]);
+            c.restore();
+        }
+    }
+}
+
+function show() {
+    const grid = document.getElementById('grid');
+    const dpr = window.devicePixelRatio || 1;
+    for (const [name, kind] of Object.entries(KINDS)) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        const ext = extent(kind);
+        const title = document.createElement('h2');
+        title.textContent = name;
+        const info = document.createElement('div');
+        info.textContent = Math.round(ext.w) + ' x ' + Math.round(ext.h) + ' mm, ' + kind.mass + ' g'
+            + (kind.bullet ? ', bullet' : '');
+        const cv = document.createElement('canvas');
+        cv.width = CELL_W * dpr; cv.height = CELL_H * dpr;
+        cell.append(title, info, cv);
+        grid.appendChild(cell);
+
+        const c = cv.getContext('2d');
+        c.lineJoin = 'round';
+        c.lineCap = 'round';
+        c.scale(dpr, dpr);
+        inkFrame = c.getTransform();
+        const s = Math.min(MAX_SCALE, (CELL_W - 2 * MARGIN) / ext.w, (CELL_H - 2 * MARGIN) / ext.h);
+        c.translate(CELL_W / 2, CELL_H / 2);
+        c.scale(s, s);
+        kind.draw(c, null);
+        // the pieces go on top, stroked in the frame's own pen, not the kind's
+        drawPieces(c, kind);
+        c.save();
+        c.setTransform(inkFrame);
+        c.lineWidth = 1;
+        c.strokeStyle = PIECE_COLOR;
+        c.setLineDash([4, 3]);
+        c.stroke();
+        c.restore();
+    }
+}
+
+loadGame().then(show).catch(e => {
+    document.body.textContent = 'Failed to load the game: ' + e.message;
+});
+</script>
+</body>
+</html>

@@ -21,8 +21,10 @@ const GUY_CARRY_SPEED = 0.8;     // m/s, hauling something home
 const GUY_FORCE = 6;             // newtons, the most his legs can push or brake with
 // His hands pull a thing with at most this share of the player's DRAG_MAX_FORCE.
 // In a tug of war guys' pulls add up, so below a half the player beats two of
-// them, and above a third three beat the player (Paul).
-const GUY_GRIP_SHARE = 0.4;
+// them, and above a third three beat the player (Paul). Within that, it's set
+// high enough that one guy alone can slide the heaviest piece (the charger
+// setting).
+const GUY_GRIP_SHARE = 0.45;
 const GUY_GRIP_HZ = 6;           // how stiff his grip is
 // A jolt to his speed bigger than this, beyond what his own legs did, knocks
 // him down. Measured from speed rather than collision force because he's a

@@ -8,22 +8,55 @@
 const TABLE_W_MM = 1840, TABLE_H_MM = 1200;
 const MM_PER_UNIT = 1.8;
 
-// A test layout, not the real setting: which objects, and how many place
-// settings, are still open in DESIGN.md. It spans light to heavy so weight
-// can be felt.
+// One formal place setting, from Paul's reference, laid out as seen from above.
+// How many settings, and what else sits on the table, is still open in
+// DESIGN.md. Boxes keep 22 mm from each other, since Planck rounds a box's
+// corners out by 10 mm (see js/objects.js). `at` places each piece by its offset in mm from the charger's
+// center, so the whole setting can move as one by changing SETTING_X/Y.
+const SETTING_X = -118, SETTING_Y = 63;
+// turns that put a cutlery drawing's working end (tines, bowl) up the table,
+// or a knife's tip up
+const UP = -Math.PI / 2, DOWN = Math.PI / 2;
+
+function at(kind, dx, dy, angle) {
+    return { kind, x: SETTING_X + dx, y: SETTING_Y + dy, angle: angle || 0 };
+}
+
 const TEST_LAYOUT = [
-    { kind: 'dinnerPlate', x: -450, y: -250 },
-    { kind: 'dinnerPlate', x: 0, y: -250 },
-    { kind: 'dinnerPlate', x: 450, y: -250 },
-    { kind: 'sidePlate', x: -620, y: 250 },
-    { kind: 'sidePlate', x: 620, y: 250 },
-    { kind: 'knife', x: -360, y: 250, angle: Math.PI / 2 },
-    { kind: 'knife', x: 360, y: 250, angle: Math.PI / 2 },
-    { kind: 'tray', x: 0, y: 250 },
+    at('chargerSetting', 0, 0),
+    // left of it, outside in: napkin, salad, fish and meat forks (tines up)
+    at('napkin', -400, 20, DOWN),
+    at('saladFork', -303, 35, UP),
+    at('fishFork', -252, 28, UP),
+    at('meatFork', -200, 18, UP),
+    // right of it, inside out: knives (blades toward the plate), spoons, seafood fork
+    at('meatKnife', 200, 3, DOWN),
+    at('fishKnife', 245, 15, DOWN),
+    at('saladKnife', 290, 25, DOWN),
+    at('teaspoon', 335, 45, UP),
+    at('demitasseSpoon', 382, 65, UP),
+    at('soupSpoon', 443, 30, UP),
+    at('seafoodFork', 502, 58, UP),
+    // upper left: bread plate, its knife lying along its top
+    at('breadPlate', -360, -190),
+    at('butterKnife', -360, -285),
+    // above the charger: dessert spoon (handle right), cake fork (handle left)
+    at('dessertSpoon', -5, -200, Math.PI),
+    at('cakeFork', 0, -250),
+    // glasses along the top right, the cordial in front
+    at('waterGoblet', 205, -225),
+    at('champagneFlute', 290, -215),
+    at('whiteWineGlass', 370, -205),
+    at('redWineGlass', 468, -195),
+    at('cordialGlass', 320, -140),
+    // coffee and demitasse cups on their saucers, handles to the right
+    at('coffeeCup', 620, -90),
+    at('demitasseCup', 610, 60),
 ];
 
-// where the little guy stands when there's nothing to put back
-const GUY_START = { x: 0, y: -10 };
+// where the little guy stands when there's nothing to put back: the open
+// cloth in front of the setting
+const GUY_START = { x: 0, y: 450 };
 
 function mmToFrame(xMm, yMm) {
     return { x: LW / 2 + xMm / MM_PER_UNIT, y: LH / 2 + yMm / MM_PER_UNIT };

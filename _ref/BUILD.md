@@ -80,9 +80,15 @@ never turns with the table on a portrait phone.
   friction, each drag constant, falling, speed cap, line width, grab slop, the guy). Values
   apply live. "Copy values" gives them as `const` lines to paste into the code. Planned for
   step 3: a mass slider per object kind.
-- `_labs/objects.html` (planned, step 2): every object kind drawn large, its physics pieces
+- `_labs/objects.html` (built): every object kind drawn large, its physics pieces
   overlaid in a second color, so drawing and collision shape can be checked against each
   other.
+- `_labs/spawn.html` (built): candidate arrival animations for new guys.
+
+**Planck's skin.** Planck grows every box piece by its polygon radius, 10 mm, on all sides,
+so two boxes collide about 20 mm apart and a box and a circle about 10 mm apart. The layout
+leaves gaps for it. Shrinking boxes by that much in `world.js` would make collisions
+honest, at the cost of thin cutlery being harder to grab.
 
 ## Build order
 
@@ -91,7 +97,7 @@ Each step ends with something to try on the slider page.
 1. **Engine and frame. Done.** Planck vendored, the frame, the portrait turn, spring drag,
    cloth friction, a test layout, `_labs/tune.html`.
    - **Then, from Paul's ideas: the little guy, falling off the edge, and his ending. Done.**
-2. **Objects.** The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
+2. **Objects. Done** for one formal place setting. The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
    `_labs/objects.html`. *Delegated to `builder` (Sonnet), a few kinds per brief, against the
    pattern the first plate set. Lead reviews each drawing and shape.*
 3. **The set table.** Starting layout of place settings, mass sliders. Two-finger drag is

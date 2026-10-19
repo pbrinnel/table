@@ -42,7 +42,9 @@ ending of sorts (see **The little guy**).
 - No menus, no text, no buttons in the first playable.
   - **Update (Paul):** one exception, for building it: a small DEBUG button in the top
     right corner. It opens a panel listing every object and every guy with their
-    properties, live, and a pause/play button that stops everyone moving. Objects and
+    properties, live, and a pause/play button that stops everyone moving. In debug mode a
+    press on the table selects what's under it, and the panel's entries can be clicked to
+    select or hovered to pick a thing out; the selection is ringed in red on the table. Objects and
     guys will get more properties as they're differentiated; the panel grows with them.
   - **Update (dhfm91):** still no menus or buttons, but the little guy talks in a dialog
     box (see **The guy talks**). That's the only text.
@@ -175,7 +177,16 @@ gets messier (dhfm91).
 
 ## Objects
 
-**Open.** The list below is a brainstorm to choose from, not a decision. Sizes are real ones,
+- **Update (Paul):** the catalog now holds every piece of a traditional formal place
+  setting, each its own kind: the charger setting (charger, dinner and salad plates and
+  consommé cup as one), bread plate, napkin; salad, fish, meat, cake and seafood forks;
+  meat, fish, salad and butter knives; teaspoon, demitasse, soup and dessert spoons;
+  water goblet, champagne flute, white and red wine glasses, cordial glass; coffee cup
+  and demitasse cup, each on its saucer. All are drawn and listed in `_labs/objects.html`.
+  The table holds one setting laid out as in the reference. How many settings is still
+  open.
+
+**Was open.** The list below was a brainstorm to choose from, before the update above. Sizes are real ones,
 to keep proportions honest; masses set the weight.
 
 | Object | Overhead shape | Size (mm) | Mass (g) |
