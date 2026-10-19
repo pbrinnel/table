@@ -55,6 +55,7 @@ In load order. Each declares what the ones after it use.
 | `js/world.js` | The Planck world, cloth friction, falling off the edge, the fixed step |
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
 | `js/guy.js` | The little guy: choosing jobs, grabbing and hauling, knockdowns, the end |
+| `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
 Positions are in mm from the table's center, x right and y down; the physics divides by
@@ -69,6 +70,9 @@ handle position and rotation, so a drawing never needs to know where its object 
 
 The physics shape is simpler than the drawing where that's invisible: a fork's tines are
 drawn, but it collides as a handle and a head.
+
+The dialog is drawn upright on the screen, through `frame.js`'s upright view, so its text
+never turns with the table on a portrait phone.
 
 ## Labs
 

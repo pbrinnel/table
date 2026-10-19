@@ -5,6 +5,7 @@ function setTable(layout) {
     buildWorld();
     for (const o of layout) addThing(o.kind, o.x, o.y, o.angle);
     addGuy(GUY_START.x, GUY_START.y);
+    startTalk();
 }
 
 function drawThings(c) {
@@ -52,9 +53,11 @@ function loop(time) {
     ctx.fillRect(0, 0, LW, LH);
     drawTable(ctx);
     drawThings(ctx);
+    drawTalk(ctx, dt);
     requestAnimationFrame(loop);
 }
 
 setTable(TEST_LAYOUT);
 listenForDrags();
+listenForTalk();
 requestAnimationFrame(loop);

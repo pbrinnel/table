@@ -34,7 +34,7 @@ ending of sorts (see **The little guy**).
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
-- No menus, no text, no buttons in the first playable.
+- No menus and no buttons. The only text is the little guy talking (see **The guy talks**).
 
 ## Moving things
 
@@ -100,6 +100,27 @@ where it was, and you can knock him around.
   something; limbs flung out when he's knocked flat.
 
 Every number about him is a slider on the tune page.
+
+## The guy talks
+
+How the game teaches the player, and later how it marks him getting worse as the table
+gets messier (dhfm91).
+
+- **The box:** an RPG-style dialog box at the bottom of the screen: his portrait in a
+  square on the left, his line typed out beside it. Same two colors and same pen as
+  everything else, square corners. It always reads upright, even when the table is turned
+  on a phone. It doesn't block touches.
+- **The portrait:** an original drawing of him, head and shoulders, three-quarter view:
+  bald dome, huge pointed ears, a long nose, slab brows. Shaded in solid black shapes
+  with no grey, somewhere between a two-tone stencil and a clean cartoon line. Two
+  faces: stern and mad.
+- **The lettering:** Patrick Hand, a hand-lettered font that ships with the game.
+- **The opening (dhfm91):** when the game starts, the box shows the stern face and
+  "Don't you DARE touch my plates!" It stays until the player grabs anything, an object or
+  him. Then it switches to the mad face and "Now you've made me MAD!", which stays
+  `TALK_MAD_TIME` (5 s) once typed, then fades out (`TALK_FADE_TIME`).
+- Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
+  nothing flashes.
 
 ## Objects
 

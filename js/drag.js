@@ -49,6 +49,7 @@ function grab(e) {
         dampingRatio: DRAG_DAMPING,
     }, cloth, t.body, Vec2(p.x / 1000, p.y / 1000)));
     holds.set(e.pointerId, joint);
+    dispatchEvent(new Event('grabbed'));
 }
 
 function pull(e) {

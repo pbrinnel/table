@@ -59,6 +59,15 @@ function resizeFrame() {
     }
 }
 
+// For drawing that must read upright on the screen (the dialog's text): sets c
+// to the screen's own orientation at the frame's scale and returns the size of
+// that upright frame in units. Whoever calls it saves and restores c.
+function uprightView(c) {
+    const k = canvas.width / (frameTurned ? LH : LW);
+    c.setTransform(k, 0, 0, k, 0, 0);
+    return frameTurned ? { w: LH, h: LW } : { w: LW, h: LH };
+}
+
 // A pointer's page position, in frame units. The only place that knows the
 // view can be turned.
 function screenToFrame(clientX, clientY) {

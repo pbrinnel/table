@@ -10,6 +10,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Tune the feel, the guy included, on `_labs/tune.html` (Paul or dhfm91)
 - [ ] Decide how to make the guy readable: bigger, or a thinner pen (Paul or dhfm91, see
       `DESIGN.md` → Open)
+- [x] The guy talks: dialog box, his portrait, the opening lines (Claude, for dhfm91)
+- [ ] Backup: every object that drops brings one more guy, "Calling for backup!" (Claude,
+      for dhfm91)
 - [ ] Build step 2: the objects and layout from Paul's formal place-setting reference
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
