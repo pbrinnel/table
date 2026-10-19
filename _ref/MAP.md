@@ -12,10 +12,13 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/objects.js` | `KINDS`: each object's mass, collision pieces and drawing |
 | `js/world.js` | The Planck world: cloth friction, falling off the edge, the fixed step, `thingAt()` |
 | `js/drag.js` | Pointer grab and spring drag, one joint per pointer; `isHeld()` |
-| `js/guy.js` | The little guy: jobs, grabbing and hauling, knockdowns, his slow end, his drawing |
+| `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
+| `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |
 
 Also in `js/lib/`: `planck-LICENSE.txt`, Planck's MIT license.
+
+In `fonts/` (every font ships with the game): `fonts/patrick-hand-latin-400-normal.woff2`, the dialog's typeface (declared by `@font-face` in `index.html`), and `fonts/patrick-hand-OFL.txt`, its SIL Open Font License.
 
 Not published:
 
