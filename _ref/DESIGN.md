@@ -2,8 +2,9 @@
 
 What the game is and how it should feel. How it's built is in `BUILD.md`.
 
-Status: the first playable is settled below. Anything under **Open** is undecided; Claude
-doesn't fill those in on its own.
+Status: the first playable is built and live. Anything under **Open** is undecided; Claude
+doesn't fill those in on its own. *Prototype choice* marks a call Claude made that Paul
+hasn't confirmed; (Paul) marks one he made.
 
 ## The idea
 
@@ -11,8 +12,9 @@ A table seen from straight above, set with plates, cutlery, glasses, trays, a ca
 Every object is its own thing. You grab any of them and drag it, and it shoves whatever it
 runs into. Heavy things are hard to push; light things scatter.
 
-There is no goal yet. The first playable is a toy: does moving things around the table feel
-good?
+There's no score or goal. What there is: a little guy who keeps putting everything back,
+so moving things becomes a fight with him, and pushing everything off the table is an
+ending of sorts (see **The little guy**).
 
 ## The look
 
@@ -24,7 +26,7 @@ good?
 - The whole screen is the table, with a small margin around its edge.
 - Objects are drawn from their real proportions, so a fork sits next to a plate at the
   right size.
-- Nothing flashes. Motion comes only from what the player moves.
+- Nothing flashes. Motion comes only from the player and the little guy.
 
 ## The screen
 
@@ -126,8 +128,9 @@ traditional formal place setting: charger with dinner and salad plates and a sou
 bread plate with butter knife, dessert spoon and cake fork above, cup on saucer, glasses
 upper right, forks left, knives and spoons right, napkin far left. Pieces that sit on each
 other there (bowl on plates on charger, cup on saucer) become one object, since nothing
-here stacks. How many settings, and what
-sits in the middle of the table, is open.
+here stacks. How many settings, and what sits in the middle of the table, is open. For now
+the table holds a test layout (`TEST_LAYOUT` in `js/table.js`): three dinner plates, two
+side plates, two knives and a tray.
 
 ## Open
 
@@ -137,4 +140,12 @@ sits in the middle of the table, is open.
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
 - Whether the table remembers where things were left between visits.
-- Anything breaking, tipping or spilling. None for now.
+- Anything breaking or spilling. None for now; the only tipping is going over the edge.
+- **The guy is too small to read.** At about 50 mm he's around 30 px on a laptop, and at
+  one `LINE_WIDTH` his stick limbs and fingers clump together, so the gangly look from the
+  references is lost. Either make him bigger (about 90 mm) or give him a thinner pen than
+  everything else, which breaks the one-pen rule. Claude's suggestion: bigger.
+- Whether the guy stays seen from straight above, like everything else, or is drawn
+  upright the way Paul's references are.
+- Step 2: one full formal place setting from the reference, or several simpler ones round
+  the table.

@@ -8,5 +8,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       plates, side plates, knives and a tray stands in until the objects are chosen.
 - [x] The little guy, falling off the edge, and his ending (Claude, for Paul)
 - [ ] Tune the feel, the guy included, on `_labs/tune.html` (Paul)
+- [ ] Decide how to make the guy readable: bigger, or a thinner pen (Paul, see `DESIGN.md` →
+      Open)
 - [ ] Build step 2: the objects and layout from Paul's formal place-setting reference
-- [ ] Keep `CLAUDE.md` and `README.md` off the site: a `_config.yml` with `exclude`
+- [ ] Try two-finger drag on a real phone (anyone with one)
+- [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
+      merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

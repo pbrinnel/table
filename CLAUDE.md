@@ -90,10 +90,16 @@ Assume you're picking up from someone else, with none of their conversation.
 - Read this file, then `_ref/TODO.md`, then whichever of `DESIGN.md`, `BUILD.md` and
   `MAP.md` the work touches.
 - `git fetch`, then `git status`. Note any changes that aren't yours and leave them alone.
-  If you're on a branch, check what's already on it (`git log main..`).
+- Work on the person's own branch: `paul-dev` or `dhfm91-dev`. The first time, create it
+  from the latest `main` and make it push to its own name, not `main`:
+  `git checkout -b dhfm91-dev origin/main`, then
+  `git config branch.dhfm91-dev.merge refs/heads/dhfm91-dev`.
+- Check what's already on the branch (`git log origin/main..`) and whether `main` has
+  moved on (`git log ..origin/main`); if it has, merge it in first.
 - Run `_labs/check.sh`. If it fails before you've touched anything, fix that first or say
   so.
-- Put your name (or "Claude, for Paul") on the TODO item you're taking.
+- Put your name (or "Claude, for Paul" / "Claude, for dhfm91") on the TODO item you're
+  taking.
 
 **Finishing a piece of work**
 - Docs: a decision made moves out of **Open** in `DESIGN.md`; an architecture change
@@ -116,7 +122,7 @@ Assume you're picking up from someone else, with none of their conversation.
 - Scratch files, screenshots, browser profiles and one-off scripts go in a temp folder,
   never the repo. Anything worth keeping becomes a tracked page or script in `_labs/`.
 - Stop any server you started.
-- After a PR merges: delete its branch, local and remote, and pull `main`.
+- After a PR merges: pull `main`. Keep your branch; it carries on as before.
 - A lab page that no longer matches the code gets fixed or deleted, not left to rot.
 
 ## Checks
