@@ -7,9 +7,11 @@
 //   pieces  its collision shape, in mm from its center: circles and boxes.
 //           Simpler than the drawing where the difference can't be seen.
 //   draw(c) draws it in mm, centered on the origin and unrotated. The caller
-//           has already moved, turned and scaled the context, and set the
-//           line width.
+//           has already moved, turned and scaled the context. Stroke with
+//           inkLine or inkShape, never c.stroke, so the pen stays even.
 // Long things lie along the x axis.
+// fixedRotation, if set, keeps the body from turning (the little guy turns
+// himself, in js/guy.js).
 
 const KINDS = {
     dinnerPlate: {
@@ -21,7 +23,7 @@ const KINDS = {
             inkShape(c);
             c.beginPath();
             ring(c, 0, 0, 95);
-            c.stroke();
+            inkLine(c);
         },
     },
 
@@ -34,7 +36,7 @@ const KINDS = {
             inkShape(c);
             c.beginPath();
             ring(c, 0, 0, 58);
-            c.stroke();
+            inkLine(c);
         },
     },
 
@@ -68,7 +70,7 @@ const KINDS = {
             inkShape(c);
             c.beginPath();
             c.roundRect(-207, -142, 414, 284, 10);
-            c.stroke();
+            inkLine(c);
         },
     },
 };

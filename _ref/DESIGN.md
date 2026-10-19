@@ -50,18 +50,54 @@ good?
 
 ## Physics
 
-- A tablecloth from above: nothing falls, things slide when pushed, and friction with the
-  cloth stops them.
+- A tablecloth from above: things slide when pushed, and friction with the cloth stops
+  them. Nothing falls except off the edge.
 - Each object has a weight from its real-world mass. Weight decides how hard it is to drag,
   how far it gets knocked, and how much it pushes back.
 - Objects turn when hit off-center. A fork clipped at one end spins.
 - Objects never overlap or stack. Nothing rides on anything else: a tray is just a tray.
-- Every object collides with every other object and with the table's rim.
-- **The rim:** the table's edge is a wall. Objects bounce off it a little (`RIM_BOUNCE`) and
-  never leave the table.
+- Every object collides with every other object.
+- **The edge (Paul):** there's no rim. When an object's center crosses the table's edge it
+  tips over the edge and falls: seen from above, it squashes toward the edge line as it
+  tilts (up to `TIP_MAX`, over `TIP_TIME`), then shrinks away (`FALL_TIME`), sliding outward
+  a little as it goes. Anything held drops out of the hand. Fallen things are gone.
 
 Every number in this section is a named constant with a slider in `_labs/`. The values in
 the code are placeholders until they've been tuned by hand.
+
+## The little guy
+
+Paul's idea: a little guy runs around the table, desperately trying to put everything back
+where it was, and you can knock him around.
+
+- **What "where it was" means:** each object's starting position. *Prototype choice:* he
+  restores position only, not which way an object is turned.
+- **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
+  edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
+  like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.
+- **What he works on:** the moment the player grabs something, he goes straight for it, and
+  it turns into a tug of war (Paul). Otherwise whatever is furthest from home. If he makes
+  no progress for `GUY_PATIENCE`, he gives up on it for `GUY_SULK_TIME` and tries another.
+- **When everything is back:** he stands still where he started.
+- **Knocking him around:** a jolt to his speed bigger than `GUY_KNOCK_SPEED` knocks him
+  flat and he lets go; he slides like any other object, lies there for `GUY_STUN_TIME`,
+  then gets up and goes back to work.
+- **Grabbing him:** he can be dragged like an object. Held, he's limp and lets go of what
+  he had; let go, he lies stunned, then gets up. *Prototype choice.*
+- **Knocked off the table:** he falls like anything else, then climbs back on where he went
+  over after `GUY_CLIMB_TIME`. *Prototype choice.*
+- **The end (Paul):** when the last object has gone over the edge, he follows it, slowly
+  and sadly. He freezes (`GUY_DESPAIR_TIME`), turns slowly to look at the empty spots
+  where things were, trudges to the nearest edge with his head hung and arms limp
+  (`GUY_SAD_SPEED`), stands at the brink and looks back once (`GUY_BRINK_TIME`), and steps
+  off. **Nothing resets:** the table stays empty until the page is reloaded (Paul).
+- **His look:** from Paul's references (a cartoon fusspot, a bigfoot, a scrawled
+  gremlin): gangly, a big head with ears, a small body, stick limbs, splayed three-digit
+  hands and feet. Same black line on white, seen from straight above. About 50 mm across,
+  small next to a plate. Arms swing as he runs and reach forward when he's holding
+  something; limbs flung out when he's knocked flat.
+
+Every number about him is a slider on the tune page.
 
 ## Objects
 
@@ -85,7 +121,12 @@ to keep proportions honest; masses set the weight.
 | Napkin, folded | rectangle, fold line | 200 x 120 | 30 |
 | Serving bowl, pitcher, bread basket, vase | to be drawn | | |
 
-Starting layout: proper place settings, each object separate. How many settings, and what
+Starting layout: proper place settings, each object separate. Paul's reference is a
+traditional formal place setting: charger with dinner and salad plates and a soup bowl,
+bread plate with butter knife, dessert spoon and cake fork above, cup on saucer, glasses
+upper right, forks left, knives and spoons right, napkin far left. Pieces that sit on each
+other there (bowl on plates on charger, cup on saucer) become one object, since nothing
+here stacks. How many settings, and what
 sits in the middle of the table, is open.
 
 ## Open

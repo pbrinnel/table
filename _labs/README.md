@@ -9,6 +9,7 @@ Dev tools that never reach the site: slider pages for tuning, test pages, build 
   "Copy values" gives `const` lines to paste into the code. Slider settings are remembered
   in your browser; "Defaults" goes back to the code's. Serve the repo and open
   `/_labs/tune.html`. To tune a new constant, add it to `TUNABLES` at the top of the page.
+  `GUY_MASS` takes effect on "Reset table".
 
 A lab that loads the game's files should reach them with `../js/...` and must never post to
 a live server: stub `window.fetch` once there is one.

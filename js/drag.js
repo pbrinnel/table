@@ -65,6 +65,21 @@ function letGo(e) {
     holds.delete(e.pointerId);
 }
 
+function isHeld(body) {
+    for (const joint of holds.values()) if (joint.getBodyB() === body) return true;
+    return false;
+}
+
+// Something held that went over the edge drops out of the hand.
+function dropFallen() {
+    for (const [id, joint] of holds) {
+        if (!joint.getBodyB().isActive()) {
+            world.destroyJoint(joint);
+            holds.delete(id);
+        }
+    }
+}
+
 function letGoOfEverything() {
     for (const joint of holds.values()) world.destroyJoint(joint);
     holds.clear();
