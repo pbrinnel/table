@@ -168,8 +168,9 @@ The same design as Paul's earlier games (`fourkeys`):
 
 ## Testing
 
-- Serve the folder locally rather than opening the file:
-  `npx --yes http-server . -p 8913 -c-1`, then open http://localhost:8913/.
+- Serve the folder locally rather than opening the file. Double-click `_play-mac.command`
+  or `_play-windows.bat`, or run `npx --yes http-server . -p 8913 -c-1` and open
+  http://localhost:8913/. Each needs Node.js.
 - Check it on a phone-sized window as well as a desktop one, both orientations.
 - Claude uses headless browsers only, for screenshots and test runs. No visible browser
   windows unless asked.

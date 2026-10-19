@@ -18,8 +18,10 @@ Also in `js/lib/`: `planck-LICENSE.txt`, Planck's MIT license.
 
 Not published:
 
-| Folder | What's in it |
+| File or folder | What's in it |
 |---|---|
+| `_play-mac.command`, `_play-windows.bat` | Double-click to serve the game locally and open it |
+| `.gitattributes` | Keeps `.bat` files in Windows line endings |
 | `_ref/` | Docs: this map, `TODO.md`, `DESIGN.md` (what the game is), `BUILD.md` (how it's built, and in what order) |
 | `_labs/` | Dev tools: slider pages, test pages, build scripts. `check.sh` checks the hidden-page tags, the `?v=N`s and this map |
 | `.claude/` | Claude Code setup: `launch.json` (local preview server), `agents/builder.md` (the Sonnet subagent for delegated work) |
