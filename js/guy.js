@@ -6,7 +6,8 @@
 // that hits him hard enough knocks him flat for a while. With nothing to do, a
 // guy wanders, spreading out from the other idle guys. Every time an object
 // goes over the edge (and something is still left), he calls for backup and one
-// more guy climbs up where it fell, for the rest of the run. They share the
+// more guy comes out from under something on the table, for the rest of the
+// run. They share the
 // work: each takes a different job. When the last thing goes over the edge,
 // every one of them follows it, slowly: there's nothing left for them. The
 // table stays empty after that.
@@ -19,7 +20,12 @@ const GUY_MASS = 150;            // grams
 const GUY_WALK_SPEED = 1.2;      // m/s, running to the next job
 const GUY_CARRY_SPEED = 0.8;     // m/s, hauling something home
 const GUY_FORCE = 6;             // newtons, the most his legs can push or brake with
-const GUY_GRIP_FORCE = 8;        // newtons, the most his hands can pull a thing with
+// His hands pull a thing with at most this share of the player's DRAG_MAX_FORCE.
+// In a tug of war guys' pulls add up, so below a half the player beats two of
+// them, and above a third three beat the player (Paul). Within that, it's set
+// high enough that one guy alone can slide the heaviest piece (the charger
+// setting).
+const GUY_GRIP_SHARE = 0.45;
 const GUY_GRIP_HZ = 6;           // how stiff his grip is
 // A jolt to his speed bigger than this, beyond what his own legs did, knocks
 // him down. Measured from speed rather than collision force because he's a
@@ -66,9 +72,77 @@ const GUY_SQUEEZE_FORCE = 1;     // newtons
 const GUY_HAUL_CARE = 0.2;
 const GUY_HAUL_LEAD_MM = 15;     // furthest his pull point runs ahead of his hands while careful
 
+// Putting a fallen piece back on what it rested on (DESIGN.md, "levels"): he
+// hauls it beside the stack, climbs up to the level above that support, lifts
+// it on, climbs down. Being higher shows as being a little bigger, seen from
+// above. The climbs take their time per level climbed.
+const GUY_CLIMB_UP_TIME = 0.7;   // seconds per level
+const GUY_LIFT_TIME = 0.6;       // seconds
+const GUY_CLIMB_DOWN_TIME = 0.5; // seconds per level
+const GUY_UP_SCALE = 1.12;       // how much bigger he looks one level up
+const GUY_LIFT_BUMP = 0.12;      // how much bigger the cup looks at the top of its lift
+const GUY_LIFT_REACH_MM = 30;    // this close to its spot beside the saucer, he starts
+const GUY_LIFT_SHIFT_MM = 30;    // the saucer moving this far under him ends it
+const GUY_FALLEN_FIRST = 0.5;    // m added to a fallen cup's claim on him, so it comes first
+const GUY_SIDE_TRIES = 8;        // steps each way round a fallen cup looking for room to grab it
+// Stuck on foot, going nowhere for GUY_STALL_TIME, he climbs over what's in his
+// way to the first clear spot past it, the way he climbs up onto a stack. With
+// nowhere clear to get to, he barges instead, pushing with his full GUY_FORCE.
+const GUY_STALL_SPEED = 0.03;    // m/s: slower than this while trying to go somewhere is stuck
+const GUY_STALL_TIME = 1;        // seconds
+const GUY_CLIMB_OVER_SPEED = 0.25; // m/s across the top
+const GUY_OVER_LOOK_MM = 400;    // how far past himself he looks for somewhere to come down
+const GUY_BARGE_TIME = 1.5;      // seconds
+
+// How a backup arrives (DESIGN.md, "The little guy"): out from under the napkin
+// if it's on the table (GUY_NAP_*), else from under the nearest round thing
+// that lies on the cloth (GUY_PEEK_*). Times are seconds, lengths mm, angles
+// radians, from the spawn lab's candidates 1c2 and 1a.
+const GUY_ENTER_MOVE_MM = 20;    // the thing he's under moving this far ends it
+const GUY_ENTER_TURN = 0.3;      // or turning this far
+const GUY_ENTER_DIRS = 16;       // directions tried for a clear spot to come out at
+
+// 1a: the thing's rim lifts on the side he comes out on, he peeks and looks both
+// ways, wriggles out, stands and shakes himself off.
+const GUY_PEEK_SQUASH = 0.8;     // the thing's width at its most lifted, as a fraction (it tips about its far rim)
+const GUY_PEEK_HIDE_MM = -7;     // his center, from the thing's center, while hidden
+const GUY_PEEK_PEEK_MM = -32;    // from its rim, while he peeks
+const GUY_PEEK_OUT_MM = 50;      // from its rim, once he's crawled out
+const GUY_PEEK_STEP_MM = 10;     // the step he takes standing up
+const GUY_PEEK_LIFT_T0 = 0.4, GUY_PEEK_LIFT_T = 0.5;
+const GUY_PEEK_HEAD_T = 0.5;     // his head comes out
+const GUY_PEEK_LOOK_T = 2.0, GUY_PEEK_LOOK_SWINGS = 1.5, GUY_PEEK_LOOK_ANGLE = 0.6;   // swings are full cycles over LOOK_T
+const GUY_PEEK_OUT_T = 1.6;      // wriggling out
+const GUY_PEEK_WRIGGLE_HZ = 2;
+const GUY_PEEK_SETTLE_T = 0.4;   // the thing comes back down as he gets out
+const GUY_PEEK_RISE_T = 0.7;
+const GUY_PEEK_SHAKE_T = 1.5, GUY_PEEK_SHAKE_HZ = 3, GUY_PEEK_SHAKE_ANGLE = 0.55;
+const GUY_PEEK_HOLD_T = 0.4;
+
+// 1c2: a corner of the napkin tips up about its fold, passing edge-on and
+// showing its plain underside, he crawls out under it, it drops back with a
+// bounce, and he rises and brushes himself off.
+const GUY_NAP_FOLD_MM = 32;      // the fold lies this far back from the corner, across it
+const GUY_NAP_START_MM = -50;    // his center along the corner's diagonal, from the corner, while hidden
+const GUY_NAP_OUT_MM = 44;       // once he's crawled out
+const GUY_NAP_STAND_MM = 54;     // standing
+const GUY_NAP_TWITCH_T0 = 0.3, GUY_NAP_TWITCH_T = 0.6, GUY_NAP_TWITCH_HZ = 2, GUY_NAP_TWITCH = 0.25;   // the corner stirs
+const GUY_NAP_LIFT_T0 = 1.0, GUY_NAP_LIFT_T = 0.9;
+const GUY_NAP_CRAWL_T = 2.4, GUY_NAP_WRIGGLE_HZ = 2;
+const GUY_NAP_RISE_T = 0.9, GUY_NAP_RISE_TILT = 0.95;
+const GUY_NAP_DROP_T0 = 0.5, GUY_NAP_DROP_T = 0.5;   // the corner drops, from this long into his rise
+const GUY_NAP_BOUNCE = 0.35, GUY_NAP_BOUNCE_DECAY = 5, GUY_NAP_BOUNCE_HZ = 1.2;
+const GUY_NAP_BRUSH_T = 1.5, GUY_NAP_BRUSH_HZ = 2.5;
+const GUY_NAP_HOLD_T = 0.4;
+
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
 const GUY_STRIDE_MM = 22;        // how far one step of his feet carries him
+// Picked up, he flails: arms and legs thrash back and forth this many times a
+// second, through GUY_FLAIL_SWING radians either way. Limbs moving, not light
+// and dark trading places, so it isn't a flash.
+const GUY_FLAIL_HZ = 2.5;
+const GUY_FLAIL_SWING = 0.8;
 
 // Every guy, the first and each backup. Each has his own body and his own grip.
 let guys = [];
@@ -91,7 +165,9 @@ const GUY_KIND = {
     pieces: [{ circle: GUY_R_MM }],
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
-        if (t.guy.down > 0) drawGuyFlat(c, t.guy);
+        if (isHeld(t.body)) drawGuyFlailing(c, t.guy);
+        else if (t.guy.entrance) drawGuyEntrance(c, t.guy);
+        else if (t.guy.down > 0) drawGuyFlat(c, t.guy);
         else drawGuyStanding(c, t.guy);
     },
 };
@@ -127,6 +203,7 @@ function addGuy(xMm, yMm) {
         roam: null,       // where he's wandering to, in meters, while idle
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
+        entrance: null,   // while he comes out from under something: see startEntrance()
     };
     thing.guy = g;
     guys.push(g);
@@ -165,8 +242,65 @@ function reachToward(t, d) {
     return reach;
 }
 
+// A piece that started resting on another is put back once it's on it again,
+// wherever that one is; the bottom of a stack is put back like anything else.
 function isTidy(t, slack) {
+    if (t.homeOn) return t.on === t.homeOn;
     return Vec2.distance(t.body.getPosition(), t.home) < GUY_TIDY_MM * slack / 1000;
+}
+
+// Where he hauls a thing to: home, or for a fallen piece the cloth just beside
+// the stack it goes back on, on the side it's on, ready to be lifted up.
+function goalOf(t) {
+    if (!t.homeOn || t.on) return t.home;
+    const base = baseOf(t.homeOn), bp = base.body.getPosition();
+    let side = Vec2.sub(t.body.getPosition(), bp);
+    if (side.length() < 1e-6) side = Vec2(1, 0);
+    side.normalize();
+    return Vec2.add(bp, Vec2.mul(side, reachOf(base) + reachOf(t) + DROP_GAP_MM / 1000));
+}
+
+// The side of t to stand on, as near as there's room to the direction he'd
+// like: tries `want` first, then turns away from it a step at a time either way.
+function roomySide(g, t, want) {
+    const p = t.body.getPosition();
+    const base = want.length() > 1e-6 ? Math.atan2(want.y, want.x) : 0;
+    for (let i = 0; i <= GUY_SIDE_TRIES; i++) {
+        for (const sgn of i ? [1, -1] : [1]) {
+            const a = base + sgn * i * Math.PI / GUY_SIDE_TRIES;
+            const side = Vec2(Math.cos(a), Math.sin(a));
+            const spot = Vec2.add(p, Vec2.mul(side, reachToward(t, side) + GUY_R_MM / 1000));
+            if (hasRoom(g, spot, t)) return side;
+        }
+    }
+    return Vec2(Math.cos(base), Math.sin(base));
+}
+
+// Whether he'd fit standing at spot: on the table, and clear of everything on
+// his level but `except`, judged by each thing's widest reach.
+function hasRoom(g, spot, except) {
+    if (Vec2.distance(spot, standable(spot)) > 1e-4) return false;
+    return !things.some(o => o !== except && o !== g.thing && onTable(o) && o.drop === undefined
+        && o.level === g.thing.level
+        && Vec2.distance(spot, o.body.getPosition()) < reachToward(o, unitFrom(o.body.getPosition(), spot)) + GUY_R_MM / 1000);
+}
+
+function unitFrom(a, b) {
+    const d = Vec2.sub(b, a), len = d.length();
+    return len > 1e-6 ? Vec2.mul(d, 1 / len) : Vec2(1, 0);
+}
+
+// A support is ready to have its piece put back on it when it's back in its own
+// place: on what it started on, or on the cloth if it started there.
+function settled(s) {
+    return onTable(s) && s.drop === undefined && !s.lifted && (s.homeOn ? s.on === s.homeOn : !s.on);
+}
+
+// Not to be taken on: tipping down a level, or in some guy's hands, or the
+// saucer another guy is standing on, or what a backup is coming out from under.
+function busy(t) {
+    return t.drop !== undefined || t.lifted
+        || guys.some(o => (o.lift && o.lift.saucer === t) || (o.entrance && o.entrance.src === t));
 }
 
 // Whatever the player has just picked up comes first: every guy goes straight
@@ -179,10 +313,12 @@ function pickJob(g) {
     }
     let pick = null, far = 0;
     for (const t of things) {
-        if (!t.home || isGuy(t) || !onTable(t)) continue;
+        if (!t.home || isGuy(t) || !onTable(t) || busy(t)) continue;
+        // the stack goes back from the bottom up
+        if (t.homeOn && !t.on && !settled(t.homeOn)) continue;
         if ((g.sulks.get(t) || 0) > g.clock || isTidy(t, 1)) continue;
         if (guys.some(o => o !== g && o.job === t)) continue;
-        const d = Vec2.distance(t.body.getPosition(), t.home);
+        const d = Vec2.distance(t.body.getPosition(), goalOf(t)) + (t.homeOn ? GUY_FALLEN_FIRST : 0);
         if (d > far) { far = d; pick = t; }
     }
     return pick;
@@ -399,7 +535,7 @@ function steer(g, want, toGo) {
 
 // Standing, not knocked down, and nothing to do.
 function isIdle(g) {
-    return !g.job && g.down <= 0 && !g.leaving && onTable(g.thing);
+    return !g.job && g.down <= 0 && !g.leaving && !g.entrance && onTable(g.thing);
 }
 
 // Is there an object (not a guy) where he'd stand at p? Tested at a grid of
@@ -481,7 +617,7 @@ function guyWants(g, h) {
     // Half the slack to finish as to start, so he doesn't twitch at the
     // threshold.
     const j = g.job;
-    if (j && (!onTable(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
+    if (j && (!onTable(j) || busy(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
     // drop what he's doing for anything the player has just grabbed
     if (g.job && !isHeld(g.job.body) && !g.grip) {
         const grabbed = things.find(t => !isGuy(t) && t.home && onTable(t) && isHeld(t.body));
@@ -498,9 +634,13 @@ function guyWants(g, h) {
     const t = g.job, p = t.body.getPosition();
     const toGuy = Vec2.sub(at, p);
     const apart = toGuy.length();
-    const side = apart > 1e-6 ? Vec2.mul(toGuy, 1 / apart) : Vec2(1, 0);
+    let side = apart > 1e-6 ? Vec2.mul(toGuy, 1 / apart) : Vec2(1, 0);
+    // A fallen cup lies close by its saucer, often closer than he's wide: he
+    // takes it from the far side, which is also the side to haul it home from,
+    // or the nearest side to that with room for him.
+    if (t.homeOn && !t.on && !g.grip) side = roomySide(g, t, Vec2.sub(p, baseOf(t.homeOn).body.getPosition()));
     const touching = reachToward(t, side) + GUY_R_MM / 1000;
-    const dist = Vec2.distance(p, t.home);
+    const dist = Vec2.distance(p, goalOf(t));
 
     // Running to it counts as progress as much as hauling it does, so he
     // can't stand wedged somewhere forever.
@@ -519,7 +659,7 @@ function guyWants(g, h) {
         // Got it: grab the near edge, and keep to the side he grabbed it from.
         const edge = Vec2.add(p, Vec2.mul(side, touching - GUY_R_MM / 1000));
         g.grip = world.createJoint(planck.MouseJoint({
-            maxForce: GUY_GRIP_FORCE,
+            maxForce: GUY_GRIP_SHARE * DRAG_MAX_FORCE,
             frequencyHz: GUY_GRIP_HZ,
             dampingRatio: 0.9,
         }, cloth, t.body, edge));
@@ -527,11 +667,19 @@ function guyWants(g, h) {
         g.carry = Vec2.clone(edge);
     }
 
+    // A fallen cup hauled to its saucer: up he goes.
+    const saucer = t.homeOn;
+    if (saucer && !t.on && dist < GUY_LIFT_REACH_MM / 1000 && !isHeld(t.body)
+        && settled(saucer) && !busy(saucer) && !isHeld(saucer.body)) {
+        startLift(g, t);
+        return Vec2(0, 0);
+    }
+
     // Haul: the point he pulls toward runs ahead to home at carrying speed,
     // and he runs along beside it. With something in the way, slowly, and
     // never far ahead of his hands, so the spring can't fling it into things.
     const grabbed = g.grip.getAnchorB();
-    const goal = Vec2.add(t.home, Vec2.sub(grabbed, p));
+    const goal = Vec2.add(goalOf(t), Vec2.sub(grabbed, p));
     const ahead = Vec2.sub(goal, g.carry), aheadLen = ahead.length();
     const careful = aheadLen > 1e-6 && haulBlocked(t, ahead.x / aheadLen, ahead.y / aheadLen);
     const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * (careful ? GUY_HAUL_CARE : 1) * h);
@@ -555,16 +703,19 @@ function noticeDrops() {
         countedDrops.add(t);
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
-        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt) });
+        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt), edge: Vec2.clone(t.edgeAt) });
     }
 }
 
-// A backup climbs up where the object fell, lying flat the way a guy knocked
-// off the table does.
+// A backup comes out from under something on the table (see chooseEntrance).
+// With nothing to come out from, he climbs up where the object fell, lying flat
+// the way a guy knocked off the table does.
 function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
-        addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
+        const how = chooseEntrance(b.edge);
+        if (how) startEntrance(how);
+        else addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
         return false;
     });
 }
@@ -575,6 +726,333 @@ function stepGuys(h) {
     noticeDrops();
     arriveBackups();
     for (const g of guys) stepGuy(g, h);
+}
+
+// Climbing up onto the saucer to put its cup back. His body and the cup's are
+// switched off while it happens and moved by hand, a level up, so nothing
+// bumps them halfway.
+function startLift(g, cup) {
+    const saucer = cup.homeOn, sp = saucer.body.getPosition(), b = g.thing.body;
+    let toCup = Vec2.sub(cup.body.getPosition(), sp);
+    if (toCup.length() < 1e-6) toCup = Vec2(1, 0);
+    toCup.normalize();
+    letGoOfJob(g);
+    g.lift = {
+        phase: 'up', t: 0, cup, saucer,
+        floor: Vec2.clone(b.getPosition()),
+        onto: Vec2.add(sp, Vec2.mul(toCup, rimOf(saucer) * 0.45)),
+        cupFrom: Vec2.clone(cup.body.getPosition()),
+        saucerAt: Vec2.clone(sp),
+        levels: saucer.level - 1,      // how many levels he climbs
+    };
+    b.setActive(false);
+    g.thing.lifted = true;
+    setLevel(g.thing, saucer.level + 1);
+}
+
+function easeLift(u) {
+    return u * u * (3 - 2 * u);
+}
+
+// One step of the climb: up, lift, down. Ends early, cleanly, if the saucer
+// is moved, falls or is grabbed out from under him.
+function stepLift(g, h) {
+    const L = g.lift, b = g.thing.body;
+    const s = L.saucer, sp = s.body.getPosition();
+    if (!onTable(s) || s.drop !== undefined || isHeld(s.body)
+        || Vec2.distance(sp, L.saucerAt) > GUY_LIFT_SHIFT_MM / 1000) {
+        endLift(g);
+        return;
+    }
+    L.t += h;
+    if (L.phase === 'up') {
+        const time = GUY_CLIMB_UP_TIME * L.levels;
+        const u = easeLift(Math.min(1, L.t / time));
+        b.setTransform(Vec2.add(L.floor, Vec2.mul(Vec2.sub(L.onto, L.floor), u)), 0);
+        g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * L.levels * u;
+        if (L.t >= time) {
+            L.phase = 'lift'; L.t = 0;
+            L.cup.lifted = true;
+            L.cup.body.setActive(false);
+            setLevel(L.cup, L.saucer.level + 1);
+        }
+    } else if (L.phase === 'lift') {
+        const v = Math.min(1, L.t / GUY_LIFT_TIME);
+        L.cup.body.setTransform(Vec2.add(L.cupFrom, Vec2.mul(Vec2.sub(sp, L.cupFrom), easeLift(v))), L.cup.body.getAngle());
+        L.cup.drawScale = 1 + GUY_LIFT_BUMP * Math.sin(Math.PI * v);
+        if (L.t >= GUY_LIFT_TIME) {
+            setCupDown(L);
+            L.phase = 'down'; L.t = 0;
+        }
+    } else {
+        const time = GUY_CLIMB_DOWN_TIME * L.levels;
+        const u = easeLift(Math.min(1, L.t / time));
+        b.setTransform(Vec2.add(L.onto, Vec2.mul(Vec2.sub(L.floor, L.onto), u)), 0);
+        g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * L.levels * (1 - u);
+        if (L.t >= time) endLift(g);
+    }
+    const look = L.phase === 'down' ? Vec2.sub(L.floor, L.onto) : Vec2.sub(L.cup.body.getPosition(), b.getPosition());
+    if (look.length() > 1e-6) g.facing = Math.atan2(look.y, look.x);
+}
+
+// The cup is on its saucer, a level up.
+function setCupDown(L) {
+    L.cup.lifted = false;
+    L.cup.drawScale = 1;
+    L.cup.body.setActive(true);
+    placeOn(L.cup, L.saucer);
+}
+
+// Back on the cloth where he climbed up, whatever stage it reached. A cup in
+// mid-lift is set on the saucer at once rather than dropped back onto it.
+function endLift(g) {
+    const L = g.lift, b = g.thing.body;
+    if (L.phase === 'lift') setCupDown(L);
+    b.setTransform(L.floor, 0);
+    b.setLinearVelocity(Vec2(0, 0));
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.thing.drawScale = 1;
+    setLevel(g.thing, LEVEL_ON_CLOTH);
+    g.expect = null;
+    g.lift = null;
+}
+
+// Over the top of whatever has him boxed in, toward where he wants to go: to
+// the first spot past it with room for him. False if there's nowhere.
+function startClimbOver(g, want) {
+    const b = g.thing.body, at = b.getPosition();
+    const dir = Vec2.mul(want, 1 / want.length());
+    for (let d = GUY_R_MM * 2; d <= GUY_OVER_LOOK_MM; d += 10) {
+        const spot = Vec2.add(at, Vec2.mul(dir, d / 1000));
+        if (!hasRoom(g, spot, null)) continue;
+        g.over = { from: Vec2.clone(at), to: spot, t: 0, time: d / 1000 / GUY_CLIMB_OVER_SPEED };
+        b.setActive(false);
+        g.thing.lifted = true;
+        letGoOfJob(g);
+        g.facing = Math.atan2(dir.y, dir.x);
+        // drawn over what he climbs, whatever level it's at
+        setLevel(g.thing, Math.max(...things.filter(o => o !== g.thing).map(o => o.level)) + 1);
+        return true;
+    }
+    return false;
+}
+
+function stepClimbOver(g, h) {
+    const O = g.over, b = g.thing.body;
+    O.t += h;
+    const u = Math.min(1, O.t / O.time);
+    b.setTransform(Vec2.add(O.from, Vec2.mul(Vec2.sub(O.to, O.from), u)), 0);
+    // up and over: biggest at the top of the climb
+    g.thing.drawScale = 1 + (GUY_UP_SCALE - 1) * Math.sin(Math.PI * u);
+    g.stride += GUY_CLIMB_OVER_SPEED * h * 1000;
+    if (u >= 1) endClimbOver(g);
+}
+
+function endClimbOver(g) {
+    const b = g.thing.body;
+    b.setTransform(g.over.to, 0);
+    b.setLinearVelocity(Vec2(0, 0));
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.thing.drawScale = 1;
+    setLevel(g.thing, LEVEL_ON_CLOTH);
+    g.expect = null;
+    g.over = null;
+}
+
+// ---- Arriving ----
+// A backup doesn't climb up lying flat: he comes out from under something that
+// lies on the cloth (DESIGN.md, "The little guy"). His body is switched off and
+// moved by hand for the whole entrance, drawn a level below the cloth's things
+// so he's under whatever hides him, and switched on standing at a clear spot
+// when it's over. It ends at once, with him out at that spot, if he's grabbed,
+// or what he's under is grabbed, moves, or starts to fall.
+
+// The corner of a napkin at `at` turned by `angle` (local signs sx, sy), and the
+// unit vector along its diagonal, out of the corner.
+function napkinCorner(kind, at, angle, sx, sy) {
+    const cos = Math.cos(angle), sin = Math.sin(angle);
+    const [bw, bh] = kind.pieces[0].box;
+    const lx = sx * bw / 2000, ly = sy * bh / 2000;
+    return {
+        corner: Vec2(at.x + lx * cos - ly * sin, at.y + lx * sin + ly * cos),
+        dir: Vec2((sx * cos - sy * sin) / Math.SQRT2, (sx * sin + sy * cos) / Math.SQRT2),
+    };
+}
+
+// How a backup comes in, or null if nothing will do. The napkin if it's free to
+// come out from under; otherwise whatever round thing on the cloth is nearest
+// where the object fell (edge, in meters). Each must have a clear spot to come
+// out at.
+function chooseEntrance(edge) {
+    const free = things.filter(t => !isGuy(t) && onTable(t) && t.level === LEVEL_ON_CLOTH
+        && !isHeld(t.body) && !busy(t) && !things.some(o => o.on === t) && !guys.some(o => o.job === t));
+    const probe = { thing: { level: LEVEL_ON_CLOTH } };    // stands in for him, who doesn't exist yet
+    const napkin = free.find(t => t.kind === KINDS.napkin);
+    const round = free.filter(t => t.kind.pieces.length === 1 && t.kind.pieces[0].circle)
+        .sort((a, b) => Vec2.distance(a.body.getPosition(), edge) - Vec2.distance(b.body.getPosition(), edge));
+
+    for (const src of napkin ? [napkin, ...round] : round) {
+        const at = src.body.getPosition(), toward = unitFrom(at, edge);
+        if (src === napkin) {
+            // the corner nearest the way to the object that fell, with room past it
+            const corners = [];
+            for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+                const k = napkinCorner(src.kind, at, src.body.getAngle(), sx, sy);
+                corners.push({ sx, sy, dir: k.dir, exit: Vec2.add(k.corner, Vec2.mul(k.dir, GUY_NAP_STAND_MM / 1000)) });
+            }
+            corners.sort((a, b) => Vec2.dot(b.dir, toward) - Vec2.dot(a.dir, toward));
+            const c = corners.find(o => hasRoom(probe, o.exit, null));
+            if (c) return { kind: '1c2', src, sx: c.sx, sy: c.sy, dir: c.dir, exit: c.exit };
+        } else {
+            // the direction nearest that way with room past the rim
+            const a0 = Math.atan2(toward.y, toward.x), far = reachOf(src) + (GUY_PEEK_OUT_MM + GUY_PEEK_STEP_MM) / 1000;
+            for (let i = 0; i <= GUY_ENTER_DIRS / 2; i++) {
+                for (const sgn of i ? [1, -1] : [1]) {
+                    const a = a0 + sgn * i * Math.PI * 2 / GUY_ENTER_DIRS;
+                    const dir = Vec2(Math.cos(a), Math.sin(a)), exit = Vec2.add(at, Vec2.mul(dir, far));
+                    if (hasRoom(probe, exit, null)) return { kind: '1a', src, dir, exit };
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function startEntrance(how) {
+    const src = how.src, at = src.body.getPosition();
+    const g = addGuy(at.x * 1000, at.y * 1000);
+    g.thing.body.setActive(false);
+    g.thing.lifted = true;
+    setLevel(g.thing, LEVEL_ON_CLOTH - 1);
+    g.facing = Math.atan2(how.dir.y, how.dir.x);
+    g.entrance = {
+        kind: how.kind, src, t: 0, dir: how.dir, exit: how.exit,
+        sx: how.sx, sy: how.sy,
+        from: Vec2.clone(at), angle: src.body.getAngle(),     // where the thing was when he started
+        pose: ENTER_TUCK, sw: 0, head: 0, shake: 0, rise: 0,  // how he's drawn this step
+    };
+}
+
+const enterSeg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+const enterLerp = (a, b, u) => a + (b - a) * u;
+const enterMix = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u);
+// a bounce that dies away, s seconds in
+const enterSettle = (s, amp, decay, hz) => amp * Math.exp(-decay * s) * Math.abs(Math.sin(s * hz * Math.PI * 2));
+
+// When each stage of 1a ends, in seconds.
+function peekEnds() {
+    const liftEnd = GUY_PEEK_LIFT_T0 + GUY_PEEK_LIFT_T, headEnd = liftEnd + GUY_PEEK_HEAD_T;
+    const lookEnd = headEnd + GUY_PEEK_LOOK_T, outEnd = lookEnd + GUY_PEEK_OUT_T, riseEnd = outEnd + GUY_PEEK_RISE_T;
+    return { liftEnd, headEnd, lookEnd, outEnd, riseEnd, end: riseEnd + GUY_PEEK_SHAKE_T + GUY_PEEK_HOLD_T };
+}
+
+// And of 1c2.
+function napEnds() {
+    const liftEnd = GUY_NAP_LIFT_T0 + GUY_NAP_LIFT_T, crawlEnd = liftEnd + GUY_NAP_CRAWL_T, riseEnd = crawlEnd + GUY_NAP_RISE_T;
+    const dropT0 = crawlEnd + GUY_NAP_DROP_T0;
+    return { liftEnd, crawlEnd, riseEnd, dropT0, dropEnd: dropT0 + GUY_NAP_DROP_T, end: riseEnd + GUY_NAP_BRUSH_T + GUY_NAP_HOLD_T };
+}
+
+// 1a: the rim on the side he comes out on lifts (the thing tips about its far
+// rim, drawn squashed toward it), he peeks and looks both ways, wriggles out
+// and stands, and shakes himself off.
+function stepPeek(g, E) {
+    const s = E.src, t = E.t, e = peekEnds();
+    const rim = reachOf(s) * 1000;
+    const lift = easeLift(enterSeg(t, GUY_PEEK_LIFT_T0, e.liftEnd)) * (1 - easeLift(enterSeg(t, e.outEnd - GUY_PEEK_SETTLE_T, e.outEnd)));
+    const hu = easeLift(enterSeg(t, e.liftEnd, e.headEnd));
+    const ou = easeLift(enterSeg(t, e.lookEnd, e.outEnd));
+    const ru = easeLift(enterSeg(t, e.outEnd, e.riseEnd));
+    const sh = enterSeg(t, e.riseEnd, e.riseEnd + GUY_PEEK_SHAKE_T);
+    const along = enterLerp(enterLerp(GUY_PEEK_HIDE_MM, rim + GUY_PEEK_PEEK_MM, hu), rim + GUY_PEEK_OUT_MM, ou) + ru * GUY_PEEK_STEP_MM;
+    g.thing.body.setTransform(Vec2.add(E.from, Vec2.mul(E.dir, along / 1000)), 0);
+
+    E.head = t < e.lookEnd ? Math.sin(enterSeg(t, e.headEnd, e.lookEnd) * GUY_PEEK_LOOK_SWINGS * Math.PI * 2) * GUY_PEEK_LOOK_ANGLE : 0;
+    E.shake = 0;
+    E.sw = 0;
+    if (t > e.lookEnd && t < e.outEnd) E.sw = Math.sin(t * GUY_PEEK_WRIGGLE_HZ * Math.PI * 2);
+    else if (t >= e.riseEnd) {
+        E.shake = Math.sin(t * GUY_PEEK_SHAKE_HZ * Math.PI * 2) * GUY_PEEK_SHAKE_ANGLE * (1 - sh);
+        E.sw = Math.sin(t * GUY_PEEK_SHAKE_HZ * Math.PI * 2 + 1) * (1 - sh);
+    }
+    E.pose = enterMix(enterMix(ENTER_TUCK, ENTER_FLAT, ou), ENTER_STAND, ru);
+    // the hinge is the rim behind him, so the near rim comes up; `n` points at
+    // the hinge, which is the way a tall thing's top leans
+    s.enterTilt = {
+        at: Vec2.sub(s.body.getPosition(), Vec2.mul(E.dir, rim / 1000)),
+        n: Vec2(-E.dir.x, -E.dir.y),
+        tilt: Math.acos(1 - lift * (1 - GUY_PEEK_SQUASH)),
+    };
+}
+
+// 1c2: the napkin's corner tips up about its fold (drawn by the napkin's own
+// draw, from `flap`), he crawls out under it, it drops back and bounces, and he
+// rises with a tilt and brushes himself off.
+function stepNap(g, E) {
+    const s = E.src, t = E.t, e = napEnds();
+    const k = napkinCorner(s.kind, E.from, E.angle, E.sx, E.sy);
+    const lu = easeLift(enterSeg(t, GUY_NAP_LIFT_T0, e.liftEnd));
+    const du = easeLift(enterSeg(t, e.dropT0, e.dropEnd));
+    let tilt;
+    if (t < GUY_NAP_LIFT_T0) {
+        tilt = Math.max(0, Math.sin(enterSeg(t, GUY_NAP_TWITCH_T0, GUY_NAP_TWITCH_T0 + GUY_NAP_TWITCH_T)
+            * GUY_NAP_TWITCH_HZ * GUY_NAP_TWITCH_T * Math.PI * 2)) * GUY_NAP_TWITCH;
+    } else if (t < e.dropEnd) {
+        tilt = Math.PI * lu * (1 - du);
+    } else {
+        tilt = enterSettle(t - e.dropEnd, GUY_NAP_BOUNCE, GUY_NAP_BOUNCE_DECAY, GUY_NAP_BOUNCE_HZ);
+    }
+    s.flap = { sx: E.sx, sy: E.sy, fold: GUY_NAP_FOLD_MM, tilt };
+
+    const cu = easeLift(enterSeg(t, e.liftEnd, e.crawlEnd));
+    const ru = easeLift(enterSeg(t, e.crawlEnd, e.riseEnd));
+    const along = enterLerp(GUY_NAP_START_MM, GUY_NAP_OUT_MM, cu) + ru * (GUY_NAP_STAND_MM - GUY_NAP_OUT_MM);
+    g.thing.body.setTransform(Vec2.add(k.corner, Vec2.mul(k.dir, along / 1000)), 0);
+
+    E.head = 0;
+    E.shake = 0;
+    E.sw = 0;
+    if (t > e.liftEnd && t < e.crawlEnd) E.sw = Math.sin(t * GUY_NAP_WRIGGLE_HZ * Math.PI * 2) * (cu > 0 && cu < 1 ? 1 : 0.3);
+    E.pose = enterMix(enterMix(ENTER_TUCK, ENTER_FLAT, easeLift(enterSeg(t, e.liftEnd, e.liftEnd + GUY_NAP_CRAWL_T * 0.5))), ENTER_STAND, ru);
+    if (t >= e.riseEnd) {
+        const bu = enterSeg(t, e.riseEnd, e.riseEnd + GUY_NAP_BRUSH_T);
+        E.pose = ENTER_BRUSH;
+        E.sw = Math.sin(bu * GUY_NAP_BRUSH_HZ * GUY_NAP_BRUSH_T * Math.PI * 2) * (1 - bu * bu);
+    }
+    E.rise = t >= e.crawlEnd && t < e.riseEnd ? Math.sin(Math.PI * ru) * GUY_NAP_RISE_TILT : 0;
+}
+
+function stepEntrance(g, h) {
+    const E = g.entrance, s = E.src;
+    let turn = s.body.getAngle() - E.angle;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    if (isHeld(g.thing.body) || isHeld(s.body) || !onTable(s) || s.drop !== undefined || s.lifted
+        || Vec2.distance(s.body.getPosition(), E.from) > GUY_ENTER_MOVE_MM / 1000
+        || Math.abs(turn) > GUY_ENTER_TURN) {
+        endEntrance(g);
+        return;
+    }
+    E.t += h;
+    if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
+    if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
+}
+
+// Out and standing at the spot he was coming out at, on the cloth's level, and
+// whatever he was under is as it was.
+function endEntrance(g) {
+    const E = g.entrance, b = g.thing.body;
+    E.src.enterTilt = undefined;
+    E.src.flap = undefined;
+    b.setTransform(E.exit, 0);
+    b.setLinearVelocity(Vec2(0, 0));
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.thing.drawScale = 1;
+    setLevel(g.thing, LEVEL_ON_CLOTH);
+    g.expect = null;
+    g.entrance = null;
 }
 
 // Touching anything but his job, he slides along it rather than leaning into it:
@@ -614,6 +1092,26 @@ function stepGuy(g, h) {
         return;
     }
 
+    // coming out from under something, unless he's grabbed (or it is, or it
+    // moves): then he's out at once where he was headed
+    if (g.entrance) {
+        stepEntrance(g, h);
+        return;
+    }
+
+    // climbing over something, unless he's grabbed: then he's down where he
+    // was headed
+    if (g.over) {
+        if (!isHeld(b)) { stepClimbOver(g, h); return; }
+        endClimbOver(g);
+    }
+
+    // up on a saucer putting a cup back, unless he's grabbed
+    if (g.lift) {
+        if (!isHeld(b)) { stepLift(g, h); return; }
+        endLift(g);
+    }
+
     const v = b.getLinearVelocity();
     const m = b.getMass();
     if (g.expect && Vec2.distance(v, g.expect) > GUY_KNOCK_SPEED + GUY_FORCE * h / m) knockDown(g);
@@ -635,8 +1133,20 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
-    // squeezing past something that isn't his job, he can't shove it; hauling is different
-    const squeezing = !g.grip && sidestep(b, g.job, want);
+    // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
+    // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
+    const speed0 = v.length();
+    if (!g.grip && want.length() > GUY_STALL_SPEED && speed0 < GUY_STALL_SPEED) g.stall = (g.stall || 0) + h;
+    else g.stall = 0;
+    if (g.stall > GUY_STALL_TIME) {
+        g.stall = 0;
+        if (!startClimbOver(g, want)) g.barge = GUY_BARGE_TIME;
+        else return;
+    }
+    g.barge = Math.max(0, (g.barge || 0) - h);
+    // squeezing past something that isn't his job, he can't shove it; hauling,
+    // or barging, is different
+    const squeezing = !g.grip && !g.barge && sidestep(b, g.job, want);
     if (squeezing) want.mul(GUY_SQUEEZE_PACE);
     const f = Vec2.mul(Vec2.sub(want, v), m / h);
     const fl = f.length();
@@ -735,7 +1245,7 @@ function drawGuyStanding(c, g) {
     c.beginPath();
     for (const s of [-1, 1]) {
         limb(c, -2, s * 5, swing * s * (sad ? 7 : 16), s * 9, 5);
-        if (g.grip) limb(c, 2, s * 11, 24, s * 8, 6);
+        if (g.grip || g.lift) limb(c, 2, s * 11, 24, s * 8, 6);
         else if (sad) limb(c, -1, s * 10, -swing * s * 3 - 2, s * 15, 5);
         else limb(c, 0, s * 11, -swing * s * 13, s * 26, 6);
     }
@@ -744,6 +1254,25 @@ function drawGuyStanding(c, g) {
     c.ellipse(-3, 0, 7, sad ? 10 : 12, 0, 0, Math.PI * 2);
     inkShape(c);
     drawHead(c, sad ? 9 : 3, g);
+}
+
+// Held up by the player, kicking and waving: each limb swings on its own
+// phase, so it reads as panic rather than a march.
+function drawGuyFlailing(c, g) {
+    c.rotate(g.facing);
+    const w = guyClock * GUY_FLAIL_HZ * Math.PI * 2;
+    c.beginPath();
+    for (const s of [-1, 1]) {
+        const arm = s * (Math.PI / 2 - 0.2) + Math.sin(w + s) * GUY_FLAIL_SWING;
+        limb(c, 2, s * 11, 2 + Math.cos(arm) * 26, s * 11 + Math.sin(arm) * 26, 6);
+        const leg = s * (Math.PI - 0.5) + Math.sin(w * 1.3 + 2 + s) * GUY_FLAIL_SWING * 0.7;
+        limb(c, -6, s * 5, -6 + Math.cos(leg) * 22, s * 5 + Math.sin(leg) * 22, 5);
+    }
+    inkLine(c);
+    c.beginPath();
+    c.ellipse(-3, 0, 7, 12, 0, 0, Math.PI * 2);
+    inkShape(c);
+    drawHead(c, 3, g);
 }
 
 // Flat on his back, arms and legs flung out, laid the way he was knocked.
@@ -759,4 +1288,53 @@ function drawGuyFlat(c, g) {
     c.ellipse(-4, 0, 12, 9, 0, 0, Math.PI * 2);
     inkShape(c);
     drawHead(c, 20, g);
+}
+
+// Coming out from under something (startEntrance). A pose is numbers, so two
+// can be blended as he goes from lying to standing:
+// [body x, body rx, body ry, head x,
+//  leg x0, y0, x1, y1, swing,   arm x0, y0, x1, y1, swing]
+// y values are for the +y side and the -y side mirrors; a leg's x1 also moves
+// by swing * side * its swing number, and an arm's by the opposite, as in a run.
+const ENTER_STAND = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   0, 11, 0, 26, 13];
+const ENTER_FLAT = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 18, 38, 6];
+const ENTER_TUCK = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 10, 14, 4];    // arms at his sides, so nothing pokes out from cover
+const ENTER_BRUSH = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   2, 11, 6, 9, 10];         // hands on his front, sweeping
+
+// Squashes what's drawn next toward the line through (ax, ay) with unit normal
+// (nx, ny) by cos(tilt): tilting about that line, seen from above.
+function squashLocal(c, ax, ay, nx, ny, tilt) {
+    const k = Math.cos(tilt) - 1;
+    c.translate(ax, ay);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-ax, -ay);
+}
+
+// A guy in a blended pose, with his head turned by headTurn about his neck.
+function drawGuyPose(c, g, pose, sw, headTurn) {
+    const [bx, brx, bry, hx, lx0, ly0, lx1, ly1, lk, ax0, ay0, ax1, ay1, ak] = pose;
+    c.beginPath();
+    for (const s of [-1, 1]) {
+        limb(c, lx0, s * ly0, lx1 + sw * s * lk, s * ly1, 5);
+        limb(c, ax0, s * ay0, ax1 - sw * s * ak, s * ay1, 6);
+    }
+    inkLine(c);
+    c.beginPath();
+    c.ellipse(bx, 0, brx, bry, 0, 0, Math.PI * 2);
+    inkShape(c);
+    c.save();
+    c.translate(bx + brx, 0);
+    c.rotate(headTurn);
+    c.translate(-(bx + brx), 0);
+    drawHead(c, hx, g);
+    c.restore();
+}
+
+// Coming out from under something, in the pose and turn startEntrance's steps
+// worked out: tilting about his feet as he rises.
+function drawGuyEntrance(c, g) {
+    const E = g.entrance;
+    c.rotate(g.facing + E.shake);
+    if (E.rise) squashLocal(c, E.pose[6], 0, 1, 0, E.rise);
+    drawGuyPose(c, g, E.pose, E.sw, E.head);
 }

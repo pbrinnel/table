@@ -75,6 +75,10 @@ const TUNABLES = [
         ['FALL_TIME', 0.1, 3, 0.05],
         ['FALL_DRIFT', 0, 3, 0.05],
         ['FALL_SLIDE', 0, 2, 0.05],
+        ['RIDE_FRICTION', 0, 1.5, 0.01],
+        ['DROP_TIME', 0.05, 2, 0.05],
+        ['DROP_TILT', 0, 89, 1],
+        ['DROP_ROOM_MM', 0, 200, 5],
         ['MAX_SPEED', 0.5, 20, 0.5],
     ]],
     ['js/drag.js', [
@@ -87,7 +91,15 @@ const TUNABLES = [
         ['GUY_WALK_SPEED', 0.05, 3, 0.05],
         ['GUY_CARRY_SPEED', 0.05, 3, 0.05],
         ['GUY_FORCE', 0, 30, 0.5],
-        ['GUY_GRIP_FORCE', 0, 40, 0.5],
+        ['GUY_GRIP_SHARE', 0.05, 1.5, 0.05],
+        ['GUY_CLIMB_UP_TIME', 0.1, 3, 0.05],
+        ['GUY_STALL_TIME', 0.1, 5, 0.1],
+        ['GUY_CLIMB_OVER_SPEED', 0.05, 1.5, 0.05],
+        ['GUY_BARGE_TIME', 0, 5, 0.1],
+        ['GUY_LIFT_TIME', 0.1, 3, 0.05],
+        ['GUY_CLIMB_DOWN_TIME', 0.1, 3, 0.05],
+        ['GUY_UP_SCALE', 1, 1.5, 0.01],
+        ['GUY_LIFT_BUMP', 0, 0.5, 0.01],
         ['GUY_GRIP_HZ', 0.5, 20, 0.5],
         ['GUY_MASS', 20, 1000, 10],
         ['GUY_KNOCK_SPEED', 0.05, 3, 0.05],
@@ -112,6 +124,19 @@ const TUNABLES = [
         ['GUY_SQUEEZE_FORCE', 0, 10, 0.25],
         ['GUY_HAUL_CARE', 0, 1, 0.05],
         ['GUY_HAUL_LEAD_MM', 0, 100, 1],
+        ['GUY_ENTER_MOVE_MM', 2, 100, 1],
+        ['GUY_PEEK_SQUASH', 0.3, 1, 0.01],
+        ['GUY_PEEK_LIFT_T', 0.1, 3, 0.05],
+        ['GUY_PEEK_HEAD_T', 0.1, 3, 0.05],
+        ['GUY_PEEK_LOOK_T', 0.2, 6, 0.1],
+        ['GUY_PEEK_OUT_T', 0.2, 6, 0.1],
+        ['GUY_PEEK_RISE_T', 0.1, 3, 0.05],
+        ['GUY_PEEK_SHAKE_T', 0.2, 5, 0.1],
+        ['GUY_NAP_FOLD_MM', 10, 60, 1],
+        ['GUY_NAP_LIFT_T', 0.1, 3, 0.05],
+        ['GUY_NAP_CRAWL_T', 0.5, 6, 0.1],
+        ['GUY_NAP_RISE_T', 0.1, 3, 0.05],
+        ['GUY_NAP_BRUSH_T', 0.2, 5, 0.1],
     ]],
     ['js/talk.js', [
         ['TALK_CHARS_PER_SEC', 5, 120, 1],
@@ -259,7 +284,7 @@ function buildPanel() {
 }
 
 loadGame().then(buildPanel).catch(e => {
-    document.getElementById('panel').textContent = 'Failed to load the game: ' + e.message;
+    document.getElementById('panel').textContent = (location.protocol === 'file:' ? 'Labs need the local server: double-click _labs-mac.command (or _labs-windows.bat on Windows) in the repo folder.' : 'Failed to load the game: ' + e.message);
 });
 </script>
 </body>

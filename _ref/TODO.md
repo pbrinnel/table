@@ -20,7 +20,29 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       dhfm91)
 - [x] The first guy's pompadour shaped as a quiff from above; the dialog box slightly
       see-through (Claude, for dhfm91)
-- [ ] Build step 2: the objects and layout from Paul's formal place-setting reference
+- [x] Build step 2: the objects and layout from Paul's formal place-setting reference: every
+      fork, knife, spoon, glass and cup in it (Claude, for Paul)
+- [x] Debug mode: select by pressing on the table or clicking the panel; hover in the
+      panel picks a thing out (Claude, for Paul)
+- [x] Click the guy's message to make it vanish; a held guy flails; you beat one or two
+      guys in a tug of war, three beat you (Claude, for Paul)
+- [x] Debug mode: a DEBUG button in the corner opens a live list of every object and guy
+      with their properties, and pause/play (Claude, for Paul)
+- [x] Guys arrive for a reason: spawn animations to choose from, in a lab first (Claude,
+      for Paul).
+- [x] Levels: cups sit on their saucers at level 3, slide off and tip down a level, and
+      only guys can climb up and put them back (Claude, for Paul)
+- [x] Guys boxed in between things climb over them; the setting is spread out (Claude,
+      for Paul). With five things flung about, one guy had everything back in 25 s.
+- [x] The centerpiece is a real four-level stack the guys rebuild bottom-up (Claude, for
+      Paul). Slid off together, the three upper pieces were back in 10 to 15 s.
+- [x] Tall things (cups, glasses) tip as stacked parts with real heights, not flat discs
+      (Claude, for Paul). Tipping in the game not yet checked by eye; try it in the
+      objects lab's slider first.
+- [x] Pick the arrival: 1a and 1c2 (Paul); built into the game (Claude, for Paul)
+- [ ] Barging, the guys' last resort when boxed in, sometimes nudges cutlery and makes
+      more work: in three chaos runs one guy left 0 to 7 pieces out of place after 25 s.
+      Tune `GUY_STALL_TIME` and `GUY_BARGE_TIME`, or barge only into light things.
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

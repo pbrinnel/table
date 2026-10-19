@@ -20,8 +20,10 @@ How the design maps onto it:
 | Cloth friction stops things | one static "cloth" body; each object gets a `FrictionJoint` to it, with `maxForce = CLOTH_FRICTION * mass * g` and a matching `maxTorque`. That gives real sliding friction: things stop dead, rather than easing out forever the way damping does. Planck 1.5.0's friction joint has a bug (it keeps its old impulse by reference, so its linear solve does nothing and a nudged thing creeps a centimeter or two a second forever, off the table in the end); `world.js` replaces that one method with Box2D's solve and leaves the library file as released |
 | Weight | each fixture's density, set so the body's mass matches the object's real mass |
 | Drag on a spring | a `MouseJoint` per pointer, anchored where the object was grabbed, with `DRAG_MAX_FORCE`, `DRAG_HZ`, `DRAG_DAMPING`. `DRAG_MAX_FORCE` is the same for every object, so heavy ones lag |
+| Levels | each fixture's filter puts it in one category per level, colliding only with its own. A thing resting on another is held to it by a `FrictionJoint` to that body (`RIDE_FRICTION`) instead of to the cloth, so it rides along until a jerk beats the friction. Its center leaving the support's rim starts a drop: the body is switched off, drawn tilting over the rim (the same squash as going over the edge) to a landing spot clear of the support, then switched on at level 2. Drawing and picking go by `byLevel()`. A guy putting a cup back has his body and the cup's switched off and moved by hand for the climb, the lift and the climb down |
+| Arrivals | a backup's body is switched off and drawn at level 1, under the thing he comes out from, while a timeline moves him by hand; that thing's drawing is tilted (`enterTilt`, the same squash as tipping) or, for the napkin, its corner flap drawn tilted (`flap`). He's switched on at a clear exit spot at the end |
 | Falling off | no rim; a body whose center leaves the table is switched off (`setActive(false)`) and drawn tipping (squashed toward the edge line by cos of the tilt) and shrinking from then on |
-| The little guy | a dynamic circle with `fixedRotation`; there can be several (a backup joins for each object that goes over the edge), each its own body and its own grip. No cloth friction while he's up: each step, a force capped at `GUY_FORCE` steers him toward the velocity he wants. He grabs with his own `MouseJoint`, capped at `GUY_GRIP_FORCE`. Knockdowns are judged from jolts to his speed, because he's a bullet and Planck doesn't report how hard fast collisions were. On foot (not hauling) he steers around anything in his way with ray casts, backed by a ring of point tests close in, since a corner can slip between two rays. Touching anything that isn't his job, he slows to `GUY_SQUEEZE_PACE`, drops his force to `GUY_SQUEEZE_FORCE`, and loses any push into it, so he slides along it. His body is frictionless (`slick`), so a scrape can't drag anything along. Hauling, when what he drags is about to bump something (ray casts ahead of it) or touches it, his pull point moves at `GUY_HAUL_CARE` of carrying speed and stays within `GUY_HAUL_LEAD_MM` of his hands |
+| The little guy | a dynamic circle with `fixedRotation`; there can be several (a backup joins for each object that goes over the edge), each its own body and its own grip. No cloth friction while he's up: each step, a force capped at `GUY_FORCE` steers him toward the velocity he wants. He grabs with his own `MouseJoint`, capped at `GUY_GRIP_SHARE` of the player's `DRAG_MAX_FORCE`, anchored to the cloth rather than his own body, so a tug of war moves the object but never pulls him: he follows it on foot. Knockdowns are judged from jolts to his speed, because he's a bullet and Planck doesn't report how hard fast collisions were. On foot (not hauling) he steers around anything in his way with ray casts, backed by a ring of point tests close in, since a corner can slip between two rays. Touching anything that isn't his job, he slows to `GUY_SQUEEZE_PACE`, drops his force to `GUY_SQUEEZE_FORCE`, and loses any push into it, so he slides along it. His body is frictionless (`slick`), so a scrape can't drag anything along. Hauling, when what he drags is about to bump something (ray casts ahead of it) or touches it, his pull point moves at `GUY_HAUL_CARE` of carrying speed and stays within `GUY_HAUL_LEAD_MM` of his hands |
 | No tunneling on a flick | cutlery and other thin, light objects are `bullet` bodies; there's a speed cap (`MAX_SPEED`) |
 
 **Units.** Physics runs in meters and kilograms, the scale Box2D is tuned for. Drawing is in
@@ -80,9 +82,15 @@ never turns with the table on a portrait phone.
   friction, each drag constant, falling, speed cap, line width, grab slop, the guy). Values
   apply live. "Copy values" gives them as `const` lines to paste into the code. Planned for
   step 3: a mass slider per object kind.
-- `_labs/objects.html` (planned, step 2): every object kind drawn large, its physics pieces
+- `_labs/objects.html` (built): every object kind drawn large, its physics pieces
   overlaid in a second color, so drawing and collision shape can be checked against each
   other.
+- `_labs/spawn.html` (built): candidate arrival animations for new guys.
+
+**Planck's skin.** Planck grows every box piece by its polygon radius, 10 mm, on all sides,
+so two boxes collide about 20 mm apart and a box and a circle about 10 mm apart. The layout
+leaves gaps for it. Shrinking boxes by that much in `world.js` would make collisions
+honest, at the cost of thin cutlery being harder to grab.
 
 ## Build order
 
@@ -91,7 +99,7 @@ Each step ends with something to try on the slider page.
 1. **Engine and frame. Done.** Planck vendored, the frame, the portrait turn, spring drag,
    cloth friction, a test layout, `_labs/tune.html`.
    - **Then, from Paul's ideas: the little guy, falling off the edge, and his ending. Done.**
-2. **Objects.** The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
+2. **Objects. Done** for one formal place setting. The catalog filled in with the kinds chosen from `DESIGN.md`, one by one, and
    `_labs/objects.html`. *Delegated to `builder` (Sonnet), a few kinds per brief, against the
    pattern the first plate set. Lead reviews each drawing and shape.*
 3. **The set table.** Starting layout of place settings, mass sliders. Two-finger drag is

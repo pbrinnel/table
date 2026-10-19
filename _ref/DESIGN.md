@@ -40,6 +40,12 @@ ending of sorts (see **The little guy**).
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
 - No menus, no text, no buttons in the first playable.
+  - **Update (Paul):** one exception, for building it: a small DEBUG button in the top
+    right corner. It opens a panel listing every object and every guy with their
+    properties, live, and a pause/play button that stops everyone moving. In debug mode a
+    press on the table selects what's under it, and the panel's entries can be clicked to
+    select or hovered to pick a thing out; the selection is ringed in red on the table. Objects and
+    guys will get more properties as they're differentiated; the panel grows with them.
   - **Update (dhfm91):** still no menus or buttons, but the little guy talks in a dialog
     box (see **The guy talks**). That's the only text.
 
@@ -65,6 +71,38 @@ ending of sorts (see **The little guy**).
   how far it gets knocked, and how much it pushes back.
 - Objects turn when hit off-center. A fork clipped at one end spins.
 - Objects never overlap or stack. Nothing rides on anything else: a tray is just a tray.
+  - **Update (Paul): levels.** The table is level 0 and the cloth level 1; objects and
+    guys normally stand at level 2, on the cloth, and a thing resting on another object is
+    at level 3. For now only the cups stack: the coffee cup and the demitasse cup are
+    separate from their saucers and sit on them at level 3. Levels 0 and 1 are named for
+    later; nothing sits there yet.
+    - Things only collide with things on their own level, so a plate slides into a saucer
+      but under its cup.
+    - A cup rides along with its saucer, held by friction (`RIDE_FRICTION`), so a hard jerk
+      or a knock makes it slide off. When its center leaves the saucer it **tips down a
+      level**: it tilts over the saucer's rim (`DROP_TILT`, over `DROP_TIME`), lands on
+      the cloth just clear of the saucer, and is at level 2 from then on.
+    - If a saucer goes over the table's edge, its cup goes with it.
+    - **Only the guys can put a cup back up.** The player can drag a fallen cup, but at
+      level 2 it just bumps the saucer. A guy hauls it to its saucer, climbs onto the
+      saucer (`GUY_CLIMB_UP_TIME`), lifts the cup up onto it (`GUY_LIFT_TIME`) and climbs
+      down (`GUY_CLIMB_DOWN_TIME`). Seen from above, being a level higher shows as being
+      a little bigger (`GUY_UP_SCALE`). Grabbing him partway stops it.
+    - **Update (Paul): height.** Tall things (cups, glasses) don't tip like flat discs.
+      Each is a stack of round parts with real heights: a cup is one, a stemmed glass a
+      flat foot, a thin stem and a bowl widening to the rim. Tipping, each part leans out
+      by its height and gets its own outline, so a flute going over reads as foot, stem
+      and bowl. Upright they look as before. `_labs/objects.html` has a slider to tip them.
+    - **Update (Paul): the centerpiece is a real stack.** The charger is on the cloth,
+      the dinner plate on it at level 3, the salad plate at 4 and the consommé cup at
+      5, each its own object. *Prototype choices:* whatever slides off a layer falls all
+      the way to the cloth, with everything on top of it, landing on the first clear
+      spot outside the whole stack, pieces falling together spread apart with room for
+      a guy between them (`DROP_ROOM_MM`). The guys rebuild from the bottom up: a piece
+      goes back only once the one under it is back in place, and a guy climbs as many
+      levels as he needs to (the climb takes `GUY_CLIMB_UP_TIME` per level).
+    - A cup on its saucer counts as put back wherever the saucer is; the guys put the
+      saucer back like any other object, cup and all.
 - Every object collides with every other object.
 - **The edge (Paul):** there's no rim. When an object's center crosses the table's edge it
   tips over the edge and falls: seen from above, it squashes toward the edge line as it
@@ -84,6 +122,9 @@ where it was, and you can knock him around.
 - **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
   edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
   like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.
+  - **Update (Paul):** in a tug of war the player beats one or two guys and three beat the
+    player; pulling guys off the edge with an object stays possible. Each guy's grip is
+    `GUY_GRIP_SHARE` of the player's `DRAG_MAX_FORCE`, and the guys' pulls add up.
   - **Update (dhfm91):** he's tiny and doesn't want anything to move, so on foot (going to
     a job, or wandering) he steers around objects and other guys rather than through them,
     slowing as he squeezes past. Brushing past something, his push drops to
@@ -92,6 +133,12 @@ where it was, and you can knock him around.
     to bump something, or is touching it, he slows to `GUY_HAUL_CARE` of his carrying
     speed and keeps his pull close behind it (`GUY_HAUL_LEAD_MM`), so it nudges things
     aside rather than launching them off the table.
+  - **Update (Paul):** guys kept getting boxed in between things. Stuck on foot for
+    `GUY_STALL_TIME`, a guy climbs over what's in his way, up and across the top
+    (`GUY_CLIMB_OVER_SPEED`) to the first clear spot past it, without moving it. Only
+    with nowhere clear to get to does he barge (`GUY_BARGE_TIME`), shoving with his full
+    force, which can move cutlery. The setting is also spread out (`SETTING_SPREAD`) to
+    leave the guys room to walk between pieces.
 - **What he works on:** the moment the player grabs something, he goes straight for it, and
   it turns into a tug of war (Paul). Otherwise whatever is furthest from home. If he makes
   no progress for `GUY_PATIENCE`, he gives up on it for `GUY_SULK_TIME` and tries another.
@@ -105,6 +152,8 @@ where it was, and you can knock him around.
   then gets up and goes back to work.
 - **Grabbing him:** he can be dragged like an object. Held, he's limp and lets go of what
   he had; let go, he lies stunned, then gets up. *Prototype choice.*
+  - **Update (Paul):** held, he flails instead of hanging limp: arms and legs thrash
+    (`GUY_FLAIL_HZ`, `GUY_FLAIL_SWING`). He still lets go, and lies stunned once dropped.
 - **Knocked off the table:** he falls like anything else, then climbs back on where he went
   over after `GUY_CLIMB_TIME`. *Prototype choice.*
 - **The end (Paul):** when the last object has gone over the edge, he follows it, slowly
@@ -136,6 +185,9 @@ gets messier (dhfm91).
   square on the left, his line typed out beside it. Same two colors and same pen as
   everything else, square corners. It always reads upright, even when the table is turned
   on a phone. It doesn't block touches.
+  - **Update (Paul):** it blocks the bottom of the table, so a press on the box makes it
+    vanish at once, rather than reaching through to what's underneath. Pressing anywhere
+    else works as before.
   - **Update (dhfm91):** the box's paper is slightly see-through (`TALK_BOX_ALPHA`), so the
     bottom of the table shows faintly through it, in light grey, the one grey in the
     game. The portrait and the words stay solid.
@@ -155,6 +207,14 @@ gets messier (dhfm91).
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
   as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
   backups wander like the first guy.
+  - **Update (Paul): how backups arrive.** A backup crawls out from under something
+    still on the table, picked from Paul's spawn lab (`_labs/spawn.html`): from under the
+    napkin while it's free, its corner lifting with a true tilt and flipping over, then
+    dropping back with a little bounce (1c2); otherwise from under the nearest round
+    thing to where the object fell, which tilts up while he peeks out, looks both ways,
+    wriggles out and shakes himself off (1a). With nothing free to come out from under,
+    he climbs up lying flat as before. Grabbing him or his cover, or moving it, ends his
+    arrival at once.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.
@@ -163,7 +223,16 @@ gets messier (dhfm91).
 
 ## Objects
 
-**Open.** The list below is a brainstorm to choose from, not a decision. Sizes are real ones,
+- **Update (Paul):** the catalog now holds every piece of a traditional formal place
+  setting, each its own kind: the charger setting (charger, dinner and salad plates and
+  consommé cup as one), bread plate, napkin; salad, fish, meat, cake and seafood forks;
+  meat, fish, salad and butter knives; teaspoon, demitasse, soup and dessert spoons;
+  water goblet, champagne flute, white and red wine glasses, cordial glass; coffee cup
+  and demitasse cup, each on its saucer. All are drawn and listed in `_labs/objects.html`.
+  The table holds one setting laid out as in the reference. How many settings is still
+  open.
+
+**Was open.** The list below was a brainstorm to choose from, before the update above. Sizes are real ones,
 to keep proportions honest; masses set the weight.
 
 | Object | Overhead shape | Size (mm) | Mass (g) |
