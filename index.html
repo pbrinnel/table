@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- viewport-fit=cover lets the field run under the notch and the home
+         indicator; the body's padding hands that space back where it matters -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- The working title, which is all this page says about itself anywhere.
+         See "Staying hidden" in CLAUDE.md before adding anything to this head. -->
+    <title>table</title>
+
+    <!-- not linked from anywhere, and kept out of search results -->
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- No description, og: or twitter: tags. A preview the page doesn't have
+         is a preview that can't give it away; a pasted link shows a bare URL. -->
+
+    <meta name="theme-color" content="#000000">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            background: #000;
+            -webkit-text-size-adjust: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        body {
+            /* svh, not vh: iOS pins vh to the viewport with its toolbars
+               retracted, which puts the bottom of the field under them. The vh
+               line is the fallback for browsers without svh. */
+            min-height: 100vh;
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            padding: 20px max(20px, env(safe-area-inset-right))
+                     max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+            /* nothing scrolls, so a drag past the field mustn't rubber-band the
+               page or pull down a refresh, and a double tap mustn't zoom */
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        #stage {
+            display: block;
+            background: #090908;
+            touch-action: none;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="stage"></canvas>
+
+<!-- Load order matters. These are plain scripts sharing one scope: what one
+     declares at its top level, the ones after it can see. start.js goes last.
+
+     ?v= is a cache-buster. GitHub Pages holds files for ten minutes, so a
+     deploy that changes two of them can otherwise reach someone as one new
+     file and one old one. Bump all of them together, every deploy. -->
+<script src="js/frame.js?v=1"></script>
+<script src="js/start.js?v=1"></script>
+</body>
+</html>
