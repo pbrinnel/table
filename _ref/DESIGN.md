@@ -87,8 +87,11 @@ where it was, and you can knock him around.
   - **Update (dhfm91):** he's tiny and doesn't want anything to move, so on foot (going to
     a job, or wandering) he steers around objects and other guys rather than through them,
     slowing as he squeezes past. Brushing past something, his push drops to
-    `GUY_SQUEEZE_FORCE`, too weak to shift a plate. Hauling is unchanged: what he's
-    dragging home still shoves aside whatever's in its way.
+    `GUY_SQUEEZE_FORCE`, too weak to shift a plate. Hauling, he still drags things
+    home through whatever's in the way, but carefully: when what he's dragging is about
+    to bump something, or is touching it, he slows to `GUY_HAUL_CARE` of his carrying
+    speed and keeps his pull close behind it (`GUY_HAUL_LEAD_MM`), so it nudges things
+    aside rather than launching them off the table.
 - **What he works on:** the moment the player grabs something, he goes straight for it, and
   it turns into a tug of war (Paul). Otherwise whatever is furthest from home. If he makes
   no progress for `GUY_PATIENCE`, he gives up on it for `GUY_SULK_TIME` and tries another.
@@ -116,6 +119,9 @@ where it was, and you can knock him around.
   hands and feet. Same black line on white, seen from straight above. About 50 mm across,
   small next to a plate. Arms swing as he runs and reach forward when he's holding
   something; limbs flung out when he's knocked flat.
+  - **Update (dhfm91):** the first guy's head is filled solid black, his pompadour seen
+    from above (see his portrait under **The guy talks**). Backups keep white heads, so
+    he's the one you can pick out.
 
 Every number about him is a slider on the tune page.
 

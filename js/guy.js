@@ -60,6 +60,11 @@ const GUY_SQUEEZE_PACE = 0.25;   // his pace while brushing past something, and 
 // Touching something that isn't his job, his push drops to this: less than the
 // force a dinner plate needs to slide (about 2 N), so squeezing past can't shove it.
 const GUY_SQUEEZE_FORCE = 1;     // newtons
+// Hauling with care: when what he's dragging is about to bump something, or is
+// touching it, he slows to this fraction of GUY_CARRY_SPEED and keeps his pull
+// point close behind it, so it nudges what's in the way rather than launching it.
+const GUY_HAUL_CARE = 0.2;
+const GUY_HAUL_LEAD_MM = 15;     // furthest his pull point runs ahead of his hands while careful
 
 const GUY_R_MM = 25;             // his collision circle
 const GUY_REACH_MM = 12;         // how far past touching he can still get his hands on it
@@ -251,6 +256,37 @@ const steerDirX = [], steerDirY = [];
 for (let i = 0; i < GUY_STEER_DIRS; i++) {
     steerDirX.push(Math.cos(i / GUY_STEER_DIRS * Math.PI * 2));
     steerDirY.push(Math.sin(i / GUY_STEER_DIRS * Math.PI * 2));
+}
+
+// Is what he's hauling about to bump into something (not a guy) along its way
+// home, or already touching it? Rays from its center and from near either side,
+// as far as it reaches plus GUY_LOOK_MM.
+let haulSelf = null, haulHit = false;
+function haulSees(fixture) {
+    const b = fixture.getBody();
+    if (b === haulSelf || guys.some(o => o.thing.body === b)) return -1;
+    haulHit = true;
+    return 0;
+}
+function haulBlocked(t, dx, dy) {
+    const b = t.body;
+    for (let e = b.getContactList(); e; e = e.next) {
+        if (e.contact.isTouching() && !guys.some(o => o.thing.body === e.other)) return true;
+    }
+    const p = b.getPosition();
+    const len = reachToward(t, Vec2(dx, dy)) + GUY_LOOK_MM / 1000;
+    const wide = Math.min(reachToward(t, Vec2(-dy, dx)), reachToward(t, Vec2(dy, -dx))) * 0.9;
+    haulSelf = b;
+    haulHit = false;
+    for (const k of [-1, 0, 1]) {
+        steerFrom.x = p.x - dy * wide * k;
+        steerFrom.y = p.y + dx * wide * k;
+        steerTo.x = steerFrom.x + dx * len;
+        steerTo.y = steerFrom.y + dy * len;
+        world.rayCast(steerFrom, steerTo, haulSees);
+        if (haulHit) return true;
+    }
+    return false;
 }
 
 // Is the point inside anything he'd steer around? A ray that starts inside a
@@ -492,12 +528,18 @@ function guyWants(g, h) {
     }
 
     // Haul: the point he pulls toward runs ahead to home at carrying speed,
-    // and he runs along beside it.
+    // and he runs along beside it. With something in the way, slowly, and
+    // never far ahead of his hands, so the spring can't fling it into things.
     const grabbed = g.grip.getAnchorB();
     const goal = Vec2.add(t.home, Vec2.sub(grabbed, p));
     const ahead = Vec2.sub(goal, g.carry), aheadLen = ahead.length();
-    const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * h);
+    const careful = aheadLen > 1e-6 && haulBlocked(t, ahead.x / aheadLen, ahead.y / aheadLen);
+    const stepLen = Math.min(aheadLen, GUY_CARRY_SPEED * (careful ? GUY_HAUL_CARE : 1) * h);
     if (aheadLen > 1e-6) g.carry = Vec2.add(g.carry, Vec2.mul(ahead, stepLen / aheadLen));
+    if (careful) {
+        const lead = Vec2.sub(g.carry, grabbed), leadLen = lead.length(), most = GUY_HAUL_LEAD_MM / 1000;
+        if (leadLen > most) g.carry = Vec2.add(grabbed, Vec2.mul(lead, most / leadLen));
+    }
     g.grip.setTarget(g.carry);
     // keep pace with it, plus close whatever gap has opened
     g.steerDir = null;
@@ -640,13 +682,21 @@ function limb(c, x0, y0, x1, y1, digits) {
     splay(c, x1, y1, Math.atan2(y1 - y0, x1 - x0), digits);
 }
 
-function drawHead(c, x) {
+// The first guy's head is filled black: from above, his pompadour is all you
+// see of it. Backups are bareheaded, so he's the one you can pick out.
+function drawHead(c, x, g) {
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
     inkShape(c);
     c.beginPath();
     ring(c, x, 0, 13);
-    inkShape(c);
+    if (g === guys[0]) {
+        c.fillStyle = INK;
+        c.fill();
+        inkLine(c);
+    } else {
+        inkShape(c);
+    }
 }
 
 // Running, legs and arms swinging opposite each other; reaching out in front
@@ -667,7 +717,7 @@ function drawGuyStanding(c, g) {
     c.beginPath();
     c.ellipse(-3, 0, 7, sad ? 10 : 12, 0, 0, Math.PI * 2);
     inkShape(c);
-    drawHead(c, sad ? 9 : 3);
+    drawHead(c, sad ? 9 : 3, g);
 }
 
 // Flat on his back, arms and legs flung out, laid the way he was knocked.
@@ -682,5 +732,5 @@ function drawGuyFlat(c, g) {
     c.beginPath();
     c.ellipse(-4, 0, 12, 9, 0, 0, Math.PI * 2);
     inkShape(c);
-    drawHead(c, 20);
+    drawHead(c, 20, g);
 }
