@@ -48,6 +48,7 @@ function dbgGuyState(g) {
     if (!onTable(g.thing)) return 'fallen';
     if (g.leaving) return 'leaving: ' + g.leaving.phase;
     if (g.down > 0) return 'down, ' + dbgOneDec(g.down) + ' s left';
+    if (g.lift) return 'putting a cup back: ' + g.lift.phase;
     if (g.grip) return 'hauling';
     if (g.job) return 'working';
     return 'wandering';
@@ -60,7 +61,8 @@ const OBJECT_ROWS = [
     ['speed', t => dbgMm(t.body.getLinearVelocity().length()) + ' mm/s'],
     ['home (mm)', t => dbgXy(t.home)],
     ['from home', t => dbgMm(planck.Vec2.distance(t.body.getPosition(), t.home)) + ' mm'],
-    ['status', t => onTable(t) ? 'on the table' : 'falling'],
+    ['status', t => !onTable(t) ? 'falling' : t.drop !== undefined ? 'tipping down a level' : t.lifted ? 'being lifted' : 'on the table'],
+    ['level', t => t.level + (t.on ? ', on ' + dbgKindName(t.on.kind) : '')],
     ['held by player', t => isHeld(t.body) ? 'yes' : 'no'],
     ['guy working on it', t => {
         const g = guys.find(g => g.job === t);
@@ -73,6 +75,7 @@ const GUY_ROWS = [
     ['speed', g => dbgMm(g.thing.body.getLinearVelocity().length()) + ' mm/s'],
     ['facing', g => dbgDeg(g.facing)],
     ['state', dbgGuyState],
+    ['level', g => g.thing.level],
     ['job', g => g.job ? dbgKindName(g.job.kind) : 'none'],
     ['grip', g => g.grip ? 'yes' : 'no'],
 ];
@@ -90,13 +93,22 @@ function dbgEntryHtml(t, title, rows, item) {
         (t === debugSelected ? '▶ ' : '') + title + '</h3>' + dbgRowsHtml(rows, item) + '</div>';
 }
 
+// The panel is a header that stays put, with the pause button, and a list
+// under it that's rebuilt every refresh. A click needs its press and release
+// on the same element, so nothing clickable may be rebuilt in between: the
+// button lives in the header, and the list's entries answer the press itself.
+function buildDebugPanel(panel) {
+    panel.innerHTML = '<button type="button" id="debug-pause">Pause</button><div id="debug-list"></div>';
+}
+
 function refreshDebug() {
     const panel = document.getElementById('debug-panel');
+    const list = document.getElementById('debug-list');
+    document.getElementById('debug-pause').textContent = debugPaused ? 'Play' : 'Pause';
     // anything gone from the table for good can't stay picked out
     if (debugSelected && !things.includes(debugSelected)) debugSelected = null;
     const objects = things.filter(t => !isGuy(t));
-    let html = '<button type="button" id="debug-pause">' + (debugPaused ? 'Play' : 'Pause') + '</button>';
-    html += '<h2>Objects (' + objects.length + ')</h2>';
+    let html = '<h2>Objects (' + objects.length + ')</h2>';
     for (const t of objects) html += dbgEntryHtml(t, dbgKindName(t.kind), OBJECT_ROWS, t);
     html += '<h2>Guys (' + guys.length + ')</h2>';
     guys.forEach((g, i) => {
@@ -104,7 +116,7 @@ function refreshDebug() {
     });
     // keep the scroll place across the rebuild
     const top = panel.scrollTop;
-    panel.innerHTML = html;
+    list.innerHTML = html;
     panel.scrollTop = top;
 }
 
@@ -163,14 +175,18 @@ function setDebug(on) {
 }
 
 function listenForDebug() {
-    document.getElementById('debug-button').addEventListener('click', () => setDebug(!debugOn));
+    // The labs load the game's scripts into pages of their own, without the
+    // button or panel; there's no debug mode there.
+    const button = document.getElementById('debug-button');
     const panel = document.getElementById('debug-panel');
-    panel.addEventListener('click', e => {
-        if (e.target.id === 'debug-pause') {
-            debugPaused = !debugPaused;
-            refreshDebug();
-            return;
-        }
+    if (!button || !panel) return;
+    buildDebugPanel(panel);
+    button.addEventListener('click', () => setDebug(!debugOn));
+    document.getElementById('debug-pause').addEventListener('click', () => {
+        debugPaused = !debugPaused;
+        refreshDebug();
+    });
+    panel.addEventListener('pointerdown', e => {
         const entry = e.target.closest('.debug-entry');
         if (entry) debugSelect(dbgThingById(+entry.dataset.id));
     });

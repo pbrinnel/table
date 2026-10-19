@@ -18,8 +18,10 @@ const SETTING_X = -118, SETTING_Y = 63;
 // or a knife's tip up
 const UP = -Math.PI / 2, DOWN = Math.PI / 2;
 
-function at(kind, dx, dy, angle) {
-    return { kind, x: SETTING_X + dx, y: SETTING_Y + dy, angle: angle || 0 };
+// on: the kind of an earlier piece in the layout that this one rests on, a
+// level up (DESIGN.md, "levels"), placed at that piece's center.
+function at(kind, dx, dy, angle, on) {
+    return { kind, x: SETTING_X + dx, y: SETTING_Y + dy, angle: angle || 0, on };
 }
 
 const TEST_LAYOUT = [
@@ -50,8 +52,10 @@ const TEST_LAYOUT = [
     at('redWineGlass', 468, -195),
     at('cordialGlass', 320, -140),
     // coffee and demitasse cups on their saucers, handles to the right
-    at('coffeeCup', 620, -90),
-    at('demitasseCup', 610, 60),
+    at('coffeeSaucer', 620, -90),
+    at('coffeeCup', 620, -90, 0, 'coffeeSaucer'),
+    at('demitasseSaucer', 610, 60),
+    at('demitasseCup', 610, 60, 0, 'demitasseSaucer'),
 ];
 
 // where the little guy stands when there's nothing to put back: the open

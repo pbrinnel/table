@@ -10,7 +10,7 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/look.js` | Ink, paper, `LINE_WIDTH`, and `inkLine`/`inkShape`, which every drawing strokes with so the pen stays even |
 | `js/table.js` | The table's size, `MM_PER_UNIT`, mm-to-frame conversion, the test layout, the table's outline |
 | `js/objects.js` | `KINDS`: each object's mass, collision pieces and drawing |
-| `js/world.js` | The Planck world: cloth friction, falling off the edge, the fixed step, `thingAt()` |
+| `js/world.js` | The Planck world: cloth friction, levels (`setLevel`, `placeOn`; a thing resting on another tips down a level when it slides off), falling off the edge, the fixed step, `thingAt()`, `byLevel()` |
 | `js/drag.js` | Pointer grab and spring drag, one joint per pointer; `isHeld()` |
 | `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
@@ -26,6 +26,7 @@ Not published:
 | File or folder | What's in it |
 |---|---|
 | `_play-mac.command`, `_play-windows.bat` | Double-click to serve the game locally and open it |
+| `_labs-mac.command`, `_labs-windows.bat` | The same, opened at the labs' index (`_labs/index.html`), which opens each lab in its own tab |
 | `.gitattributes` | Keeps `.bat` files in Windows line endings |
 | `_ref/` | Docs: this map, `TODO.md`, `DESIGN.md` (what the game is), `BUILD.md` (how it's built, and in what order) |
 | `_labs/` | Dev tools. `tune.html`: the table with a slider for every feel constant. `objects.html`: every object kind with its collision shape. `spawn.html`: arrival animations to choose from. `check.sh`: checks the hidden-page tags, the `?v=N`s and this map |

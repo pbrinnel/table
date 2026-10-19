@@ -30,9 +30,17 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       with their properties, and pause/play (Claude, for Paul)
 - [ ] Guys arrive for a reason: spawn animations to choose from, in a lab first (Claude,
       for Paul). Files: new `_labs/spawn.html`; `js/guy.js` once one is chosen.
-      Where it stands: `_labs/spawn.html` has five candidates (under a bowl, parachute,
-      over the edge, out of a cup, on a line). Next: Paul picks one or more, then it's
-      built into `js/guy.js` in place of climbing up lying flat.
+      Where it stands: Paul likes crawling out from under a bowl (1a) and the napkin (1c),
+      and the fake-3D tilt; variants of those are in the lab's Keep section, the rest under
+      UNUSED. Next: pick, then build it into `js/guy.js` in place of climbing up flat.
+- [x] Levels: cups sit on their saucers at level 3, slide off and tip down a level, and
+      only guys can climb up and put them back (Claude, for Paul)
+- [ ] A fallen cup in a crowded spot (by the glasses and the demitasse cup) is one a guy
+      often can't get to: he tries, gives up, tries again. Tested 8 drop spots: 5 put back
+      in 2.5 to 3 s, 3 not. (Claude, for Paul.) Files: `js/guy.js`.
+- [ ] Tall things (cups, glasses) look like flat discs when they tip: fake their height
+      (Claude, for Paul; see the ideas in the next session).
+- [ ] Pick the arrival: `_labs/spawn.html` Keep section has 1a, 1a2, 1a3, 1c, 1c2 (Paul)
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

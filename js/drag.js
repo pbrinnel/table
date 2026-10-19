@@ -77,10 +77,13 @@ function isHeld(body) {
     return false;
 }
 
-// Something held that went over the edge drops out of the hand.
+// Something held that went over the edge drops out of the hand. One tipping
+// down a level, or in a guy's hands, stays held: its body is only off for a
+// moment.
 function dropFallen() {
     for (const [id, joint] of holds) {
-        if (!joint.getBodyB().isActive()) {
+        const t = things.find(t => t.body === joint.getBodyB());
+        if (!t || t.fall !== undefined) {
             world.destroyJoint(joint);
             holds.delete(id);
         }

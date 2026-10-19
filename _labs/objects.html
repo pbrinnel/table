@@ -108,7 +108,7 @@ function show() {
 }
 
 loadGame().then(show).catch(e => {
-    document.body.textContent = 'Failed to load the game: ' + e.message;
+    document.body.textContent = (location.protocol === 'file:' ? 'Labs need the local server: double-click _labs-mac.command (or _labs-windows.bat on Windows) in the repo folder.' : 'Failed to load the game: ' + e.message);
 });
 </script>
 </body>

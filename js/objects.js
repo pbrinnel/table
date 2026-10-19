@@ -143,15 +143,19 @@ function drawGlass(c, rim, inner, foot, dot) {
     inkLine(c);
 }
 
-// A cup on its saucer: saucer and its well, a handle loop at +x, the cup's
-// rim and the line of the tea inside it.
-function drawCupOnSaucer(c, saucer, well, cup, inner, handleFrom, handleTo, handleW) {
+// A saucer: its rim and the well a cup sits in.
+function drawSaucer(c, saucer, well) {
     c.beginPath();
     ring(c, 0, 0, saucer);
     inkShape(c);
     c.beginPath();
     ring(c, 0, 0, well);
     inkLine(c);
+}
+
+// A cup on its own (it rests on its saucer a level up): a handle loop at +x,
+// the cup's rim and the line of the tea inside it.
+function drawCup(c, cup, inner, handleFrom, handleTo, handleW) {
     c.beginPath();
     c.roundRect(handleFrom, -handleW / 2, handleTo - handleFrom, handleW, handleW / 2.5);
     inkShape(c);
@@ -445,15 +449,29 @@ const KINDS = {
         draw(c) { drawGlass(c, 25, 19, 0, 5); },
     },
 
-    coffeeCup: {
-        mass: 350,
+    // The cups sit on their saucers, a level up (DESIGN.md, "levels"). A cup's
+    // collision circle is its rim; the handle sticks out past it.
+    coffeeSaucer: {
+        mass: 150,
         pieces: [{ circle: 75 }],
-        draw(c) { drawCupOnSaucer(c, 75, 56, 40, 30, 34, 66, 26); },
+        draw(c) { drawSaucer(c, 75, 56); },
+    },
+
+    coffeeCup: {
+        mass: 200,
+        pieces: [{ circle: 40 }],
+        draw(c) { drawCup(c, 40, 30, 34, 66, 26); },
+    },
+
+    demitasseSaucer: {
+        mass: 100,
+        pieces: [{ circle: 60 }],
+        draw(c) { drawSaucer(c, 60, 45); },
     },
 
     demitasseCup: {
-        mass: 220,
-        pieces: [{ circle: 60 }],
-        draw(c) { drawCupOnSaucer(c, 60, 45, 30, 22, 26, 53, 20); },
+        mass: 120,
+        pieces: [{ circle: 30 }],
+        draw(c) { drawCup(c, 30, 22, 26, 53, 20); },
     },
 };

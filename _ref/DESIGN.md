@@ -71,6 +71,25 @@ ending of sorts (see **The little guy**).
   how far it gets knocked, and how much it pushes back.
 - Objects turn when hit off-center. A fork clipped at one end spins.
 - Objects never overlap or stack. Nothing rides on anything else: a tray is just a tray.
+  - **Update (Paul): levels.** The table is level 0 and the cloth level 1; objects and
+    guys normally stand at level 2, on the cloth, and a thing resting on another object is
+    at level 3. For now only the cups stack: the coffee cup and the demitasse cup are
+    separate from their saucers and sit on them at level 3. Levels 0 and 1 are named for
+    later; nothing sits there yet.
+    - Things only collide with things on their own level, so a plate slides into a saucer
+      but under its cup.
+    - A cup rides along with its saucer, held by friction (`RIDE_FRICTION`), so a hard jerk
+      or a knock makes it slide off. When its center leaves the saucer it **tips down a
+      level**: it tilts over the saucer's rim (`DROP_TILT`, over `DROP_TIME`), lands on
+      the cloth just clear of the saucer, and is at level 2 from then on.
+    - If a saucer goes over the table's edge, its cup goes with it.
+    - **Only the guys can put a cup back up.** The player can drag a fallen cup, but at
+      level 2 it just bumps the saucer. A guy hauls it to its saucer, climbs onto the
+      saucer (`GUY_CLIMB_UP_TIME`), lifts the cup up onto it (`GUY_LIFT_TIME`) and climbs
+      down (`GUY_CLIMB_DOWN_TIME`). Seen from above, being a level higher shows as being
+      a little bigger (`GUY_UP_SCALE`). Grabbing him partway stops it.
+    - A cup on its saucer counts as put back wherever the saucer is; the guys put the
+      saucer back like any other object, cup and all.
 - Every object collides with every other object.
 - **The edge (Paul):** there's no rim. When an object's center crosses the table's edge it
   tips over the edge and falls: seen from above, it squashes toward the edge line as it

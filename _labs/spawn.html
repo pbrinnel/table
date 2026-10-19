@@ -18,7 +18,10 @@
 
     h1 { font-size: 24px; font-weight: normal; margin-bottom: 4px; }
     .intro { margin-bottom: 16px; }
-    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 24px 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); gap: 24px 20px; }
+    .section { font-size: 24px; font-weight: normal; margin-bottom: 8px; }
+    details { margin-top: 28px; }
+    summary { font-size: 24px; cursor: pointer; margin-bottom: 12px; }
     .panel { width: 440px; }
     .panel canvas { display: block; border: 1px solid #000; }
     .panel h2 { font-size: 20px; font-weight: normal; margin-top: 6px; }
@@ -31,7 +34,12 @@
 <body>
 <h1>spawn</h1>
 <p class="intro">Ways a new little guy could arrive. Each loops; drag a slider to pause and scrub, press replay to run it again.</p>
-<div id="grid"></div>
+<h2 class="section">Keep</h2>
+<div class="grid" id="grid"></div>
+<details id="unused">
+<summary>UNUSED</summary>
+<div class="grid" id="gridUnused"></div>
+</details>
 
 <script>
 // Candidate arrivals for the backup guys, each a function of time t (seconds).
@@ -69,6 +77,81 @@ const CRAWL_SHAKE_T = 1.6;                // seconds of shaking off
 const CRAWL_SHAKE_HZ = 3;
 const CRAWL_SHAKE_ANGLE = 0.55;           // radians, to either side, fading out
 const CRAWL_DURATION = 6.2;
+
+// 1a. crawl, peek first: the bowl's far rim lifts, he looks about, then wriggles out
+const PEEK_BOWL = { x: -45, y: 0, r: 55 };
+const PEEK_SQUASH = 0.8;        // the bowl's width at its most lifted, as a fraction (squashed toward its far rim)
+const PEEK_X_HIDE = -52, PEEK_X_PEEK = -22, PEEK_X_OUT = 60, PEEK_RISE_STEP = 10;
+const PEEK_LIFT_T0 = 0.4, PEEK_LIFT_T = 0.5;
+const PEEK_HEAD_T = 0.5;         // seconds for his head to come out
+const PEEK_LOOK_T = 2.0, PEEK_LOOK_SWINGS = 1.5, PEEK_LOOK_ANGLE = 0.6;   // swings are full cycles over PEEK_LOOK_T
+const PEEK_OUT_T = 1.6;          // wriggling out
+const PEEK_WRIGGLE_HZ = 2;
+const PEEK_SETTLE_T = 0.4;       // the bowl comes back down once he's out
+const PEEK_RISE_T = 0.7;
+const PEEK_SHAKE_T = 1.5, PEEK_SHAKE_HZ = 3, PEEK_SHAKE_ANGLE = 0.55;
+const PEEK_HOLD_T = 0.4;
+
+// 1b. crawl, squeeze out: hands first, hauled out, stuck at the hips, pops free
+const SQ_BOWL = { x: -45, y: 0, r: 55 };
+const SQ_X_HIDE = -34, SQ_X_HANDS = -14, SQ_X_STUCK = 12, SQ_X_OUT = 58, SQ_X_STAND = 68;
+const SQ_HANDS_T0 = 0.4, SQ_HANDS_T = 0.6, SQ_HOLD_T = 0.6;     // hands slide out, then rest on the cloth
+const SQ_HAULS = 3, SQ_HAUL_T = 2.1, SQ_HAUL_PART = 0.7;        // fraction of each haul spent pulling
+const SQ_STUCK_T = 1.4, SQ_STUCK_HZ = 2, SQ_STUCK_MM = 1.8, SQ_STUCK_ANGLE = 0.1;
+const SQ_POP_T = 0.35, SQ_POP_BUMP = 2.5;   // the bowl is jolted this many mm
+const SQ_STUMBLE_ANGLE = 0.35, SQ_WOBBLE = 0.12, SQ_WOBBLE_HZ = 1.5, SQ_WOBBLE_DECAY = 3;
+const SQ_RISE_T = 0.9;
+const SQ_HOLD_END_T = 1.0;
+
+// 1c. crawl, out from under a napkin: a corner lifts and flips back, he crawls out, it drops flat, he brushes off
+const NAP = { x: -40, y: 0, d: 58 };    // a square napkin turned to a diamond; d is the center-to-corner distance
+const NAP_FOLD = 32;             // how far along each edge the lifted corner is folded
+const NAP_X_START = -32, NAP_X_OUT = 62, NAP_X_STAND = 72;
+const NAP_TWITCH_T0 = 0.3, NAP_TWITCH_T = 0.6, NAP_TWITCH_HZ = 2, NAP_TWITCH = 0.25;   // the corner stirs, radians
+const NAP_LIFT_T0 = 1.0, NAP_LIFT_T = 0.7;
+const NAP_CRAWL_T = 2.4, NAP_WRIGGLE_HZ = 2;
+const NAP_RISE_T = 0.7;
+const NAP_DROP_T0 = 0.4, NAP_DROP_T = 0.5;   // the corner drops, from this long into the rise
+const NAP_BRUSH_T = 1.5, NAP_BRUSH_HZ = 2.5;
+const NAP_HOLD_T = 0.4;
+
+// 1a2. peek first, bowl heaved up in two pushes with true tilt, rocking back down
+const A2_BOWL = { x: -45, y: 0, r: 55 };
+const A2_TILT_KEYS = [[0.4, 0], [0.9, 0.45], [1.2, 0.2], [1.8, 0.75]];   // [seconds, tilt in radians]: pushes, then held up
+const A2_X_HIDE = -52, A2_X_PEEK = -40, A2_X_OUT = 60, A2_RISE_STEP = 10;
+const A2_HEAD_T = 0.5;
+const A2_LOOK_T = 1.8, A2_LOOK_SWINGS = 1.5, A2_LOOK_ANGLE = 0.6;
+const A2_OUT_T = 1.6, A2_WRIGGLE_HZ = 2;
+const A2_ROCK_DECAY = 3.5, A2_ROCK_HZ = 1.2;   // after he's out the bowl drops and bounces, HZ cycles a second
+const A2_RISE_T = 0.7;
+const A2_SHAKE_T = 1.5, A2_SHAKE_HZ = 3, A2_SHAKE_ANGLE = 0.55;
+const A2_HOLD_T = 0.4;
+
+// 1a3. knocked aside: the bowl shudders, tips over its left rim and lands offset; he sits up with a tilt
+const A3_BOWL = { x: -28, y: 0, r: 52 };
+const A3_LAND_X = -75;
+const A3_SHUDDER_KEYS = [[0.4, 0], [0.7, 0.25], [1.0, 0], [1.2, 0.3], [1.6, 0]];
+const A3_TIP_T0 = 1.8, A3_TIP_T = 1.1, A3_TIP_ANGLE = 1.25;
+const A3_X_HIDE = -26, A3_X_LIE = 22, A3_SCOOT_DELAY = 0.2;
+const A3_SETTLE_AMP = 0.25, A3_SETTLE_DECAY = 4, A3_SETTLE_HZ = 1.2;
+const A3_WRIGGLE_HZ = 2;
+const A3_LOOK_T = 1.6, A3_LOOK_SWINGS = 1.5, A3_LOOK_ANGLE = 0.5;
+const A3_RISE_T = 0.9, A3_RISE_TILT = 0.95, A3_STEP_X = 12;
+const A3_SHAKE_T = 1.4, A3_SHAKE_HZ = 3, A3_SHAKE_ANGLE = 0.55;
+const A3_HOLD_T = 0.4;
+
+// 1c2. napkin corner lifted with true tilt about its fold, showing its underside; he rises with a tilt
+const NAP2 = { x: -40, y: 0, d: 58 };
+const NAP2_FOLD = 32, NAP2_HEM = 7;      // the hem is the printed border on the napkin's top side only
+const NAP2_X_START = -32, NAP2_X_OUT = 62, NAP2_X_STAND = 72;
+const NAP2_TWITCH_T0 = 0.3, NAP2_TWITCH_T = 0.6, NAP2_TWITCH_HZ = 2, NAP2_TWITCH = 0.25;
+const NAP2_LIFT_T0 = 1.0, NAP2_LIFT_T = 0.9;
+const NAP2_CRAWL_T = 2.4, NAP2_WRIGGLE_HZ = 2;
+const NAP2_RISE_T = 0.9, NAP2_RISE_TILT = 0.95;
+const NAP2_DROP_T0 = 0.5, NAP2_DROP_T = 0.5;    // the corner drops, from this long into the rise
+const NAP2_BOUNCE = 0.35, NAP2_BOUNCE_DECAY = 5, NAP2_BOUNCE_HZ = 1.2;
+const NAP2_BRUSH_T = 1.5, NAP2_BRUSH_HZ = 2.5;
+const NAP2_HOLD_T = 0.4;
 
 // 2. parachute
 const PARA_R = 70;               // canopy radius at rest, mm
@@ -184,14 +267,17 @@ const STAND = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   0, 11, 0, 26, 13];
 const FLAT = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 18, 38, 6];
 const REACH = [-4, 9, 10, 6,   -10, 5, -34, 12, 10,   2, 11, 24, 8, 0];   // hands out in front, legs trailing
 const CUP_POSE = [-3, 8, 12, 3,   -3, 5, -3, 6, 0,   0, 11, 14, 40, 0];  // head and shoulders, arms out to the rim
+const TUCK = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 10, 14, 4];   // arms tucked at his sides, so nothing pokes out from cover
+const GRAB = [-4, 12, 9, 18,   -12, 5, -40, 18, 10,   4, 11, 30, 14, 8];   // arms stretched ahead, hands apart
+const BRUSH = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   2, 11, 6, 9, 10];       // hands on his front, sweeping
 
 function mix(a, b, u) {
     return a.map((v, i) => v + (b[i] - v) * u);
 }
 
 // A guy at (x, y) in mm, turned to face, scaled by size, in a pose; sw is the
-// limb swing, -1 to 1.
-function drawGuy(c, x, y, face, size, pose, sw) {
+// limb swing, -1 to 1; headTurn turns his head alone, in radians.
+function drawGuy(c, x, y, face, size, pose, sw, headTurn = 0) {
     c.save();
     c.translate(x, y);
     c.rotate(face);
@@ -206,7 +292,13 @@ function drawGuy(c, x, y, face, size, pose, sw) {
     c.beginPath();
     c.ellipse(bx, 0, brx, bry, 0, 0, Math.PI * 2);
     inkShape(c);
+    // the head turns about his neck, at the front of his body
+    c.save();
+    c.translate(bx + brx, 0);
+    c.rotate(headTurn);
+    c.translate(-(bx + brx), 0);
     drawHead(c, hx);
+    c.restore();
     c.restore();
 }
 
@@ -256,6 +348,303 @@ function drawCrawl(c, t) {
     c.beginPath();
     ring(c, CRAWL_BOWL.x, CRAWL_BOWL.y, CRAWL_BOWL.r * 0.68);
     inkLine(c);
+}
+
+// ---- 1a. crawl, peek first ----
+
+// a bowl seen from above with its far (right) rim lifted: squashed toward its left rim, the way the game fakes tilt
+function drawBowlSquashed(c, B, sx, dx) {
+    const left = B.x - B.r;
+    c.save();
+    c.translate(left + dx, B.y);
+    c.scale(sx, 1);
+    c.translate(-left, -B.y);
+    c.beginPath();
+    ring(c, B.x, B.y, B.r);
+    c.restore();
+    inkShape(c);
+    c.save();
+    c.translate(left + dx, B.y);
+    c.scale(sx, 1);
+    c.translate(-left, -B.y);
+    c.beginPath();
+    ring(c, B.x, B.y, B.r * 0.68);
+    c.restore();
+    inkLine(c);
+}
+
+function drawPeek(c, t) {
+    const liftEnd = PEEK_LIFT_T0 + PEEK_LIFT_T, headEnd = liftEnd + PEEK_HEAD_T, lookEnd = headEnd + PEEK_LOOK_T;
+    const outEnd = lookEnd + PEEK_OUT_T, riseEnd = outEnd + PEEK_RISE_T;
+    edgeAcross(c, 66);
+    const lift = smooth(seg(t, PEEK_LIFT_T0, liftEnd)) * (1 - smooth(seg(t, outEnd - PEEK_SETTLE_T, outEnd)));
+    const hu = smooth(seg(t, liftEnd, headEnd));
+    const ou = smooth(seg(t, lookEnd, outEnd));
+    const ru = smooth(seg(t, outEnd, riseEnd));
+    const sh = seg(t, riseEnd, riseEnd + PEEK_SHAKE_T);
+    const x = lerp(lerp(PEEK_X_HIDE, PEEK_X_PEEK, hu), PEEK_X_OUT, ou) + ru * PEEK_RISE_STEP;
+    const lu = seg(t, headEnd, lookEnd);
+    const head = t < lookEnd ? Math.sin(lu * PEEK_LOOK_SWINGS * Math.PI * 2) * PEEK_LOOK_ANGLE : 0;
+    let face = 0, sw = 0;
+    if (t > lookEnd && t < outEnd) sw = Math.sin(t * PEEK_WRIGGLE_HZ * Math.PI * 2);
+    else if (t >= riseEnd) {
+        face = Math.sin(t * PEEK_SHAKE_HZ * Math.PI * 2) * PEEK_SHAKE_ANGLE * (1 - sh);
+        sw = Math.sin(t * PEEK_SHAKE_HZ * Math.PI * 2 + 1) * (1 - sh);
+    }
+    const pose = mix(mix(TUCK, FLAT, ou), STAND, ru);
+    drawGuy(c, x, PEEK_BOWL.y, face, 1, pose, sw, head);
+    drawBowlSquashed(c, PEEK_BOWL, 1 - lift * (1 - PEEK_SQUASH), 0);
+}
+
+// ---- 1b. crawl, squeeze out ----
+
+function drawSqueeze(c, t) {
+    const handsEnd = SQ_HANDS_T0 + SQ_HANDS_T, holdEnd = handsEnd + SQ_HOLD_T, haulEnd = holdEnd + SQ_HAUL_T;
+    const stuckEnd = haulEnd + SQ_STUCK_T, popEnd = stuckEnd + SQ_POP_T, riseEnd = popEnd + SQ_RISE_T;
+    edgeAcross(c, 66);
+    let x, face = 0, sw = 0, pose = GRAB;
+    if (t < holdEnd) {
+        x = lerp(SQ_X_HIDE, SQ_X_HANDS, smooth(seg(t, SQ_HANDS_T0, handsEnd)));
+    } else if (t < haulEnd) {
+        // arm over arm: each haul pulls him on, then he grips and reaches again
+        const hu = seg(t, holdEnd, haulEnd) * SQ_HAULS;
+        const k = Math.min(SQ_HAULS - 1, Math.floor(hu));
+        const haul = (k + smooth(clamp01((hu - k) / SQ_HAUL_PART))) / SQ_HAULS;
+        x = lerp(SQ_X_HANDS, SQ_X_STUCK, haul);
+        sw = Math.cos(Math.PI * (k + smooth(clamp01((hu - k) / SQ_HAUL_PART))));
+    } else if (t < stuckEnd) {
+        const ph = Math.sin((t - haulEnd) * SQ_STUCK_HZ * Math.PI * 2);
+        x = SQ_X_STUCK + ph * SQ_STUCK_MM;
+        face = Math.sin((t - haulEnd) * SQ_STUCK_HZ * Math.PI * 2 + 1) * SQ_STUCK_ANGLE;
+        sw = ph;
+    } else if (t < popEnd) {
+        const u = smooth(seg(t, stuckEnd, popEnd));
+        x = lerp(SQ_X_STUCK, SQ_X_OUT, u);
+        face = SQ_STUMBLE_ANGLE * u;
+        pose = mix(GRAB, FLAT, u);
+    } else {
+        const s = t - popEnd;
+        const ru = smooth(seg(t, popEnd, riseEnd));
+        x = lerp(SQ_X_OUT, SQ_X_STAND, ru);
+        face = SQ_STUMBLE_ANGLE * (1 - ru) + SQ_WOBBLE * Math.exp(-SQ_WOBBLE_DECAY * s) * Math.sin(s * SQ_WOBBLE_HZ * Math.PI * 2);
+        pose = mix(FLAT, STAND, ru);
+    }
+    drawGuy(c, x, SQ_BOWL.y, face, 1, pose, sw);
+    const bump = Math.sin(Math.PI * seg(t, stuckEnd, popEnd + 0.3)) * SQ_POP_BUMP;
+    c.beginPath();
+    ring(c, SQ_BOWL.x + bump, SQ_BOWL.y, SQ_BOWL.r);
+    inkShape(c);
+    c.beginPath();
+    ring(c, SQ_BOWL.x + bump, SQ_BOWL.y, SQ_BOWL.r * 0.68);
+    inkLine(c);
+}
+
+// ---- 1c. crawl, out from under a napkin ----
+
+// phi: how far the right corner is folded back, 0 flat to PI laid over the napkin
+function drawNapkin(c, phi) {
+    const { x, y, d } = NAP, f = NAP_FOLD, xf = x + d - f;
+    c.beginPath();
+    c.moveTo(x, y - d);
+    c.lineTo(xf, y - f);
+    c.lineTo(xf, y + f);
+    c.lineTo(x, y + d);
+    c.lineTo(x - d, y);
+    c.closePath();
+    inkShape(c);
+    c.beginPath();
+    c.moveTo(xf, y - f);
+    c.lineTo(xf + f * Math.cos(phi), y);
+    c.lineTo(xf, y + f);
+    c.closePath();
+    inkShape(c);
+}
+
+function drawNapkinOut(c, t) {
+    const liftEnd = NAP_LIFT_T0 + NAP_LIFT_T, crawlEnd = liftEnd + NAP_CRAWL_T, riseEnd = crawlEnd + NAP_RISE_T;
+    const dropT0 = crawlEnd + NAP_DROP_T0;
+    edgeAcross(c, 66);
+    const lu = smooth(seg(t, NAP_LIFT_T0, liftEnd));
+    const du = smooth(seg(t, dropT0, dropT0 + NAP_DROP_T));
+    const twitch = Math.sin(seg(t, NAP_TWITCH_T0, NAP_TWITCH_T0 + NAP_TWITCH_T) * NAP_TWITCH_HZ * NAP_TWITCH_T * Math.PI * 2) * NAP_TWITCH;
+    const phi = t < NAP_LIFT_T0 ? Math.max(0, twitch) : Math.PI * lu * (1 - du);
+    const cu = smooth(seg(t, liftEnd, crawlEnd));
+    const ru = smooth(seg(t, crawlEnd, riseEnd));
+    const x = lerp(NAP_X_START, NAP_X_OUT, cu) + ru * (NAP_X_STAND - NAP_X_OUT);
+    let sw = 0;
+    if (t > liftEnd && t < crawlEnd) sw = Math.sin(t * NAP_WRIGGLE_HZ * Math.PI * 2) * (cu > 0 && cu < 1 ? 1 : 0.3);
+    let pose = mix(mix(TUCK, FLAT, smooth(seg(t, liftEnd, liftEnd + NAP_CRAWL_T * 0.5))), STAND, ru);
+    if (t >= riseEnd + NAP_DROP_T0 + NAP_DROP_T) {
+        // brushing himself off, hands sweeping over his front
+        const bu = seg(t, riseEnd + NAP_DROP_T0 + NAP_DROP_T, riseEnd + NAP_DROP_T0 + NAP_DROP_T + NAP_BRUSH_T);
+        pose = BRUSH;
+        sw = Math.sin(bu * NAP_BRUSH_HZ * NAP_BRUSH_T * Math.PI * 2) * (1 - bu * bu);
+    }
+    drawGuy(c, x, NAP.y, 0, 1, pose, sw);
+    drawNapkin(c, phi);
+}
+
+// ---- fake 3D: squash toward a line, as squashToward in js/start.js does ----
+
+// squash what's drawn next toward the line through (ax, ay) with unit normal (nx, ny), by cos(tilt)
+function squashToward(c, ax, ay, nx, ny, tilt) {
+    const k = Math.cos(tilt) - 1;
+    c.translate(ax, ay);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-ax, -ay);
+}
+
+// a bowl at bx, tipped on its left rim by tilt
+function drawBowlTilt(c, bx, B, tilt) {
+    for (const r of [B.r, B.r * 0.68]) {
+        c.save();
+        squashToward(c, bx - B.r, B.y, 1, 0, tilt);
+        c.beginPath();
+        ring(c, bx, B.y, r);
+        c.restore();
+        if (r === B.r) inkShape(c); else inkLine(c);
+    }
+}
+
+// a guy rising, tilted about his feet
+function drawGuyTilted(c, x, y, face, pose, sw, head, tilt) {
+    c.save();
+    squashToward(c, x + pose[6], y, 1, 0, tilt);
+    drawGuy(c, x, y, face, 1, pose, sw, head);
+    c.restore();
+}
+
+// a tilt that eases between [seconds, tilt] keys, holding the first before and the last after
+function keyTilt(keys, t) {
+    if (t <= keys[0][0]) return keys[0][1];
+    for (let i = 1; i < keys.length; i++) {
+        if (t <= keys[i][0]) return lerp(keys[i - 1][1], keys[i][1], smooth(seg(t, keys[i - 1][0], keys[i][0])));
+    }
+    return keys[keys.length - 1][1];
+}
+
+// a bouncing settle, s seconds in: from amp or from zero, dying away
+const settleFrom = (s, amp, decay, hz) => amp * Math.exp(-decay * s) * Math.abs(Math.cos(s * hz * Math.PI * 2));
+const settleTo = (s, amp, decay, hz) => amp * Math.exp(-decay * s) * Math.abs(Math.sin(s * hz * Math.PI * 2));
+
+// ---- 1a2. peek first, bowl heaved up and rocking back ----
+
+function drawPeek2(c, t) {
+    const keysEnd = A2_TILT_KEYS[A2_TILT_KEYS.length - 1][0], headEnd = keysEnd + A2_HEAD_T, lookEnd = headEnd + A2_LOOK_T;
+    const outEnd = lookEnd + A2_OUT_T, riseEnd = outEnd + A2_RISE_T;
+    edgeAcross(c, 66);
+    const heldTilt = A2_TILT_KEYS[A2_TILT_KEYS.length - 1][1];
+    const tilt = t < outEnd ? keyTilt(A2_TILT_KEYS, t) : settleFrom(t - outEnd, heldTilt, A2_ROCK_DECAY, A2_ROCK_HZ);
+    const hu = smooth(seg(t, keysEnd, headEnd));
+    const ou = smooth(seg(t, lookEnd, outEnd));
+    const ru = smooth(seg(t, outEnd, riseEnd));
+    const sh = seg(t, riseEnd, riseEnd + A2_SHAKE_T);
+    const x = lerp(lerp(A2_X_HIDE, A2_X_PEEK, hu), A2_X_OUT, ou) + ru * A2_RISE_STEP;
+    const head = t > headEnd && t < lookEnd ? Math.sin(seg(t, headEnd, lookEnd) * A2_LOOK_SWINGS * Math.PI * 2) * A2_LOOK_ANGLE : 0;
+    let face = 0, sw = 0;
+    if (t > lookEnd && t < outEnd) sw = Math.sin(t * A2_WRIGGLE_HZ * Math.PI * 2);
+    else if (t >= riseEnd) {
+        face = Math.sin(t * A2_SHAKE_HZ * Math.PI * 2) * A2_SHAKE_ANGLE * (1 - sh);
+        sw = Math.sin(t * A2_SHAKE_HZ * Math.PI * 2 + 1) * (1 - sh);
+    }
+    drawGuy(c, x, A2_BOWL.y, face, 1, mix(mix(TUCK, FLAT, ou), STAND, ru), sw, head);
+    drawBowlTilt(c, A2_BOWL.x, A2_BOWL, tilt);
+}
+
+// ---- 1a3. knocked aside ----
+
+function drawPeek3(c, t) {
+    const tipEnd = A3_TIP_T0 + A3_TIP_T, lookEnd = tipEnd + A3_LOOK_T, riseEnd = lookEnd + A3_RISE_T;
+    edgeAcross(c, 66);
+    const tu = smooth(seg(t, A3_TIP_T0, tipEnd));
+    const bx = lerp(A3_BOWL.x, A3_LAND_X, tu);
+    let tilt;
+    if (t < A3_TIP_T0) tilt = keyTilt(A3_SHUDDER_KEYS, t);
+    else if (t < tipEnd) tilt = Math.sin(Math.PI * tu) * A3_TIP_ANGLE;
+    else tilt = settleTo(t - tipEnd, A3_SETTLE_AMP, A3_SETTLE_DECAY, A3_SETTLE_HZ);
+    const su = smooth(seg(t, A3_TIP_T0 + A3_SCOOT_DELAY, tipEnd));
+    const ru = smooth(seg(t, lookEnd, riseEnd));
+    const x = lerp(A3_X_HIDE, A3_X_LIE, su) + ru * A3_STEP_X;
+    const head = t > tipEnd && t < lookEnd ? Math.sin(seg(t, tipEnd, lookEnd) * A3_LOOK_SWINGS * Math.PI * 2) * A3_LOOK_ANGLE : 0;
+    let face = 0, sw = 0;
+    if (t > A3_TIP_T0 && t < tipEnd) sw = Math.sin(t * A3_WRIGGLE_HZ * Math.PI * 2);
+    const sh = seg(t, riseEnd, riseEnd + A3_SHAKE_T);
+    if (t >= riseEnd) {
+        face = Math.sin(t * A3_SHAKE_HZ * Math.PI * 2) * A3_SHAKE_ANGLE * (1 - sh);
+        sw = Math.sin(t * A3_SHAKE_HZ * Math.PI * 2 + 1) * (1 - sh);
+    }
+    const pose = mix(mix(TUCK, FLAT, su), STAND, ru);
+    const riseTilt = t >= lookEnd && t < riseEnd ? Math.sin(Math.PI * ru) * A3_RISE_TILT : 0;
+    drawGuyTilted(c, x, A3_BOWL.y, face, pose, sw, head, riseTilt);
+    drawBowlTilt(c, bx, A3_BOWL, tilt);
+}
+
+// ---- 1c2. napkin corner with true tilt ----
+
+// the napkin with its right corner tipped up about the fold by tilt (0 flat, PI laid back over itself)
+function drawNapkinTilt(c, tilt) {
+    const { x, y, d } = NAP2, f = NAP2_FOLD, xf = x + d - f, dd = d - NAP2_HEM * Math.SQRT2;
+    const hem = () => {
+        c.beginPath();
+        c.moveTo(x, y - dd);
+        c.lineTo(x + dd, y);
+        c.lineTo(x, y + dd);
+        c.lineTo(x - dd, y);
+        c.closePath();
+    };
+    c.beginPath();
+    c.moveTo(x, y - d);
+    c.lineTo(xf, y - f);
+    c.lineTo(xf, y + f);
+    c.lineTo(x, y + d);
+    c.lineTo(x - d, y);
+    c.closePath();
+    inkShape(c);
+    c.save();
+    c.clip();
+    hem();
+    inkLine(c);
+    c.restore();
+    c.save();
+    squashToward(c, xf, y, 1, 0, tilt);
+    c.beginPath();
+    c.moveTo(xf, y - f);
+    c.lineTo(x + d, y);
+    c.lineTo(xf, y + f);
+    c.closePath();
+    inkShape(c);
+    if (Math.cos(tilt) > 0) {
+        c.clip();
+        hem();
+        inkLine(c);
+    }
+    c.restore();
+}
+
+function drawNapkinOut2(c, t) {
+    const liftEnd = NAP2_LIFT_T0 + NAP2_LIFT_T, crawlEnd = liftEnd + NAP2_CRAWL_T, riseEnd = crawlEnd + NAP2_RISE_T;
+    const dropT0 = crawlEnd + NAP2_DROP_T0, dropEnd = dropT0 + NAP2_DROP_T;
+    edgeAcross(c, 66);
+    const lu = smooth(seg(t, NAP2_LIFT_T0, liftEnd));
+    const du = smooth(seg(t, dropT0, dropEnd));
+    let tilt;
+    if (t < NAP2_LIFT_T0) tilt = Math.max(0, Math.sin(seg(t, NAP2_TWITCH_T0, NAP2_TWITCH_T0 + NAP2_TWITCH_T) * NAP2_TWITCH_HZ * NAP2_TWITCH_T * Math.PI * 2)) * NAP2_TWITCH;
+    else if (t < dropEnd) tilt = Math.PI * lu * (1 - du);
+    else tilt = settleTo(t - dropEnd, NAP2_BOUNCE, NAP2_BOUNCE_DECAY, NAP2_BOUNCE_HZ);
+    const cu = smooth(seg(t, liftEnd, crawlEnd));
+    const ru = smooth(seg(t, crawlEnd, riseEnd));
+    const x = lerp(NAP2_X_START, NAP2_X_OUT, cu) + ru * (NAP2_X_STAND - NAP2_X_OUT);
+    let sw = 0;
+    if (t > liftEnd && t < crawlEnd) sw = Math.sin(t * NAP2_WRIGGLE_HZ * Math.PI * 2) * (cu > 0 && cu < 1 ? 1 : 0.3);
+    let pose = mix(mix(TUCK, FLAT, smooth(seg(t, liftEnd, liftEnd + NAP2_CRAWL_T * 0.5))), STAND, ru);
+    if (t >= riseEnd) {
+        const bu = seg(t, riseEnd, riseEnd + NAP2_BRUSH_T);
+        pose = BRUSH;
+        sw = Math.sin(bu * NAP2_BRUSH_HZ * NAP2_BRUSH_T * Math.PI * 2) * (1 - bu * bu);
+    }
+    const riseTilt = t >= crawlEnd && t < riseEnd ? Math.sin(Math.PI * ru) * NAP2_RISE_TILT : 0;
+    drawGuyTilted(c, x, NAP2.y, 0, pose, sw, 0, riseTilt);
+    drawNapkinTilt(c, tilt);
 }
 
 // ---- 2. parachute ----
@@ -439,7 +828,13 @@ function drawLine(c, t) {
 }
 
 const CANDIDATES = [
-    { name: 'Crawls out from under a bowl', desc: 'He wriggles out from beneath the rim, stands and shakes himself off.', dur: CRAWL_DURATION, draw: drawCrawl },
+    { keep: true, name: '1a. Crawl: peek first', desc: 'The bowl\'s far rim lifts, his head peeks out and looks both ways, then he wriggles out, stands and shakes off.', dur: PEEK_LIFT_T0 + PEEK_LIFT_T + PEEK_HEAD_T + PEEK_LOOK_T + PEEK_OUT_T + PEEK_RISE_T + PEEK_SHAKE_T + PEEK_HOLD_T, draw: drawPeek },
+    { keep: true, name: '1a2. Peek first: heaved up and rocking', desc: 'He heaves the bowl up in two pushes, tipping it on its left rim; he peeks and looks both ways, wriggles out, and the bowl rocks back down.', dur: A2_TILT_KEYS[A2_TILT_KEYS.length - 1][0] + A2_HEAD_T + A2_LOOK_T + A2_OUT_T + A2_RISE_T + A2_SHAKE_T + A2_HOLD_T, draw: drawPeek2 },
+    { keep: true, name: '1a3. Peek first: knocked aside', desc: 'The bowl shudders, tips right over its left rim and lands to the side; he looks around, sits up (tilting from lying to standing) and shakes off.', dur: A3_TIP_T0 + A3_TIP_T + A3_LOOK_T + A3_RISE_T + A3_SHAKE_T + A3_HOLD_T, draw: drawPeek3 },
+    { keep: true, name: '1c. Crawl: out from under a napkin', desc: 'A napkin corner stirs, flips back, he crawls out; it drops flat behind him and he brushes himself off.', dur: NAP_LIFT_T0 + NAP_LIFT_T + NAP_CRAWL_T + NAP_RISE_T + NAP_DROP_T0 + NAP_DROP_T + NAP_BRUSH_T + NAP_HOLD_T, draw: drawNapkinOut },
+    { keep: true, name: '1c2. Napkin: true tilt', desc: 'The corner tilts up about its fold, passing edge-on and showing its plain underside, then drops back with a bounce; he rises with a tilt and brushes off.', dur: NAP2_LIFT_T0 + NAP2_LIFT_T + NAP2_CRAWL_T + NAP2_RISE_T + NAP2_BRUSH_T + NAP2_HOLD_T, draw: drawNapkinOut2 },
+    { name: '1. Crawl (as before)', desc: 'He wriggles out from beneath the rim, stands and shakes himself off.', dur: CRAWL_DURATION, draw: drawCrawl },
+    { name: '1b. Crawl: squeeze out', desc: 'Only his hands show at first; he hauls himself out arm over arm, sticks at the hips, pops free, stumbles and rights himself.', dur: SQ_HANDS_T0 + SQ_HANDS_T + SQ_HOLD_T + SQ_HAUL_T + SQ_STUCK_T + SQ_POP_T + SQ_RISE_T + SQ_HOLD_END_T, draw: drawSqueeze },
     { name: 'Parachutes in', desc: 'A big canopy shrinks as he drops toward the table; it folds aside and he steps out.', dur: PARA_DURATION, draw: drawPara },
     { name: 'Climbs over the edge', desc: 'Hands grip the edge, he hauls himself over in three heaves and stands.', dur: CLIMB_DURATION, draw: drawClimb },
     { name: 'Pops out of a cup', desc: 'His head rises out of a cup; he climbs the rim and hops down.', dur: CUP_DURATION, draw: drawCup },
@@ -450,6 +845,7 @@ const CANDIDATES = [
 
 const dpr = Math.min(window.devicePixelRatio || 1, 2);
 const grid = document.getElementById('grid');
+const gridUnused = document.getElementById('gridUnused');
 const panels = CANDIDATES.map(cand => {
     const el = document.createElement('div');
     el.className = 'panel';
@@ -464,7 +860,7 @@ const panels = CANDIDATES.map(cand => {
     cv.style.height = CH + 'px';
     cv.width = Math.round(CW * dpr);
     cv.height = Math.round(CH * dpr);
-    grid.appendChild(el);
+    (cand.keep ? grid : gridUnused).appendChild(el);
     const p = { cand, cv, c: cv.getContext('2d'), t: 0, speed: 1, scrubbing: false,
         slider: el.querySelector('input'), select: el.querySelector('select') };
     el.querySelector('button').addEventListener('click', () => { p.t = 0; p.scrubbing = false; });
