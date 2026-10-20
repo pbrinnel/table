@@ -36,6 +36,9 @@ ending of sorts (see **The little guy**).
 ## The screen
 
 - One landscape table. The world is fixed; only the view changes.
+  - **Update (Paul):** a long table, 2.4 x 1.25 m, in a 2:1 frame: about the shape of a
+    phone held either way, so it fills a phone screen better (everything a little bigger
+    there, a little smaller on a desktop).
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
@@ -269,6 +272,9 @@ gets messier (dhfm91).
   and demitasse cup, each on its saucer. All are drawn and listed in `_labs/objects.html`.
   The table holds one setting laid out as in the reference. How many settings is still
   open.
+  - **Update (Paul):** two settings, one at each end of the long table facing the other
+    along its length, at the reference's own spacing. Shared pieces down the middle:
+    *prototype choice*, a three-arm candelabra, salt and pepper shakers, and a bread basket.
 
 **Was open.** The list below was a brainstorm to choose from, before the update above. Sizes are real ones,
 to keep proportions honest; masses set the weight.
@@ -302,7 +308,7 @@ side plates, two knives and a tray.
 ## Open
 
 - Which objects are in, and how many of each.
-- How many place settings, and the table's size (it sets how big everything looks).
+- ~~How many place settings, and the table's size~~: two, on a long table (see above).
 - A goal, a challenge, or a reason to move things. None for now.
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
@@ -316,5 +322,4 @@ side plates, two knives and a tray.
   as slapstick, or let them pass through each other?
 - Whether the guy stays seen from straight above, like everything else, or is drawn
   upright the way Paul's references are.
-- Step 2: one full formal place setting from the reference, or several simpler ones round
-  the table.
+- ~~Step 2: one full setting or several~~: two full settings (see above).

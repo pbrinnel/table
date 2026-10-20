@@ -35,8 +35,8 @@ at 60 Hz and 120 Hz screens. Drawing happens once per animation frame.
 
 ## The frame
 
-- A 3:2 landscape (`LW` x `LH`, set in `js/frame.js`). The table fills it, less a margin
-  where things are seen falling off.
+- A 2:1 landscape (`LW` x `LH`, set in `js/frame.js`), about a phone's shape. The table
+  fills it, less a margin where things are seen falling off.
 - No scale cap: line drawings stay sharp at any size, and a large monitor gets a large
   table.
 - On a portrait screen, the view is the same frame turned 90°. `frame.js` owns the turn and

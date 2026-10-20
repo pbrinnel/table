@@ -249,6 +249,48 @@ function drawNapkinFlap(c, f) {
     c.restore();
 }
 
+// A candle cup from above: the cup's ring and the candle in it.
+function drawCandleCup(c, x, cup, candle) {
+    c.beginPath();
+    ring(c, x, 0, cup);
+    inkShape(c);
+    c.beginPath();
+    ring(c, x, 0, candle);
+    inkShape(c);
+}
+
+// A shaker's cap from above: its rim and the holes in it, each at [x, y].
+function drawShakerTop(c, rim, holeR, holes) {
+    c.beginPath();
+    ring(c, 0, 0, rim);
+    inkShape(c);
+    for (const [x, y] of holes) {
+        c.beginPath();
+        ring(c, x, y, holeR);
+        inkLine(c);
+    }
+}
+
+// n hole centers evenly round a circle of radius r.
+function holeRing(n, r) {
+    return Array.from({ length: n }, (_, i) => [Math.cos(i / n * Math.PI * 2) * r, Math.sin(i / n * Math.PI * 2) * r]);
+}
+
+// A bread roll: an oval turned by `angle`, with a slash along its length.
+function drawRoll(c, x, y, rx, ry, angle) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    c.beginPath();
+    ellipseAt(c, 0, 0, rx, ry);
+    inkShape(c);
+    c.beginPath();
+    c.moveTo(-rx * 0.5, 0);
+    c.quadraticCurveTo(0, ry * 0.35, rx * 0.5, 0);
+    c.restore();
+    inkLine(c);
+}
+
 // The pieces of a fork, spoon or knife: the long handle and the working end.
 function endPieces(L, handleW, endLen, endW) {
     return [
@@ -584,5 +626,65 @@ const KINDS = {
         pieces: [{ circle: 30 }],
         tall: { parts: [[0, 21, 55, 30]] },
         draw(c) { drawCup(c, 30, 22, 26, 53, 20); },
+    },
+
+    // ---- the middle of the table ----
+
+    // Three candle cups in a row along x: the arm bar runs between the outer two
+    // and the round foot sits over its middle, under the center cup. Flat: three
+    // arms don't fit tall's round sections.
+    candelabra: {
+        mass: 1500,
+        pieces: [
+            { circle: 55 },
+            { box: [244, 16] },
+            { circle: 28, x: -122 },
+            { circle: 28, x: 122 },
+        ],
+        draw(c) {
+            c.beginPath();
+            c.roundRect(-122, -7, 244, 14, 7);
+            inkShape(c);
+            c.beginPath();
+            ring(c, 0, 0, 55);
+            inkShape(c);
+            for (const x of [-122, 0, 122]) drawCandleCup(c, x, 28, 11);
+        },
+    },
+
+    saltShaker: {
+        mass: 80,
+        pieces: [{ circle: 20 }],
+        tall: { parts: [[0, 20, 55, 20], [55, 20, 85, 13]] },
+        draw(c) { drawShakerTop(c, 13, 1.8, holeRing(5, 6.5)); },
+    },
+
+    pepperShaker: {
+        mass: 80,
+        pieces: [{ circle: 20 }],
+        tall: { parts: [[0, 20, 55, 20], [55, 20, 85, 13]] },
+        draw(c) { drawShakerTop(c, 13, 2.2, holeRing(3, 5)); },
+    },
+
+    breadBasket: {
+        mass: 300,
+        pieces: [{ box: [280, 180] }],
+        draw(c) {
+            c.beginPath();
+            c.roundRect(-140, -90, 280, 180, 70);
+            inkShape(c);
+            c.beginPath();
+            c.roundRect(-124, -74, 248, 148, 56);
+            inkLine(c);
+            // a hint of weave: short ticks across the rim, top and bottom
+            c.beginPath();
+            for (const x of [-45, 0, 45]) {
+                c.moveTo(x, -90); c.lineTo(x, -74);
+                c.moveTo(x, 74); c.lineTo(x, 90);
+            }
+            inkLine(c);
+            drawRoll(c, -55, -10, 48, 32, -0.3);
+            drawRoll(c, 52, 12, 48, 32, 0.25);
+        },
     },
 };
