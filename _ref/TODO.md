@@ -99,6 +99,7 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       and text where it fits; in the dialog the guys are "Bubblegum Soldiers" (so "Calling
       BUBBLEGUM SOLDIER!" or similar). Bubblegum is always a pleasant pink. Plus a simple
       sprite that sits well on every object, so a gummed thing reads as trapped at a glance
+      - Paul: knives cut gummed things free?
 - [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
       movement); let go, one snaps back to where it was gummed (dhfm91)
 
