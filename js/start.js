@@ -114,10 +114,31 @@ function leanOf(t, dt) {
     return t.lean;
 }
 
+// Drawing order goes by height, not by object: seen from above, what's higher
+// covers what's lower. Each level is a step up, a tall thing's parts each sit
+// at their own height (a tipped part lower, by cos of its tilt), and a guy is
+// about as tall as a cup, so a glass tipping over its neighbor passes over its
+// foot and under its rim (Paul).
+const LEVEL_RISE_MM = 15;       // how much higher each level up sits
+const FLAT_Z_MM = 2;            // a plate's or a fork's height, near enough
+const GUY_Z_MM = 60;            // a guy's
+const LIFT_Z_MM = 30;           // how much higher something being lifted rides
+
+// Below the cloth (a guy crawling out from under something) is under
+// everything on it, whatever its own height.
+const UNDER_Z_MM = -1000;
+
+function baseHeight(t) {
+    if (t.level < LEVEL_ON_CLOTH) return UNDER_Z_MM;
+    return (t.level - LEVEL_ON_CLOTH) * LEVEL_RISE_MM + (t.lifted ? LIFT_Z_MM : 0);
+}
+
 function drawThings(c, dt) {
     c.lineJoin = 'round';
     c.lineCap = 'round';
     inkFrame = c.getTransform();
+    // what to draw, each { z, draw(c) }, gathered then drawn lowest first
+    const pieces = [];
     for (const t of byLevel()) {
         const falling = t.fall !== undefined, dropping = t.drop !== undefined;
         if (falling && t.fall >= FALL_TIME) continue;
@@ -164,10 +185,23 @@ function drawThings(c, dt) {
         c.translate(at.x, at.y);
         c.rotate(t.body.getAngle());
         c.scale(shrink / MM_PER_UNIT, shrink / MM_PER_UNIT);
-        if (t.kind.tall) drawTall(c, t.kind, t, tilt, tiltOut || Vec2(1, 0), shrink / MM_PER_UNIT);
-        else t.kind.draw(c, t);
+        const base = baseHeight(t);
+        if (t.kind.tall) {
+            for (const p of tallPieces(c, t.kind, t, tilt, tiltOut || Vec2(1, 0), shrink / MM_PER_UNIT)) {
+                pieces.push({ z: base + p.z, draw: p.draw });
+            }
+        } else {
+            const m = c.getTransform();
+            pieces.push({ z: base + (isGuy(t) ? GUY_Z_MM : FLAT_Z_MM), draw: c => { c.setTransform(m); t.kind.draw(c, t); } });
+        }
         c.restore();
     }
+    // stable, so things at the same height keep their level-then-list order
+    pieces.map((p, i) => [p, i]).sort((a, b) => a[0].z - b[0].z || a[1] - b[1]).forEach(([p]) => {
+        c.save();
+        p.draw(c);
+        c.restore();
+    });
 }
 
 let lastTime = null;

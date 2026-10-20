@@ -34,40 +34,57 @@ function ring(c, x, y, r) {
 
 // A tall thing tipped by `tilt` toward n: a point at height z slides out by
 // z × sin(tilt). Each of its parts gets one outline wrapping its bottom circle
-// and its top circle, each as the current transform shows it, drawn from the
-// bottom part up, so a glass reads as foot, stem and bowl leaning over; then
-// its own drawing goes on at the rim. Upright, every part's outline is just
-// its wider circle, and it looks as it always has.
+// and its top circle, each as the current transform shows it, so a glass reads
+// as foot, stem and bowl leaning over; then its own drawing goes on at the rim.
+// Upright, every part's outline is just its wider circle, and it looks as it
+// always has.
 const TALL_OUTLINE_STEPS = 32;   // points round each circle an outline is built from
 
-// perMm: frame units per mm at the current scale, for how far the parts slide.
-function drawTall(c, kind, t, tilt, n, perMm) {
+// The pieces of a tall thing to draw, each with the height (mm, above its
+// foot) it's seen at, so a caller can draw everything on the table in order
+// of height and a glass tipping over its neighbor goes over or under each of
+// its parts rightly: a tipped part sits lower, by cos(tilt). Each piece's
+// draw(c) sets its own transform. perMm: frame units per mm at the current
+// scale, for how far the parts slide.
+function tallPieces(c, kind, t, tilt, n, perMm) {
     const parts = kind.tall.parts;
     const footM = c.getTransform();
+    const lean = Math.cos(tilt);
     // the transform for whatever is at height z (mm)
     const at = z => {
         const slide = z * Math.sin(tilt) * perMm;   // frame units
         return inkFrame.multiply(new DOMMatrix().translate(n.x * slide, n.y * slide))
             .multiply(inkFrame.inverse()).multiply(footM);
     };
-    c.save();
-    c.setTransform(1, 0, 0, 1, 0, 0);
-    for (const [z0, r0, z1, r1] of parts) {
-        const pts = [];
-        for (const [m, r] of [[at(z0), r0], [at(z1), r1]]) {
-            for (let i = 0; i < TALL_OUTLINE_STEPS; i++) {
-                const a = i / TALL_OUTLINE_STEPS * Math.PI * 2;
-                pts.push(m.transformPoint(new DOMPoint(Math.cos(a) * r, Math.sin(a) * r)));
+    const pieces = parts.map(([z0, r0, z1, r1]) => ({
+        z: (z0 + z1) / 2 * lean,
+        draw(c) {
+            const pts = [];
+            for (const [m, r] of [[at(z0), r0], [at(z1), r1]]) {
+                for (let i = 0; i < TALL_OUTLINE_STEPS; i++) {
+                    const a = i / TALL_OUTLINE_STEPS * Math.PI * 2;
+                    pts.push(m.transformPoint(new DOMPoint(Math.cos(a) * r, Math.sin(a) * r)));
+                }
             }
-        }
-        c.beginPath();
-        convexHull(pts).forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
-        c.closePath();
-        inkShape(c);
+            c.setTransform(1, 0, 0, 1, 0, 0);
+            c.beginPath();
+            convexHull(pts).forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+            c.closePath();
+            inkShape(c);
+        },
+    }));
+    const top = parts[parts.length - 1][2];
+    pieces.push({ z: top * lean, draw(c) { c.setTransform(at(top)); kind.draw(c, t); } });
+    return pieces;
+}
+
+// All of a tall thing at once, bottom up: for drawing one on its own (the labs).
+function drawTall(c, kind, t, tilt, n, perMm) {
+    for (const p of tallPieces(c, kind, t, tilt, n, perMm)) {
+        c.save();
+        p.draw(c);
+        c.restore();
     }
-    c.restore();
-    c.setTransform(at(parts[parts.length - 1][2]));
-    kind.draw(c, t);
 }
 
 // The convex hull of points, by the monotone chain.

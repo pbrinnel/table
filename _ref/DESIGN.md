@@ -75,6 +75,11 @@ ending of sorts (see **The little guy**).
     of the push as a lean of its own (`TILT_PASS`, up to `TILT_PASS_MAX`). Flat things
     are below a glass's rim, so it leans out over them freely. Drawing only: the physics
     still knows footprints.
+  - **Update (Paul):** drawn in order of height, not one object at a time: what's higher
+    covers what's lower. Each level is a step up (`LEVEL_RISE_MM`), a tall thing's parts
+    each sit at their own height, lower when tipped, a guy is about a cup's height, and a
+    guy under something is under everything. So a glass tipping over its neighbor passes
+    over its foot and under its rim.
 - **Release:** let go and the object keeps its speed, then slides to a stop. A quick flick
   sends it across the table.
 - **Two fingers:** on a phone, each finger can hold its own object at the same time.
