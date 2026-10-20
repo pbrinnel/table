@@ -43,6 +43,38 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Barging, the guys' last resort when boxed in, sometimes nudges cutlery and makes
       more work: in three chaos runs one guy left 0 to 7 pieces out of place after 25 s.
       Tune `GUY_STALL_TIME` and `GUY_BARGE_TIME`, or barge only into light things.
+- [x] Why the guys put things back badly (Claude, for Paul). Measured: position ends within
+      6 to 10 mm, but (1) nothing restores which way a thing is turned, since its starting
+      angle isn't even recorded, so cups end up with handles pointing anywhere; (2) homes
+      are often occupied while a thing waits, mostly by another out-of-place object, and
+      with three guys sometimes by a guy; (3) it's slow, 13 to 29 s for five things with
+      one guy, partly from nudging neighbors on the way.
+- [x] All four fixes for the above (Paul's pick; Claude, for Paul). Same test: everything
+      back every run, with one guy by 12 to 13 s, three by 6 to 8 s, set down at 0 mm and
+      0°. Also fixed on the way: he'd crawl forever toward a grab spot with no room, so he
+      now takes a roomy side, and a crawl counts as stuck. Now stricter about angles, a
+      hard fling leaves more to do: one guy had 3 to 5 things still turned or off after
+      25 s.
+- [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
+      (Claude, for Paul)
+- [x] Tall things lean toward where they're dragged, more the faster (Claude, for Paul)
+- [x] Backups with no cover to crawl out from: they wait a moment for one, and if none
+      comes free they don't come (Paul; Claude, for Paul)
+- [x] Tall things tipping or leaning stop at, and lean on, their tall neighbors instead of
+      passing through them (Claude, for Paul). Tested: a wine glass tipping 0.64 rad into
+      the red wine glass stops at 0.33, and the red glass leans 0.14 away.
+- [x] Now and then (about 1 in 10) a guy calls out the very thing the player grabbed: "Not
+      the salad fork!" (Claude, for Paul)
+- [x] Art-style mock-ups, as a lab (Claude, for Paul): `_labs/color.html`, "art styles",
+      an MS Paint look and a Game Boy Camera look with ordered dithering. The game stays
+      black on white (Paul).
+- [x] A guy knocked off screams on the way down, in the dialog box; not when he steps off
+      at the end (Claude, for Paul)
+- [x] Tipping glasses draw over and under their neighbors by height (Claude, for Paul)
+- [x] Tried a long 2:1 table with a setting at each end and shared pieces in the middle;
+      taken back to one setting on the 3:2 table (Paul). The candelabra, shakers and bread
+      basket stay in the catalog.
+- [x] One guy at the start; backups come as things fall (Paul).
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

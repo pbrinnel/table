@@ -12,6 +12,14 @@ const GRAB_SLOP = 12;
 
 const GRAB_REACH = 8;       // directions to look in, within GRAB_SLOP
 
+// A tall thing on the move (a cup, a glass), dragged or otherwise, leans toward
+// where it's going, more the faster it goes (Paul): DRAG_LEAN radians per m/s, up to
+// DRAG_LEAN_MAX, easing in and out at DRAG_LEAN_EASE (per second), so it never
+// snaps. Drawn by js/start.js.
+const DRAG_LEAN = 0.35;
+const DRAG_LEAN_MAX = 0.6;
+const DRAG_LEAN_EASE = 10;
+
 // pointerId -> the mouse joint it's pulling with
 const holds = new Map();
 
@@ -55,7 +63,8 @@ function grab(e) {
         dampingRatio: DRAG_DAMPING,
     }, cloth, t.body, Vec2(p.x / 1000, p.y / 1000)));
     holds.set(e.pointerId, joint);
-    dispatchEvent(new Event('grabbed'));
+    // detail: the thing grabbed, for whoever wants to react to what it was
+    dispatchEvent(new CustomEvent('grabbed', { detail: t }));
 }
 
 function pull(e) {

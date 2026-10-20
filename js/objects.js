@@ -14,6 +14,8 @@
 // side; js/table.js turns them to lie as a place setting does.
 // fixedRotation, if set, keeps the body from turning (the little guy turns
 // himself, in js/guy.js).
+// facing: true for a round thing whose turn still shows (a handle), so it's put
+// back the right way round; other round things look the same any way round.
 // tall, for things with height that can be seen when they tip (cups, glasses):
 //   { parts: [[z0, r0, z1, r1], ...] } in mm, from the bottom up: each part a
 //   round section from height z0 with radius r0 to height z1 with radius r1. A
@@ -184,12 +186,10 @@ function drawCup(c, cup, inner, handleFrom, handleTo, handleW) {
 // back over itself, drawn squashed toward the fold by cos(tilt). Its top side
 // shows the hem line, as the napkin does flat; once tipped past edge-on, its
 // plain underside shows.
-const NAP_SEAM_MM = 1;   // the paper line painted over the fold's seam
-// The crease along the fold, only on the corner's underside: none until the
-// corner passes upright, where its edges lie along the fold anyway, then it
-// grows in from both ends of the fold over this much more tilt, joined to the
-// outline, rather than popping in all at once (which reads as a flash). Radians.
-const NAP_CREASE_GROW = 0.8;
+// The crease is a line on the cloth underneath the corner: the corner's white
+// fill covers it, so it's seen only where the corner has moved out of the way,
+// never popping in (Paul). It sits one pen width inside the corner, clear of
+// the seam where the corner meets the rest, so no edge of a fill lets it show.
 
 function drawNapkinFlap(c, f) {
     const corners = [[-100, -60], [100, -60], [100, 60], [-100, 60]];
@@ -214,60 +214,81 @@ function drawNapkinFlap(c, f) {
         inkLine(c);
     };
     const fillPaper = () => { c.fillStyle = PAPER; c.fill(); };
-    // the corner is drawn squashed toward the fold by cos(tilt)
-    const onCorner = draw => {
-        c.save();
-        const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2;
-        const k = Math.cos(f.tilt) - 1, nx = f.sx / Math.SQRT2, ny = f.sy / Math.SQRT2;
-        c.translate(mx, my);
-        c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
-        c.translate(-mx, -my);
-        draw();
-        c.restore();
-    };
-    const corner = close => poly([P1, K, P2], close);
     const clipped = (path, draw) => { c.save(); path(); c.clip(); draw(); c.restore(); };
-    // the crease, grown in from both ends of the fold to its share for this tilt
-    const crease = () => {
-        const q = Math.max(0, Math.min(1, (Math.abs(f.tilt) - Math.PI / 2) / NAP_CREASE_GROW));
-        if (q <= 0) return;
-        const hx = (P2[0] - P1[0]) / 2 * q, hy = (P2[1] - P1[1]) / 2 * q;
-        c.beginPath();
-        c.moveTo(P1[0], P1[1]);
-        c.lineTo(P1[0] + hx, P1[1] + hy);
-        c.moveTo(P2[0], P2[1]);
-        c.lineTo(P2[0] - hx, P2[1] - hy);
-        inkLine(c);
-    };
+    const corner = close => poly([P1, K, P2], close);
     // the main part's outline, all but the fold: from just past the fold's end
     const i2 = pts.findIndex(p => p === P2 || p === P1);
     const outline = pts.slice(i2 + 1).concat(pts.slice(0, i2 + 1));
 
-    if (Math.cos(f.tilt) >= 0) {
-        // Tipping up, its top side still showing: no crease, so both halves are
-        // filled, the seam between them papered over, and only then the hem
-        // and outlines go on, so nothing paints over a line.
-        poly(pts, true); fillPaper();
-        onCorner(() => { corner(true); fillPaper(); });
+    // the rest of the napkin
+    poly(pts, true); fillPaper();
+    clipped(() => poly(pts, true), hem);
+    poly(outline, false); inkLine(c);
+
+    // the crease, on the cloth where the corner lies flat, kept inside it
+    // run past both ends of the fold, for the corner's shape to trim
+    const off = LINE_WIDTH * MM_PER_UNIT, nx = f.sx / Math.SQRT2, ny = f.sy / Math.SQRT2;
+    const ux = (P2[0] - P1[0]) / leg, uy = (P2[1] - P1[1]) / leg;   // along the fold, per mm of leg
+    clipped(() => corner(true), () => {
         c.beginPath();
-        c.moveTo(P1[0], P1[1]);
-        c.lineTo(P2[0], P2[1]);
-        c.lineWidth = NAP_SEAM_MM;
-        c.strokeStyle = PAPER;
-        c.stroke();
-        clipped(() => poly(pts, true), hem);
-        onCorner(() => clipped(() => corner(true), hem));
-        poly(outline, false); inkLine(c);
-        onCorner(() => { corner(false); inkLine(c); });
-    } else {
-        // Flipped past upright, lying over the napkin: its plain underside
-        // shows, with the crease along the fold (Paul).
-        poly(pts, true); fillPaper();
-        clipped(() => poly(pts, true), hem);
-        poly(outline, false); inkLine(c);
-        onCorner(() => { corner(true); fillPaper(); corner(false); inkLine(c); });
-        crease();
+        c.moveTo(P1[0] + nx * off - ux * leg, P1[1] + ny * off - uy * leg);
+        c.lineTo(P2[0] + nx * off + ux * leg, P2[1] + ny * off + uy * leg);
+        inkLine(c);
+    });
+
+    // the corner, squashed toward the fold by cos(tilt), over it all: its top
+    // side shows the hem while it's tipping up, its plain underside once flipped
+    c.save();
+    const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2, k = Math.cos(f.tilt) - 1;
+    c.translate(mx, my);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-mx, -my);
+    corner(true); fillPaper();
+    if (Math.cos(f.tilt) >= 0) clipped(() => corner(true), hem);
+    corner(false); inkLine(c);
+    c.restore();
+}
+
+// A candle cup from above: the cup's ring and the candle in it.
+function drawCandleCup(c, x, cup, candle) {
+    c.beginPath();
+    ring(c, x, 0, cup);
+    inkShape(c);
+    c.beginPath();
+    ring(c, x, 0, candle);
+    inkShape(c);
+}
+
+// A shaker's cap from above: its rim and the holes in it, each at [x, y].
+function drawShakerTop(c, rim, holeR, holes) {
+    c.beginPath();
+    ring(c, 0, 0, rim);
+    inkShape(c);
+    for (const [x, y] of holes) {
+        c.beginPath();
+        ring(c, x, y, holeR);
+        inkLine(c);
     }
+}
+
+// n hole centers evenly round a circle of radius r.
+function holeRing(n, r) {
+    return Array.from({ length: n }, (_, i) => [Math.cos(i / n * Math.PI * 2) * r, Math.sin(i / n * Math.PI * 2) * r]);
+}
+
+// A bread roll: an oval turned by `angle`, with a slash along its length.
+function drawRoll(c, x, y, rx, ry, angle) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(angle);
+    c.beginPath();
+    ellipseAt(c, 0, 0, rx, ry);
+    inkShape(c);
+    c.beginPath();
+    c.moveTo(-rx * 0.5, 0);
+    c.quadraticCurveTo(0, ry * 0.35, rx * 0.5, 0);
+    c.restore();
+    inkLine(c);
 }
 
 // The pieces of a fork, spoon or knife: the long handle and the working end.
@@ -374,6 +395,7 @@ const KINDS = {
     // two-handled, for soup
     consommeCup: {
         mass: 250,
+        facing: true,
         pieces: [{ circle: 48 }],
         tall: { parts: [[0, 32, 45, 48]] },
         draw(c) {
@@ -586,6 +608,7 @@ const KINDS = {
 
     coffeeCup: {
         mass: 200,
+        facing: true,
         pieces: [{ circle: 40 }],
         tall: { parts: [[0, 28, 70, 40]] },
         draw(c) { drawCup(c, 40, 30, 34, 66, 26); },
@@ -599,8 +622,69 @@ const KINDS = {
 
     demitasseCup: {
         mass: 120,
+        facing: true,
         pieces: [{ circle: 30 }],
         tall: { parts: [[0, 21, 55, 30]] },
         draw(c) { drawCup(c, 30, 22, 26, 53, 20); },
+    },
+
+    // ---- the middle of the table ----
+
+    // Three candle cups in a row along x: the arm bar runs between the outer two
+    // and the round foot sits over its middle, under the center cup. Flat: three
+    // arms don't fit tall's round sections.
+    candelabra: {
+        mass: 1500,
+        pieces: [
+            { circle: 55 },
+            { box: [244, 16] },
+            { circle: 28, x: -122 },
+            { circle: 28, x: 122 },
+        ],
+        draw(c) {
+            c.beginPath();
+            c.roundRect(-122, -7, 244, 14, 7);
+            inkShape(c);
+            c.beginPath();
+            ring(c, 0, 0, 55);
+            inkShape(c);
+            for (const x of [-122, 0, 122]) drawCandleCup(c, x, 28, 11);
+        },
+    },
+
+    saltShaker: {
+        mass: 80,
+        pieces: [{ circle: 20 }],
+        tall: { parts: [[0, 20, 55, 20], [55, 20, 85, 13]] },
+        draw(c) { drawShakerTop(c, 13, 1.8, holeRing(5, 6.5)); },
+    },
+
+    pepperShaker: {
+        mass: 80,
+        pieces: [{ circle: 20 }],
+        tall: { parts: [[0, 20, 55, 20], [55, 20, 85, 13]] },
+        draw(c) { drawShakerTop(c, 13, 2.2, holeRing(3, 5)); },
+    },
+
+    breadBasket: {
+        mass: 300,
+        pieces: [{ box: [280, 180] }],
+        draw(c) {
+            c.beginPath();
+            c.roundRect(-140, -90, 280, 180, 70);
+            inkShape(c);
+            c.beginPath();
+            c.roundRect(-124, -74, 248, 148, 56);
+            inkLine(c);
+            // a hint of weave: short ticks across the rim, top and bottom
+            c.beginPath();
+            for (const x of [-45, 0, 45]) {
+                c.moveTo(x, -90); c.lineTo(x, -74);
+                c.moveTo(x, 74); c.lineTo(x, 90);
+            }
+            inkLine(c);
+            drawRoll(c, -55, -10, 48, 32, -0.3);
+            drawRoll(c, 52, 12, 48, 32, 0.25);
+        },
     },
 };

@@ -36,6 +36,10 @@ ending of sorts (see **The little guy**).
 ## The screen
 
 - One landscape table. The world is fixed; only the view changes.
+  - **Update (Paul):** a long table, 2.4 x 1.25 m, in a 2:1 frame: about the shape of a
+    phone held either way, so it fills a phone screen better (everything a little bigger
+    there, a little smaller on a desktop).
+    - **Update (Paul):** tried and taken back: the table is the 3:2 one again.
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
@@ -59,6 +63,23 @@ ending of sorts (see **The little guy**).
   ceiling (`DRAG_MAX_FORCE`), and that ceiling is what makes weight show.
 - **Turning:** grabbing off-center turns the object as you drag, the way dragging a knife by
   its tip swings it around. That is the only way to turn things on purpose for now.
+- **Leaning (Paul):** a tall thing being dragged (a cup, a glass) leans toward where it's
+  going, more the faster it's dragged (`DRAG_LEAN`, up to `DRAG_LEAN_MAX`), easing in and
+  out (`DRAG_LEAN_EASE`), and stands up again once let go.
+  - **Update (Paul):** cups still read as flat when moved any other way, so every tall
+    thing leans while it moves, however it's moved: dragged, hauled by a guy, riding a
+    saucer that's dragged, or sliding after a flick.
+  - **Update (Paul):** tipping or leaning, a tall thing doesn't pass through its tall
+    neighbors. It's checked height by height against them and tips only until it touches
+    one, coming to rest leaning against it (`TILT_GAP_MM`); that neighbor takes a share
+    of the push as a lean of its own (`TILT_PASS`, up to `TILT_PASS_MAX`). Flat things
+    are below a glass's rim, so it leans out over them freely. Drawing only: the physics
+    still knows footprints.
+  - **Update (Paul):** drawn in order of height, not one object at a time: what's higher
+    covers what's lower. Each level is a step up (`LEVEL_RISE_MM`), a tall thing's parts
+    each sit at their own height, lower when tipped, a guy is about a cup's height, and a
+    guy under something is under everything. So a glass tipping over its neighbor passes
+    over its foot and under its rim.
 - **Release:** let go and the object keeps its speed, then slides to a stop. A quick flick
   sends it across the table.
 - **Two fingers:** on a phone, each finger can hold its own object at the same time.
@@ -119,6 +140,14 @@ where it was, and you can knock him around.
 
 - **What "where it was" means:** each object's starting position. *Prototype choice:* he
   restores position only, not which way an object is turned.
+  - **Update (Paul):** the way it's turned too, wherever that shows (not for a plate or a
+    glass; yes for cutlery, the napkin and anything with a handle), within
+    `GUY_TIDY_ANGLE`. Within `GUY_SETDOWN_MM` of home he stops hauling, lifts it, turns it
+    and sets it exactly in place (`GUY_SETDOWN_TIME`), stepping clear of its spot as he
+    does. A cup turned the wrong way on its own saucer is turned from up on the saucer.
+    Whatever is out of place on a thing's home is moved first, and two things on each
+    other's homes have one parked aside out of everyone's way. Idle guys keep off home
+    spots, and are sent off one that's wanted.
 - **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
   edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
   like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.
@@ -215,6 +244,27 @@ gets messier (dhfm91).
     wriggles out and shakes himself off (1a). With nothing free to come out from under,
     he climbs up lying flat as before. Grabbing him or his cover, or moving it, ends his
     arrival at once.
+    - **Update (Paul):** he no longer just appears with nothing to come out from under.
+      *Prototype choice:* he waits up to `GUY_BACKUP_WAIT` for something to come free;
+      failing that, he climbs up over the table's edge where the object fell, after it:
+      hands first gripping the edge, three heaves, then he stands. What of him is still
+      below the edge isn't drawn.
+      - **Update (Paul):** no climbing up the edge. With nothing to come out from under,
+        he still waits `GUY_BACKUP_WAIT` for something to come free, and if nothing does,
+        that backup doesn't come: a guy only arrives from somewhere he could have been
+        hiding.
+- **Screams (Paul):** a guy pushed, dropped or knocked off the table screams on the way
+  down ("AHHHHHHH!!!!" and variants), typed out fast where he went over and shrinking as
+  he falls away (`SCREAM_TIME`). Not in the box, and never in the ending, where he steps
+  off on his own.
+  - **Update (Paul):** in the box, like every other line. **Whoever talks, talks through
+    the box**: no speech bubbles or floating text, ever. The scream cuts in over whatever
+    the box is saying, except "All is lost...", and stays `SCREAM_TIME`.
+- **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
+  yells at the player about the very thing just grabbed, by name, in the mad face:
+  "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
+  the first grab, never over a line still typing or "All is lost...", and at least
+  `TALK_CALLOUT_GAP` apart. Spoken names are in `js/talk.js` (`TALK_NAMES`).
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.
@@ -231,6 +281,11 @@ gets messier (dhfm91).
   and demitasse cup, each on its saucer. All are drawn and listed in `_labs/objects.html`.
   The table holds one setting laid out as in the reference. How many settings is still
   open.
+  - **Update (Paul):** two settings, one at each end of the long table facing the other
+    along its length, at the reference's own spacing. Shared pieces down the middle:
+    *prototype choice*, a three-arm candelabra, salt and pepper shakers, and a bread basket.
+    - **Update (Paul):** taken back: one setting again, as before. The candelabra, shakers
+      and bread basket stay in the catalog (`_labs/objects.html`), off the table.
 
 **Was open.** The list below was a brainstorm to choose from, before the update above. Sizes are real ones,
 to keep proportions honest; masses set the weight.
@@ -264,7 +319,8 @@ side plates, two knives and a tray.
 ## Open
 
 - Which objects are in, and how many of each.
-- How many place settings, and the table's size (it sets how big everything looks).
+- How many place settings, and the table's size (it sets how big everything looks). Two
+  on a long table was tried and taken back (see above).
 - A goal, a challenge, or a reason to move things. None for now.
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
@@ -279,4 +335,4 @@ side plates, two knives and a tray.
 - Whether the guy stays seen from straight above, like everything else, or is drawn
   upright the way Paul's references are.
 - Step 2: one full formal place setting from the reference, or several simpler ones round
-  the table.
+  the table. One for now; two facing on a long table was tried and taken back.

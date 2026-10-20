@@ -29,6 +29,6 @@ Not published:
 | `_labs-mac.command`, `_labs-windows.bat` | The same, opened at the labs' index (`_labs/index.html`), which opens each lab in its own tab |
 | `.gitattributes` | Keeps `.bat` files in Windows line endings |
 | `_ref/` | Docs: this map, `TODO.md`, `DESIGN.md` (what the game is), `BUILD.md` (how it's built, and in what order) |
-| `_labs/` | Dev tools. `tune.html`: the table with a slider for every feel constant. `objects.html`: every object kind with its collision shape. `spawn.html`: arrival animations to choose from. `check.sh`: checks the hidden-page tags, the `?v=N`s and this map |
+| `_labs/` | Dev tools. `tune.html`: the table with a slider for every feel constant. `objects.html`: every object kind with its collision shape. `spawn.html`: arrival animations to choose from. `color.html` ("art styles"): the game redrawn in other looks (MS Paint, Game Boy Camera), a mock-up. `check.sh`: checks the hidden-page tags, the `?v=N`s and this map |
 | `_config.yml` | Tells Jekyll to leave `CLAUDE.md` and `README.md` off the site |
 | `.claude/` | Claude Code setup: `launch.json` (local preview server), `agents/builder.md` (the Sonnet subagent for delegated work) |
