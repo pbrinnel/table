@@ -58,11 +58,13 @@ const SETTING = [
 ];
 
 // Where each setting's charger goes and which way it's turned: the left end's
-// diner sits at the left edge, the right end's at the right. Chosen so each
-// setting's pieces clear the table's edges by about 50 mm.
+// diner sits toward the left end, the right end's toward the right. Brought in
+// from the ends (Paul; it needn't be true to life), leaving open cloth behind
+// each for the guys and less to push off the end; the long edges are cleared
+// by about 50 mm.
 const SETTING_ENDS = [
-    { x: -985, y: -117.5, turn: Math.PI / 2 },
-    { x: 985, y: 117.5, turn: -Math.PI / 2 },
+    { x: -820, y: -117.5, turn: Math.PI / 2 },
+    { x: 820, y: 117.5, turn: -Math.PI / 2 },
 ];
 
 // Shared down the middle: [kind, x, y, angle] in mm from the table's center.
