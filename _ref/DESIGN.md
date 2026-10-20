@@ -257,6 +257,9 @@ gets messier (dhfm91).
   down ("AHHHHHHH!!!!" and variants), typed out fast where he went over and shrinking as
   he falls away (`SCREAM_TIME`). Not in the box, and never in the ending, where he steps
   off on his own.
+  - **Update (Paul):** in the box, like every other line. **Whoever talks, talks through
+    the box**: no speech bubbles or floating text, ever. The scream cuts in over whatever
+    the box is saying, except "All is lost...", and stays `SCREAM_TIME`.
 - **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
   yells at the player about the very thing just grabbed, by name, in the mad face:
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on

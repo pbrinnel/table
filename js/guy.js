@@ -1274,7 +1274,7 @@ function stepGuy(g, h) {
         g.expect = null;
         letGoOfJob(g);
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
-        if (!g.leaving && !g.screamed) { g.screamed = true; scream(t.edgeAt, t.edgeOut); }
+        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
             // knocked off with work still to do: he climbs back on where he went over

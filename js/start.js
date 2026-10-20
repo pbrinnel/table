@@ -218,7 +218,6 @@ function loop(time) {
     drawTable(ctx);
     drawThings(ctx, dt);
     drawDebug(ctx);
-    drawScreams(ctx, dt);
     drawTalk(ctx, dt);
     requestAnimationFrame(loop);
 }
