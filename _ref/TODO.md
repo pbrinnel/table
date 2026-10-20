@@ -95,9 +95,10 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Score multiplier by how many guys are out on the table, so saving a big plate
       for the end is a strategy (Paul's idea)
 
-- [ ] Glue becomes bubblegum: "gummed" in every line and name, and a pleasant pink
-      everywhere it shows. Plus a simple sprite that sits well on every object, so a
-      gummed thing reads as trapped at a glance (dhfm91)
+- [ ] Glue becomes bubblegum (dhfm91): the mechanic is "gummed" (was "glued"), in names
+      and text where it fits; in the dialog the guys are "Bubblegum Soldiers" (so "Calling
+      BUBBLEGUM SOLDIER!" or similar). Bubblegum is always a pleasant pink. Plus a simple
+      sprite that sits well on every object, so a gummed thing reads as trapped at a glance
 - [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
       movement); let go, one snaps back to where it was gummed (dhfm91)
 
