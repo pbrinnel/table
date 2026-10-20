@@ -80,10 +80,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
 
-- [ ] The glue soldier: at 25%, 50% and 75% of the table's weight gone over, a big
+- [x] The glue soldier: at 25%, 50% and 75% of the table's weight gone over, a big
       square guy comes who glues up to 4 things in their home spots for good (dhfm91;
-      Claude, for dhfm91). Reworked; still off live (`GLUE_ON`), on locally and with
-      `?glue`, for dhfm91 to playtest. Files: `js/glue.js`, `js/guy.js`, `js/drag.js`.
+      Claude, for dhfm91). On live.
 - [x] Pastel-ish but flat colors in the game, from the art styles lab (dhfm91; Claude,
       for dhfm91)
 - [x] Backups arrive 3x as fast (dhfm91; Claude, for dhfm91)

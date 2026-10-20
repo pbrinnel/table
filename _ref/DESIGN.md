@@ -352,6 +352,7 @@ gets messier (dhfm91).
   of "All is lost...". Glued things don't score. Out of glue he works like any guy, and
   keeps his look until he's knocked off; he climbs back on a plain backup. His quick
   arrival and the live-site switch stay.
+- **Update (dhfm91):** on for everyone now; the live-site switch (`GLUE_ON`) is gone.
 - **Update (dhfm91):** no cap: a plain square head. He walks at `GLUE_PACE` (half) a
   guy's speed, so he's easy to catch.
 

@@ -7,9 +7,6 @@
 // table, so the ending can come with it still in place. Out of glue he works
 // like any guy. His whole body can be grabbed, so he's easy to pick off, and
 // knocked off he climbs back on as a plain backup.
-//
-// He's off on the live site while he's still being playtested: on only when
-// the game is served from this machine, or with ?glue in the address.
 
 const GLUE_MARKS = [0.25, 0.5, 0.75];  // shares of the table's weight gone over the edge
 const GLUE_DOSES = 4;                  // things he can glue before he runs out
@@ -27,9 +24,6 @@ const GLUE_SPILL_MM = 7;               // how far it spreads past the thing's ou
 const GLUE_WOBBLE_MM = 2.5;            // how uneven its edge is
 const GLUE_STEPS = 48;                 // points round its edge
 const GLUE_COLOR = '#f6e7a8';          // pale amber
-
-const GLUE_ON = ['localhost', '127.0.0.1'].includes(location.hostname)
-    || new URLSearchParams(location.search).has('glue');
 
 let glueWeight = 0;   // the table's total weight in grams, as it was laid
 let glueNext = 0;     // index into GLUE_MARKS of the next mark to pass
@@ -51,7 +45,6 @@ function inPlay(t) {
 // his way, arriving the way backups do (arriveBackups in js/guy.js), but
 // sooner.
 function noticeGlue(edge) {
-    if (!GLUE_ON) return;
     const gone = things.reduce((sum, t) => sum + (!isGuy(t) && !onTable(t) ? t.kind.mass : 0), 0);
     let passed = 0;
     while (glueNext < GLUE_MARKS.length && gone >= GLUE_MARKS[glueNext] * glueWeight) {
