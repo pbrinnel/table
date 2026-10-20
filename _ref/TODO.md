@@ -116,3 +116,5 @@ dhfm91's priorities, in order:
 - [ ] High score board, on Paul's plan under **Later** in `CLAUDE.md` (a Cloudflare
       Worker on his account). If that doesn't happen, dhfm91's fallback is the way his other
       games do it: a JSON bin on extendsclass (dhfm91)
+- [ ] Terrain: table and tablecloth properties that change play, for more varied
+      games, possibly including the cloth being destroyed, by fire say (dhfm91)
