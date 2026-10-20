@@ -67,6 +67,8 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       the salad fork!" (Claude, for Paul)
 - [x] A color mock-up in an MS Paint look, as a lab (Claude, for Paul):
       `_labs/color.html`. Next: Paul reacts.
+- [x] A guy knocked off screams on the way down; not when he steps off at the end (Claude,
+      for Paul)
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

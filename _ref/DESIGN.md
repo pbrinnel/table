@@ -244,6 +244,10 @@ gets messier (dhfm91).
         he still waits `GUY_BACKUP_WAIT` for something to come free, and if nothing does,
         that backup doesn't come: a guy only arrives from somewhere he could have been
         hiding.
+- **Screams (Paul):** a guy pushed, dropped or knocked off the table screams on the way
+  down ("AHHHHHHH!!!!" and variants), typed out fast where he went over and shrinking as
+  he falls away (`SCREAM_TIME`). Not in the box, and never in the ending, where he steps
+  off on his own.
 - **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
   yells at the player about the very thing just grabbed, by name, in the mad face:
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on

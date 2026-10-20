@@ -30,6 +30,17 @@ const TALK_FONT_PX = 40;
 const TALK_LINE_H = 44;
 const TALK_FONT = TALK_FONT_PX + 'px "Patrick Hand"';
 
+// A guy pushed, dropped or knocked off the table screams on the way down
+// (Paul): the line appears where he went over, nudged in from the edge so it's
+// on screen, types out fast and shrinks as he falls away. Not in the box, so
+// it never cuts off what the box is saying, and never in the ending, where he
+// steps off on his own.
+const SCREAM_LINES = ['AHHHHHHH!!!!', 'AAAAAHHHH!!', 'AHHHHHHHHHH!!!', 'AAAHHHHHH!!!!'];
+const SCREAM_CHARS_PER_SEC = 30;
+const SCREAM_TIME = 1.4;         // seconds from going over to gone
+const SCREAM_END_SCALE = 0.35;   // how small it is by then
+const SCREAM_INSET = 60;         // frame units in from the edge where he went over
+
 const TALK_DARE = "Don't you DARE touch my plates!";
 const TALK_MAD = "Now you've made me MAD!";
 const TALK_BACKUP = "Calling for backup!";
@@ -234,6 +245,40 @@ function wrapTalk(c, text, width) {
     return lines;
 }
 
+// Screams in the air right now: { text, at: frame point, t: seconds }
+let screams = [];
+
+// at, out: where he went over the edge and the way out from it, in meters.
+function scream(at, out) {
+    askForTalkFont();
+    const p = mmToFrame((at.x - out.x * SCREAM_INSET * MM_PER_UNIT / 1000) * 1000,
+                        (at.y - out.y * SCREAM_INSET * MM_PER_UNIT / 1000) * 1000);
+    screams.push({ text: SCREAM_LINES[Math.floor(Math.random() * SCREAM_LINES.length)], at: p, t: 0 });
+}
+
+function drawScreams(c, dt) {
+    screams = screams.filter(s => (s.t += dt) < SCREAM_TIME);
+    if (!screams.length || !talkFontReady) return;
+    c.save();
+    uprightView(c);
+    c.font = TALK_FONT;
+    c.fillStyle = INK;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    for (const s of screams) {
+        // the frame point as the upright view sees it
+        const x = frameTurned ? LH - s.at.y : s.at.x, y = frameTurned ? s.at.x : s.at.y;
+        const u = s.t / SCREAM_TIME, k = 1 - (1 - SCREAM_END_SCALE) * u * u;
+        const shown = s.text.slice(0, Math.ceil(s.t * SCREAM_CHARS_PER_SEC));
+        c.save();
+        c.translate(x, y);
+        c.scale(k, k);
+        c.fillText(shown, 0, 0);
+        c.restore();
+    }
+    c.restore();
+}
+
 function drawTalk(c, dt) {
     if (!talk || !talkFontReady) return;
 
@@ -286,6 +331,7 @@ function drawTalk(c, dt) {
 // The opening: the guy warns, and the first grab makes him mad. Called each
 // time a table is set, so a reset warns again.
 function startTalk() {
+    screams = [];
     say(TALK_DARE, 'stern', null);
     talkWaitingForGrab = true;
 }
