@@ -303,6 +303,10 @@ gets messier (dhfm91).
 - **His look:** a soldier's helmet from above in place of his head: a white brim round
   a solid black crown.
 - **Knocked or dragged off:** he's gone for good, and his circle with him.
+- **Update (dhfm91):** he was too strong. The line is now "Calling GLUE SOLDIER!"; he
+  comes out `GLUE_DELAY` after it (not `GUY_BACKUP_DELAY`), plays his way out from under
+  `GLUE_ENTER_PACE` times as fast as a backup, and tries again for cover every
+  `GLUE_DELAY`. A press anywhere inside his circle grabs him, so he's quick to throw off.
 
 ## Objects
 

@@ -24,9 +24,11 @@ const DRAG_LEAN_EASE = 10;
 const holds = new Map();
 
 // What a press grabs: whatever's under it, or failing that, nearest round it.
-// Anything inside a glue soldier's circle (js/glue.js) can't be grabbed, so a
-// press there finds only him.
+// A press inside a glue soldier's circle (js/glue.js) grabs him, and nothing
+// else inside it can be grabbed.
 function grabAt(xMm, yMm) {
+    const soldier = glueAt(xMm, yMm);
+    if (soldier) return soldier;
     const free = t => t && !glued(t);
     const hit = thingAt(xMm, yMm);
     if (free(hit)) return hit;
@@ -61,11 +63,15 @@ function grab(e) {
     things.push(t);
 
     t.body.setAwake(true);
+    // a glue soldier grabbed from anywhere in his circle is held by himself, so
+    // he comes to the finger rather than trailing behind it
+    const hold = t.guy && t.guy.glue ? t.body.getPosition() : Vec2(p.x / 1000, p.y / 1000);
     const joint = world.createJoint(planck.MouseJoint({
         maxForce: DRAG_MAX_FORCE,
         frequencyHz: DRAG_HZ,
         dampingRatio: DRAG_DAMPING,
-    }, cloth, t.body, Vec2(p.x / 1000, p.y / 1000)));
+    }, cloth, t.body, hold));
+    joint.setTarget(Vec2(p.x / 1000, p.y / 1000));
     holds.set(e.pointerId, joint);
     // detail: the thing grabbed, for whoever wants to react to what it was
     dispatchEvent(new CustomEvent('grabbed', { detail: t }));

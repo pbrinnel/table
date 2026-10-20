@@ -856,7 +856,7 @@ function arriveBackups() {
         else if (!b.waited || (b.glue && things.some(t => !isGuy(t) && onTable(t)))) {
             // nothing free to come out from under: give something a moment to come free
             b.waited = true;
-            b.at = guyClock + GUY_BACKUP_WAIT;
+            b.at = guyClock + (b.glue ? GLUE_DELAY : GUY_BACKUP_WAIT);
             return true;
         }
         return false;
@@ -1229,7 +1229,7 @@ function stepEntrance(g, h) {
         endEntrance(g);
         return;
     }
-    E.t += h;
+    E.t += h * (g.glue ? GLUE_ENTER_PACE : 1);
     if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
     if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
 }
