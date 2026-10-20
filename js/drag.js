@@ -12,6 +12,14 @@ const GRAB_SLOP = 12;
 
 const GRAB_REACH = 8;       // directions to look in, within GRAB_SLOP
 
+// A tall thing being dragged (a cup, a glass) leans toward where it's going,
+// more the faster it's dragged (Paul): DRAG_LEAN radians per m/s, up to
+// DRAG_LEAN_MAX, easing in and out at DRAG_LEAN_EASE (per second), so it never
+// snaps. Drawn by js/start.js.
+const DRAG_LEAN = 0.35;
+const DRAG_LEAN_MAX = 0.6;
+const DRAG_LEAN_EASE = 10;
+
 // pointerId -> the mouse joint it's pulling with
 const holds = new Map();
 

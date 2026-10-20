@@ -47,14 +47,13 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       Files: `js/guy.js`.
 - [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
       (Claude, for Paul)
-- [ ] Tall things lean toward where they're dragged, more the faster (Claude, for Paul).
-      Files: `js/start.js`, `js/drag.js`.
-- [ ] Backups with no cover to crawl out from: a proper arrival instead of appearing
-      (Claude, for Paul). Files: `js/guy.js`.
+- [x] Tall things lean toward where they're dragged, more the faster (Claude, for Paul)
+- [x] Backups with no cover to crawl out from: they wait a moment, then climb up over the
+      edge (Claude, for Paul)
 - [x] Now and then (about 1 in 10) a guy calls out the very thing the player grabbed: "Not
       the salad fork!" (Claude, for Paul)
-- [ ] A color mock-up in an MS Paint look, as a lab (Claude, for Paul). Files: new
-      `_labs/color.html`.
+- [x] A color mock-up in an MS Paint look, as a lab (Claude, for Paul):
+      `_labs/color.html`. Next: Paul reacts.
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.

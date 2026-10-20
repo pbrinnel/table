@@ -101,6 +101,17 @@ const GUY_BARGE_TIME = 1.5;      // seconds
 const GUY_ENTER_MOVE_MM = 20;    // the thing he's under moving this far ends it
 const GUY_ENTER_TURN = 0.3;      // or turning this far
 const GUY_ENTER_DIRS = 16;       // directions tried for a clear spot to come out at
+// With nothing free to come out from under, a backup waits up to
+// GUY_BACKUP_WAIT for something to come free, then climbs up over the table's
+// edge where the object fell: hands first, then three heaves, then he stands.
+// Whatever of him is still below the edge isn't drawn.
+const GUY_BACKUP_WAIT = 3;       // seconds
+const GUY_EDGE_FROM_MM = 18;     // his center past the edge as his hands appear
+const GUY_EDGE_TO_MM = 40;       // and on the table once he's up
+const GUY_EDGE_HANDS_T = 0.5;    // seconds with just his hands showing
+const GUY_EDGE_HAULS = 3, GUY_EDGE_HAUL_T = 1.5, GUY_EDGE_HAUL_PART = 0.7;   // heaves, their total time, and the part of each spent pulling
+const GUY_EDGE_KICK_HZ = 2;
+const GUY_EDGE_RISE_T = 0.6, GUY_EDGE_RISE_TILT = 0.9, GUY_EDGE_HOLD_T = 0.3;
 
 // 1a: the thing's rim lifts on the side he comes out on, he peeks and looks both
 // ways, wriggles out, stands and shakes himself off.
@@ -703,7 +714,7 @@ function noticeDrops() {
         countedDrops.add(t);
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
-        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt), edge: Vec2.clone(t.edgeAt) });
+        backups.push({ at: guyClock + GUY_BACKUP_DELAY, pos: standable(t.edgeAt), edge: Vec2.clone(t.edgeAt), out: Vec2.clone(t.edgeOut) });
     }
 }
 
@@ -715,7 +726,12 @@ function arriveBackups() {
         if (b.at > guyClock) return true;
         const how = chooseEntrance(b.edge);
         if (how) startEntrance(how);
-        else addGuy(b.pos.x * 1000, b.pos.y * 1000).down = GUY_STUN_TIME;
+        else if (!b.waited) {
+            // nothing free to come out from under: give something a moment to come free
+            b.waited = true;
+            b.at = guyClock + GUY_BACKUP_WAIT;
+            return true;
+        } else startEdgeClimb(b);
         return false;
     });
 }
@@ -935,6 +951,38 @@ function startEntrance(how) {
     };
 }
 
+// Up over the table's edge where the object fell (see GUY_BACKUP_WAIT).
+function startEdgeClimb(b) {
+    const out = b.out, from = Vec2.add(b.edge, Vec2.mul(out, GUY_EDGE_FROM_MM / 1000));
+    const to = standable(Vec2.sub(b.edge, Vec2.mul(out, GUY_EDGE_TO_MM / 1000)));
+    const g = addGuy(from.x * 1000, from.y * 1000);
+    g.thing.body.setActive(false);
+    g.thing.lifted = true;
+    g.facing = Math.atan2(-out.y, -out.x);
+    g.entrance = {
+        kind: 'edge', src: null, t: 0, from, to, exit: to,
+        pose: ENTER_REACH, sw: 0, head: 0, shake: 0, rise: 0, belowEdge: true,
+    };
+}
+
+function edgeEnds() {
+    const haulEnd = GUY_EDGE_HANDS_T + GUY_EDGE_HAUL_T, riseEnd = haulEnd + GUY_EDGE_RISE_T;
+    return { haulEnd, riseEnd, end: riseEnd + GUY_EDGE_HOLD_T };
+}
+
+function stepEdge(g, E) {
+    const t = E.t, e = edgeEnds();
+    // three heaves, each a pull then a rest
+    const k = enterSeg(t, GUY_EDGE_HANDS_T, e.haulEnd) * GUY_EDGE_HAULS, i = Math.min(GUY_EDGE_HAULS - 1, Math.floor(k));
+    const up = Math.min(1, (i + easeLift(Math.min(1, (k - i) / GUY_EDGE_HAUL_PART))) / GUY_EDGE_HAULS);
+    const ru = easeLift(enterSeg(t, e.haulEnd, e.riseEnd));
+    g.thing.body.setTransform(Vec2.add(E.from, Vec2.mul(Vec2.sub(E.to, E.from), up)), 0);
+    E.pose = enterMix(enterMix(ENTER_REACH, ENTER_FLAT, up), ENTER_STAND, ru);
+    E.sw = t > GUY_EDGE_HANDS_T && t < e.haulEnd ? Math.sin(t * GUY_EDGE_KICK_HZ * Math.PI * 2) : 0;
+    E.rise = t >= e.haulEnd && t < e.riseEnd ? Math.sin(Math.PI * ru) * GUY_EDGE_RISE_TILT : 0;
+    E.belowEdge = t < e.haulEnd;
+}
+
 const enterSeg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 const enterLerp = (a, b, u) => a + (b - a) * u;
 const enterMix = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u);
@@ -1028,25 +1076,30 @@ function stepNap(g, E) {
 
 function stepEntrance(g, h) {
     const E = g.entrance, s = E.src;
-    let turn = s.body.getAngle() - E.angle;
+    let turn = s ? s.body.getAngle() - E.angle : 0;
     turn = Math.atan2(Math.sin(turn), Math.cos(turn));
-    if (isHeld(g.thing.body) || isHeld(s.body) || !onTable(s) || s.drop !== undefined || s.lifted
+    if (isHeld(g.thing.body) || (s && (isHeld(s.body) || !onTable(s) || s.drop !== undefined || s.lifted
         || Vec2.distance(s.body.getPosition(), E.from) > GUY_ENTER_MOVE_MM / 1000
-        || Math.abs(turn) > GUY_ENTER_TURN) {
+        || Math.abs(turn) > GUY_ENTER_TURN))) {
         endEntrance(g);
         return;
     }
     E.t += h;
-    if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
-    if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
+    if (E.kind === '1a') stepPeek(g, E);
+    else if (E.kind === '1c2') stepNap(g, E);
+    else stepEdge(g, E);
+    const ends = E.kind === '1a' ? peekEnds() : E.kind === '1c2' ? napEnds() : edgeEnds();
+    if (E.t >= ends.end) endEntrance(g);
 }
 
 // Out and standing at the spot he was coming out at, on the cloth's level, and
 // whatever he was under is as it was.
 function endEntrance(g) {
     const E = g.entrance, b = g.thing.body;
-    E.src.enterTilt = undefined;
-    E.src.flap = undefined;
+    if (E.src) {
+        E.src.enterTilt = undefined;
+        E.src.flap = undefined;
+    }
     b.setTransform(E.exit, 0);
     b.setLinearVelocity(Vec2(0, 0));
     b.setActive(true);
@@ -1301,6 +1354,7 @@ function drawGuyFlat(c, g) {
 const ENTER_STAND = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   0, 11, 0, 26, 13];
 const ENTER_FLAT = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 18, 38, 6];
 const ENTER_TUCK = [-4, 12, 9, 20,   -12, 5, -40, 18, 10,   6, 10, 10, 14, 4];    // arms at his sides, so nothing pokes out from cover
+const ENTER_REACH = [-4, 9, 10, 6,   -10, 5, -34, 12, 10,   2, 11, 24, 8, 0];   // hands out in front, legs trailing
 const ENTER_BRUSH = [-3, 7, 12, 3,   -2, 5, 0, 9, 16,   2, 11, 6, 9, 10];         // hands on his front, sweeping
 
 // Squashes what's drawn next toward the line through (ax, ay) with unit normal
@@ -1336,6 +1390,15 @@ function drawGuyPose(c, g, pose, sw, headTurn) {
 // worked out: tilting about his feet as he rises.
 function drawGuyEntrance(c, g) {
     const E = g.entrance;
+    // climbing up over the edge: what's still below the table isn't seen
+    if (E.belowEdge) {
+        const m = c.getTransform(), w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
+        c.setTransform(inkFrame);
+        c.beginPath();
+        c.rect((LW - w) / 2, (LH - h) / 2, w, h);
+        c.clip();
+        c.setTransform(m);
+    }
     c.rotate(g.facing + E.shake);
     if (E.rise) squashLocal(c, E.pose[6], 0, 1, 0, E.rise);
     drawGuyPose(c, g, E.pose, E.sw, E.head);

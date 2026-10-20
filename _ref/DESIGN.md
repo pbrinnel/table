@@ -59,6 +59,9 @@ ending of sorts (see **The little guy**).
   ceiling (`DRAG_MAX_FORCE`), and that ceiling is what makes weight show.
 - **Turning:** grabbing off-center turns the object as you drag, the way dragging a knife by
   its tip swings it around. That is the only way to turn things on purpose for now.
+- **Leaning (Paul):** a tall thing being dragged (a cup, a glass) leans toward where it's
+  going, more the faster it's dragged (`DRAG_LEAN`, up to `DRAG_LEAN_MAX`), easing in and
+  out (`DRAG_LEAN_EASE`), and stands up again once let go.
 - **Release:** let go and the object keeps its speed, then slides to a stop. A quick flick
   sends it across the table.
 - **Two fingers:** on a phone, each finger can hold its own object at the same time.
@@ -215,6 +218,11 @@ gets messier (dhfm91).
     wriggles out and shakes himself off (1a). With nothing free to come out from under,
     he climbs up lying flat as before. Grabbing him or his cover, or moving it, ends his
     arrival at once.
+    - **Update (Paul):** he no longer just appears with nothing to come out from under.
+      *Prototype choice:* he waits up to `GUY_BACKUP_WAIT` for something to come free;
+      failing that, he climbs up over the table's edge where the object fell, after it:
+      hands first gripping the edge, three heaves, then he stands. What of him is still
+      below the edge isn't drawn.
 - **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
   yells at the player about the very thing just grabbed, by name, in the mad face:
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on

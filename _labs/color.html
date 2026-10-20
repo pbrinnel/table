@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>color</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: #fff; overflow: hidden; overscroll-behavior: none; }
+
+    /* the right margin leaves the panel's column free; js/frame.js fits the
+       table into what the body has left */
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        padding: 20px;
+        margin-right: 280px;
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    @font-face {
+        font-family: "Patrick Hand";
+        src: url("../fonts/patrick-hand-latin-400-normal.woff2") format("woff2");
+        font-display: block;
+    }
+
+    #stage { display: block; touch-action: none; max-width: 100%; }
+    #stage.pixels { image-rendering: pixelated; }
+
+    #panel {
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: 280px;
+        overflow-y: auto;
+        padding: 14px;
+        background: #f4f4f4;
+        border-left: 1px solid #000;
+        font: 18px/1.25 "Patrick Hand", sans-serif;
+        color: #000;
+    }
+    #panel h2 { font-size: 18px; font-weight: normal; margin: 14px 0 4px; text-decoration: underline; }
+    #panel h2:first-child { margin-top: 0; }
+    #panel p { margin: 6px 0; }
+    .choices { display: flex; flex-direction: column; gap: 4px; }
+    .choices button, .toggles label { font: inherit; text-align: left; padding: 4px 8px; border: 2px solid #000; background: #fff; color: #000; cursor: pointer; }
+    .choices button.on { background: #000; color: #fff; }
+    .toggles { display: flex; flex-direction: column; gap: 4px; }
+    .toggles label { display: flex; gap: 8px; align-items: center; }
+    .swatches { display: flex; flex-wrap: wrap; margin-top: 6px; }
+    .swatches span { width: 20px; height: 20px; border: 1px solid #000; margin: 0 -1px -1px 0; }
+    input[type=range] { width: 100%; }
+    .row { display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="panel"></div>
+
+<script>
+// A mock-up, not part of the game: the real table, setting and guys run as
+// they are, and this page recolors them at runtime (flat fills, MS Paint
+// style) by replacing the drawing helpers after load. Nothing here ships.
+
+// ---- palettes: every color flat, outlines always black ----
+const PALETTES = {
+    'Paint classic': {
+        floor: '#00ffff', cloth: '#00aa00', plate: '#ffffff', plateWell: '#c0ffff',
+        charger: '#ffff00', chargerWell: '#ffff00', glass: '#80ffff', cutlery: '#c0c0c0',
+        cutleryDark: '#808080', napkin: '#ff0000', cup: '#ffffff', cupBand: '#0000ff',
+        skin: '#ffff00', shirt: '#ff0000', caps: ['#0000ff', '#ff8000', '#ff00ff', '#00aa00'],
+        dialog: '#ffffff', portrait: '#ffff00',
+    },
+    'Picnic': {
+        floor: '#ffff80', cloth: '#ff0000', plate: '#ffffff', plateWell: '#ffffff',
+        charger: '#ffff00', chargerWell: '#ffffff', glass: '#c0ffff', cutlery: '#c0c0c0',
+        cutleryDark: '#808080', napkin: '#0000ff', cup: '#ffffff', cupBand: '#ff0000',
+        skin: '#ffc090', shirt: '#0000ff', caps: ['#00aa00', '#ffff00', '#ff00ff', '#00ffff'],
+        dialog: '#ffff80', portrait: '#ffc090',
+    },
+    'Pastel-ish but flat': {
+        floor: '#ffe0ee', cloth: '#a0e0ff', plate: '#ffffff', plateWell: '#fff0b0',
+        charger: '#ffd860', chargerWell: '#fff0b0', glass: '#d8fff0', cutlery: '#d0d0e0',
+        cutleryDark: '#a0a0b8', napkin: '#ff90b0', cup: '#ffffff', cupBand: '#b090ff',
+        skin: '#ffe0b0', shirt: '#ff9090', caps: ['#90e090', '#b090ff', '#ffc060', '#60c0ff'],
+        dialog: '#ffffff', portrait: '#ffe0b0',
+    },
+};
+
+// ---- state ----
+const state = { palette: 'Paint classic', colored: true, pixel: 2, thick: true, hard: true };
+const THICK = 1.75;         // outline multiplier for "thicker outlines"
+const THICK_PIXELS = 1;      // and the least thick lines are, in screen pixels, when pixelated
+const PLAIN_PIXELS = 1;     // the same, plain
+
+// The game declares these with const, which nothing else can reassign, so the
+// lab loads the scripts as text and turns LINE_WIDTH into var and drops PAPER
+// (the lab defines PAPER itself, below, as a getter).
+function loosen(text) {
+    return text
+        .replace(/^const LINE_WIDTH =/m, 'var LINE_WIDTH =')
+        .replace(/^const TALK_BOX_ALPHA =/m, 'var TALK_BOX_ALPHA =')
+        .replace(/^const PAPER = .*$/m, '');
+}
+
+async function loadGame() {
+    const html = await (await fetch('../index.html')).text();
+    const srcs = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m => m[1].replace(/\?v=.*$/, ''));
+    const texts = await Promise.all(srcs.map(async s => {
+        const r = await fetch('../' + s);
+        if (!r.ok) throw new Error(s + ': ' + r.status);
+        return r.text();
+    }));
+    // PAPER is read by every drawing as "the fill under the ink": the lab
+    // answers with the current thing's fill, so each helper needs no changes.
+    Object.defineProperty(window, 'PAPER', { get: () => paperNow(), configurable: true });
+    srcs.forEach((s, i) => {
+        const el = document.createElement('script');
+        el.textContent = s === 'js/lib/planck.min.js' ? texts[i] : loosen(texts[i]);
+        document.body.appendChild(el);
+    });
+}
+
+// ---- which fill is "paper" right now ----
+// While something draws, `spec` says its fills in the order it calls
+// inkShape (fills), and which inkLine calls (counted from 0) to fill first
+// (lines). Between drawings spec is null and PAPER is the floor.
+let spec = null, nShape = 0, nLine = 0;
+const pal = () => PALETTES[state.palette];
+function paperNow() {
+    if (!state.colored) return '#fff';
+    if (!spec) return pal().floor;
+    return spec.fills[Math.min(nShape, spec.fills.length - 1)];
+}
+function begin(s) { spec = state.colored ? s : null; nShape = 0; nLine = 0; }
+
+// What each kind is filled with.
+function specFor(name) {
+    const p = pal();
+    if (/Fork$|Knife$|Spoon$/.test(name)) return { fills: [p.cutlery], lines: { 0: p.cutleryDark } };
+    if (/Glass$|Goblet$|Flute$/.test(name)) return { fills: [p.glass], lines: {} };
+    if (/Plate$/.test(name) || /Saucer$/.test(name)) return { fills: [p.plate], lines: { 0: p.plateWell } };
+    if (name === 'charger') return { fills: [p.charger], lines: { 0: p.chargerWell } };
+    if (name === 'napkin') return { fills: [p.napkin], lines: {} };
+    if (name === 'consommeCup') return { fills: [p.cup], lines: { 0: p.cupBand } };
+    if (/Cup$/.test(name)) return { fills: [p.cup], lines: { 1: p.cupBand } };
+    return { fills: [p.cutlery], lines: {} };   // the tray
+}
+
+// The guy's shapes come in the order body, ears, head: a shirt, skin, and for
+// a backup a cap. The first guy's head is his black pompadour.
+function guySpec(g) {
+    const p = pal();
+    const i = guys.indexOf(g);
+    const cap = i > 0 ? p.caps[(i - 1) % p.caps.length] : p.skin;
+    const shirt = i > 0 ? p.caps[i % p.caps.length] : p.shirt;
+    return { fills: [shirt, p.skin, cap], lines: {} };
+}
+
+// ---- replace the pen ----
+function strokeInk(c) {
+    c.save();
+    if (inkFrame) c.setTransform(inkFrame);
+    c.lineWidth = LINE_WIDTH;
+    c.strokeStyle = INK;
+    c.stroke();
+    c.restore();
+}
+function labInkLine(c) {
+    if (spec && spec.lines[nLine] !== undefined) {
+        c.save();
+        c.fillStyle = spec.lines[nLine];
+        c.fill();
+        c.restore();
+    }
+    nLine++;
+    strokeInk(c);
+}
+function labInkShape(c) {
+    c.fillStyle = PAPER;
+    c.fill();
+    nShape++;
+    strokeInk(c);
+}
+
+// ---- wrap the drawings that know what they draw ----
+function installHooks() {
+    window.inkLine = labInkLine;
+    window.inkShape = labInkShape;
+
+    for (const name of Object.keys(KINDS)) {
+        const kind = KINDS[name];
+        const draw = kind.draw;
+        kind.draw = function (c, t) {
+            // a tall thing's outline pieces were drawn first, and used fills[0]
+            begin(specFor(name));
+            draw.call(kind, c, t);
+            spec = null;
+        };
+    }
+    // drawTall strokes the outline pieces before calling kind.draw
+    const drawTallOrig = window.drawTall;
+    window.drawTall = function (c, kind, t, tilt, n, perMm) {
+        const name = Object.keys(KINDS).find(k => KINDS[k] === kind);
+        begin(specFor(name));
+        drawTallOrig(c, kind, t, tilt, n, perMm);
+        spec = null;
+    };
+
+    const guyDraw = GUY_KIND.draw;
+    GUY_KIND.draw = function (c, t) {
+        begin(guySpec(t.guy));
+        guyDraw.call(GUY_KIND, c, t);
+        spec = null;
+    };
+
+    const drawTableOrig = window.drawTable;
+    window.drawTable = function (c) {
+        if (state.colored) {
+            const w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
+            c.fillStyle = pal().cloth;
+            c.fillRect((LW - w) / 2, (LH - h) / 2, w, h);
+        }
+        drawTableOrig(c);
+    };
+
+    const portraitOrig = window.drawPortrait;
+    window.drawPortrait = function (c, face, x, y, side) {
+        begin({ fills: [pal().portrait], lines: {} });
+        portraitOrig(c, face, x, y, side);
+        spec = null;
+    };
+    // the dialog box (drawn after everything else, so also the frame's last
+    // step: where hard edges are applied)
+    const talkOrig = window.drawTalk;
+    window.drawTalk = function (c, dt) {
+        begin({ fills: [pal().dialog], lines: {} });
+        talkOrig(c, dt);
+        spec = null;
+        if (state.hard && state.pixel > 1) hardEdges(c);
+    };
+}
+
+// ---- no anti-aliasing: snap every pixel to the nearest palette color ----
+let snapKey = '', snapColors = [];
+function hexRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function snapPalette() {
+    const key = state.palette;
+    if (key === snapKey) return;
+    snapKey = key;
+    const hexes = new Set(['#000000', '#ffffff']);
+    for (const v of Object.values(pal())) for (const h of [].concat(v)) hexes.add(h);
+    snapColors = [...hexes].map(hexRgb);
+}
+// A smoothed edge is a blend of the two colors it lies between, so a pixel
+// that isn't one of the palette's colors becomes black or whichever of its
+// neighbors' colors it is nearest to, not the nearest color on the whole
+// palette (which would turn a black-and-green blend grey or blue). Outlines
+// are about a pixel wide, so black wins a pixel it only partly covers.
+const BLACK_BIAS = 0.6;   // a blend's distance to black counts for this much, so black wins from about this much coverage
+const EXACT = 30;   // squared distance from a palette color that still counts as that color
+function hardEdges(c) {
+    snapPalette();
+    const w = canvas.width, h = canvas.height;
+    const img = c.getImageData(0, 0, w, h);
+    const d = img.data;
+    const dist = (s, i) => (s[0] - d[i]) ** 2 + (s[1] - d[i + 1]) ** 2 + (s[2] - d[i + 2]) ** 2;
+    const idx = new Int16Array(w * h).fill(-1);
+    for (let n = 0; n < w * h; n++) {
+        const k = n * 4;
+        for (let j = 0; j < snapColors.length; j++) {
+            if (dist(snapColors[j], k) <= EXACT) { idx[n] = j; break; }
+        }
+    }
+    const out = new Uint8ClampedArray(d.length);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const n = y * w + x, k = n * 4;
+            let j = idx[n];
+            if (j < 0) {
+                let best = dist([0, 0, 0], k) * BLACK_BIAS;
+                j = snapColors.findIndex(q => q[0] + q[1] + q[2] === 0);
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const xx = x + dx, yy = y + dy;
+                        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                        const q = idx[yy * w + xx];
+                        if (q < 0) continue;
+                        const e = dist(snapColors[q], k);
+                        if (e < best) { best = e; j = q; }
+                    }
+                }
+            }
+            const col = snapColors[j];
+            out[k] = col[0]; out[k + 1] = col[1]; out[k + 2] = col[2]; out[k + 3] = 255;
+        }
+    }
+    c.putImageData(new ImageData(out, w, h), 0, 0);
+}
+
+// ---- pixel size: a small backing canvas, scaled up unsmoothed ----
+let talkAlphaGame = 1;   // the game's own, read once it has loaded
+const realDpr = window.devicePixelRatio || 1;
+Object.defineProperty(window, 'devicePixelRatio', {
+    get: () => state.pixel > 1 ? 1 / state.pixel : realDpr,
+    configurable: true,
+});
+function applyLook() {
+    canvas.classList.toggle('pixels', state.pixel > 1);
+    // a pixel in frame units
+    const px = state.pixel / frameScale;
+    const base = 2;   // the game's own LINE_WIDTH
+    if (state.thick) LINE_WIDTH = Math.max(base * THICK, state.pixel > 1 ? px * THICK_PIXELS : 0);
+    else LINE_WIDTH = state.pixel > 1 ? Math.max(base, px * PLAIN_PIXELS) : base;
+    TALK_BOX_ALPHA = state.colored ? 1 : talkAlphaGame;
+    lastFit = '';
+    resizeFrame();
+}
+
+// ---- the panel ----
+function buildPanel() {
+    const panel = document.getElementById('panel');
+    const add = (tag, text, parent) => {
+        const el = document.createElement(tag);
+        if (text) el.textContent = text;
+        (parent || panel).appendChild(el);
+        return el;
+    };
+
+    add('h2', 'Palette');
+    const choices = add('div');
+    choices.className = 'choices';
+    const swatches = add('div');
+    swatches.className = 'swatches';
+    const refresh = () => {
+        for (const b of choices.children) b.classList.toggle('on', b.textContent === state.palette);
+        swatches.textContent = '';
+        const p = pal();
+        const seen = new Set();
+        for (const v of Object.values(p)) for (const h of [].concat(v)) {
+            if (seen.has(h)) continue;
+            seen.add(h);
+            const s = add('span', '', swatches);
+            s.style.background = h;
+        }
+    };
+    for (const name of Object.keys(PALETTES)) {
+        const b = add('button', name, choices);
+        b.addEventListener('click', () => { state.palette = name; refresh(); });
+    }
+
+    add('h2', 'Pixel size');
+    const row = add('div');
+    row.className = 'row';
+    add('span', 'screen pixels per pixel', row);
+    const out = add('span', String(state.pixel), row);
+    const slider = add('input');
+    slider.type = 'range';
+    slider.min = 1; slider.max = 6; slider.step = 1;
+    slider.value = state.pixel;
+    slider.addEventListener('input', () => {
+        state.pixel = parseInt(slider.value, 10);
+        out.textContent = state.pixel;
+        applyLook();
+    });
+    add('p', '1 is off: sharp and smooth.');
+
+    add('h2', 'Look');
+    const toggles = add('div');
+    toggles.className = 'toggles';
+    const toggle = (text, key, after) => {
+        const label = add('label', '', toggles);
+        const box = add('input', '', label);
+        box.type = 'checkbox';
+        box.checked = state[key];
+        add('span', text, label);
+        box.addEventListener('change', () => { state[key] = box.checked; after(); });
+    };
+    toggle('Color (off: black on white)', 'colored', applyLook);
+    toggle('Thicker outlines', 'thick', applyLook);
+    toggle('Hard edges (no smoothing, pixel size 2+)', 'hard', () => {});
+
+    const reset = add('button', 'Reset table');
+    reset.style.cssText = 'margin-top:14px;font:inherit;padding:4px 8px;border:2px solid #000;background:#fff;cursor:pointer';
+    reset.addEventListener('click', () => setTable(TEST_LAYOUT));
+
+    refresh();
+}
+
+loadGame().then(() => {
+    talkAlphaGame = TALK_BOX_ALPHA;
+    installHooks();
+    buildPanel();
+    applyLook();
+}).catch(e => {
+    document.getElementById('panel').textContent = (location.protocol === 'file:' ? 'Labs need the local server: double-click _labs-mac.command (or _labs-windows.bat on Windows) in the repo folder.' : 'Failed to load the game: ' + e.message);
+});
+</script>
+</body>
+</html>

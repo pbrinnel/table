@@ -27,7 +27,20 @@ function squashToward(c, at, n, tilt) {
     c.translate(-e.x, -e.y);
 }
 
-function drawThings(c) {
+// The lean a tall thing has this frame, as a vector in radians toward where
+// it's leaning, eased toward what its drag speed asks for (DRAG_LEAN).
+function leanOf(t, dt) {
+    let want = Vec2(0, 0);
+    if (isHeld(t.body)) {
+        const v = t.body.getLinearVelocity(), speed = v.length();
+        if (speed > 1e-3) want = Vec2.mul(v, Math.min(DRAG_LEAN_MAX, speed * DRAG_LEAN) / speed);
+    }
+    const lean = t.lean || Vec2(0, 0);
+    t.lean = Vec2.add(lean, Vec2.mul(Vec2.sub(want, lean), Math.min(1, dt * DRAG_LEAN_EASE)));
+    return t.lean;
+}
+
+function drawThings(c, dt) {
     c.lineJoin = 'round';
     c.lineCap = 'round';
     inkFrame = c.getTransform();
@@ -61,6 +74,15 @@ function drawThings(c) {
             tiltOut = t.enterTilt.n;
             squashToward(c, t.enterTilt.at, tiltOut, tilt);
         }
+        if (!falling && !dropping && t.kind.tall && !tiltOut) {
+            const lean = leanOf(t, dt), amount = lean.length();
+            if (amount > 1e-3) {
+                tilt = amount;
+                tiltOut = Vec2.mul(lean, 1 / amount);
+                // about its foot's middle, the way a glass rocks on its base
+                squashToward(c, pos, tiltOut, tilt);
+            }
+        }
         const at = mmToFrame(pos.x * 1000, pos.y * 1000);
         c.translate(at.x, at.y);
         c.rotate(t.body.getAngle());
@@ -83,7 +105,7 @@ function loop(time) {
     ctx.fillStyle = PAPER;
     ctx.fillRect(0, 0, LW, LH);
     drawTable(ctx);
-    drawThings(ctx);
+    drawThings(ctx, dt);
     drawDebug(ctx);
     drawTalk(ctx, dt);
     requestAnimationFrame(loop);
