@@ -160,7 +160,8 @@ const GUY_FLAIL_SWING = 0.8;
 // Every guy, the first and each backup. Each has his own body and his own grip.
 let guys = [];
 // Backups on their way: { at: guyClock time they're due, edge: where the object
-// went over, in meters, waited: whether they've already waited for cover }
+// went over, in meters, waited: whether they've already waited for cover,
+// glue: whether he's a glue soldier (js/glue.js) }
 let backups = [];
 // Objects already counted as dropped, so each one calls for backup once
 let countedDrops = new Set();
@@ -218,6 +219,7 @@ function addGuy(xMm, yMm) {
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
         entrance: null,   // while he comes out from under something: see startEntrance()
+        glue: false,      // a glue soldier (js/glue.js)
     };
     thing.guy = g;
     guys.push(g);
@@ -838,18 +840,20 @@ function noticeDrops() {
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
+        noticeGlue(t.edgeAt);
     }
 }
 
 // A backup comes out from under something on the table (see chooseEntrance).
 // With nothing to come out from, he waits GUY_BACKUP_WAIT, and failing that
-// doesn't come at all.
+// doesn't come at all. A glue soldier keeps waiting until something comes free,
+// as long as anything's left.
 function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
         const how = chooseEntrance(b.edge);
-        if (how) startEntrance(how);
-        else if (!b.waited) {
+        if (how) startEntrance(how).glue = !!b.glue;
+        else if (!b.waited || (b.glue && things.some(t => !isGuy(t) && onTable(t)))) {
             // nothing free to come out from under: give something a moment to come free
             b.waited = true;
             b.at = guyClock + GUY_BACKUP_WAIT;
@@ -1121,6 +1125,7 @@ function startEntrance(how) {
         from: Vec2.clone(at), angle: src.body.getAngle(),     // where the thing was when he started
         pose: ENTER_TUCK, sw: 0, head: 0, shake: 0, rise: 0,  // how he's drawn this step
     };
+    return g;
 }
 
 const enterSeg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
@@ -1275,9 +1280,10 @@ function stepGuy(g, h) {
         letGoOfJob(g);
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
         if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
-        if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
+        // knocked off with work still to do, he climbs back on where he went
+        // over; a glue soldier never does
+        if (!g.leaving && !g.glue && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
-            // knocked off with work still to do: he climbs back on where he went over
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);
@@ -1407,6 +1413,7 @@ const QUIFF_STEPS = 48;
 const QUIFF_SWEEP = 0.35;        // radians the quiff is swept toward his left
 const HAIR_PEN = 0.6;            // frame units: the strands and partings
 const HAIR_STRANDS = 6;          // fine strands combed back over his head
+const GLUE_BRIM_MM = 17;         // a glue soldier's helmet brim, from his head's center
 
 // The quiff's outline radius (mm) at angle a round his head: swells toward his
 // front, swept to one side, in three locks with notches between them.
@@ -1427,6 +1434,18 @@ function paperLine(c, w) {
 }
 
 function drawHead(c, x, g) {
+    if (g.glue) {
+        // a soldier's helmet from above: a wide brim round a solid crown,
+        // hiding his ears, so he can't be mistaken for the first guy or a backup
+        c.beginPath();
+        ring(c, x, 0, GLUE_BRIM_MM);
+        inkShape(c);
+        c.beginPath();
+        ring(c, x, 0, GLUE_BRIM_MM * 0.62);
+        c.fillStyle = INK;
+        c.fill();
+        return;
+    }
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
     inkShape(c);

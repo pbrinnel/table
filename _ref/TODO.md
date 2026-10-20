@@ -80,6 +80,10 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
 
+- [x] The glue soldier: at 25%, 50% and 75% of the table's weight gone over, a guy in a
+      helmet comes with a grey circle inside which only he can be grabbed (dhfm91; Claude,
+      for dhfm91)
+
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
       variants, and so on (dhfm91)

@@ -226,6 +226,8 @@ gets messier (dhfm91).
   - **Update (dhfm91):** the box's paper is slightly see-through (`TALK_BOX_ALPHA`), so the
     bottom of the table shows faintly through it, in light grey, the one grey in the
     game. The portrait and the words stay solid.
+    - **Update (dhfm91):** the glue soldier's circle is a second grey (see **The glue
+      soldier**).
 - **The portrait (dhfm91):** an original drawing of him, head and shoulders,
   three-quarter view, in the chiseled-hero type of the "chad" memes without copying any
   of them: a black pompadour, a huge square jutting jaw with a cleft chin, a heavy
@@ -276,6 +278,24 @@ gets messier (dhfm91).
   then every one of them plays the ending.
 - Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
   nothing flashes.
+
+## The glue soldier (dhfm91)
+
+- **When:** each time the share of the table's total weight gone over the edge passes
+  one of `GLUE_MARKS` (25%, 50%, 75%), the box says "GLUE SOLDIER!" (mad face,
+  `GLUE_TALK_TIME`) and a glue soldier comes out from under something, the way a backup
+  does, `GUY_BACKUP_DELAY` later. The drop that passes a mark still brings its usual backup
+  too. Unlike a backup, with nothing to come out from under he keeps waiting until
+  something comes free.
+- **His circle:** wherever he is, a grey circle of radius `GLUE_R_MM` (about a dinner
+  plate across) surrounds him, greying what's under it (`GLUE_ALPHA`). Nothing whose
+  center is inside it can be grabbed by the player, guys included; only he can, so the
+  way in is to drag him away or knock him off. Something already held when the circle
+  reaches it stays held. The guys themselves can still pick up glued things.
+- **What he does:** works like any other guy, so the circle travels with him.
+- **His look:** a soldier's helmet from above in place of his head: a white brim round
+  a solid black crown.
+- **Knocked or dragged off:** he's gone for good, and his circle with him.
 
 ## Objects
 

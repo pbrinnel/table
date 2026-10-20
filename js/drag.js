@@ -23,14 +23,18 @@ const DRAG_LEAN_EASE = 10;
 // pointerId -> the mouse joint it's pulling with
 const holds = new Map();
 
+// What a press grabs: whatever's under it, or failing that, nearest round it.
+// Anything inside a glue soldier's circle (js/glue.js) can't be grabbed, so a
+// press there finds only him.
 function grabAt(xMm, yMm) {
+    const free = t => t && !glued(t);
     const hit = thingAt(xMm, yMm);
-    if (hit) return hit;
+    if (free(hit)) return hit;
     const r = GRAB_SLOP * MM_PER_UNIT;
     for (let i = 0; i < GRAB_REACH; i++) {
         const a = i / GRAB_REACH * Math.PI * 2;
         const near = thingAt(xMm + Math.cos(a) * r, yMm + Math.sin(a) * r);
-        if (near) return near;
+        if (free(near)) return near;
     }
     return null;
 }
