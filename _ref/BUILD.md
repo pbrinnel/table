@@ -60,6 +60,7 @@ In load order. Each declares what the ones after it use.
 | `js/guy.js` | The little guys: sharing jobs, backups arriving, grabbing and hauling, knockdowns, the end |
 | `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines, the backup call |
 | `js/glue.js` | The glue soldier: when he's called, his circle, and what it stops the player grabbing |
+| `js/score.js` | The score: counted as things go over, shown at the end |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
 Positions are in mm from the table's center, x right and y down; the physics divides by

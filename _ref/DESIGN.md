@@ -18,6 +18,7 @@ runs into. Heavy things are hard to push; light things scatter.
 There's no score or goal. What there is: a little guy who keeps putting everything back,
 so moving things becomes a fight with him, and pushing everything off the table is an
 ending of sorts (see **The little guy**).
+  - **Update (dhfm91):** there's a score now (see **The score**).
 
 ## The look
 
@@ -286,6 +287,16 @@ gets messier (dhfm91).
 - Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
   nothing flashes.
 
+## The score (dhfm91)
+
+- Everything that goes over the edge scores, whoever pushed it: an object
+  `SCORE_PER_GRAM` points per gram of its weight (a dinner plate 750, the charger 1,000,
+  a fork about 55); a backup or glue soldier knocked or dragged off `SCORE_GUY` (5); the
+  first guy `SCORE_FIRST_GUY` (25). Guys score every time, since they climb back on;
+  stepping off at the end doesn't count.
+- Nothing shows during play. Once the table is empty and the last guy has gone over,
+  "Score: N" fades in over the middle of the table, in the lettering font.
+
 ## The glue soldier (dhfm91)
 
 - **When:** each time the share of the table's total weight gone over the edge passes
@@ -364,6 +375,7 @@ side plates, two knives and a tray.
 - How many place settings, and the table's size (it sets how big everything looks). Two
   on a long table was tried and taken back (see above).
 - A goal, a challenge, or a reason to move things. None for now.
+  - **Update (dhfm91):** a score, for now (see **The score**).
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
 - Whether the table remembers where things were left between visits.

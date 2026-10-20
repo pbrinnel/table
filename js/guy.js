@@ -837,6 +837,7 @@ function noticeDrops() {
     for (const t of things) {
         if (isGuy(t) || t.fall === undefined || countedDrops.has(t)) continue;
         countedDrops.add(t);
+        scoreObject(t);
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
@@ -1279,7 +1280,7 @@ function stepGuy(g, h) {
         g.expect = null;
         letGoOfJob(g);
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
-        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
+        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); scoreGuy(g); }
         // knocked off with work still to do, he climbs back on where he went
         // over; a glue soldier comes back as a plain backup, his glue gone
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {

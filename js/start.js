@@ -15,6 +15,7 @@ function setTable(layout) {
     }
     addGuy(GUY_START.x, GUY_START.y);
     resetGlue();
+    resetScore();
     startTalk();
 }
 
@@ -219,6 +220,7 @@ function loop(time) {
     ctx.fillRect(0, 0, LW, LH);
     drawTable(ctx);
     drawThings(ctx, dt);
+    drawScore(ctx, dt);
     drawDebug(ctx);
     drawTalk(ctx, dt);
     requestAnimationFrame(loop);

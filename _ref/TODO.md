@@ -86,6 +86,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       and with `?glue`. Next: dhfm91 says what's wrong. Files: `js/glue.js`, `js/guy.js`,
       `js/drag.js`.
 
+- [x] A basic score, shown at the end: objects by weight, 5 a guy, 25 the first guy
+      (dhfm91; Claude, for dhfm91)
+
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
       variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
