@@ -12,6 +12,7 @@ const TALK_CHARS_PER_SEC = 40;   // the typewriter
 const TALK_MAD_TIME = 5;         // seconds the MAD line stays once fully typed
 const TALK_BACKUP_TIME = 2;      // seconds the backup line stays once fully typed
 const TALK_LOST_TIME = 4;        // seconds "All is lost..." stays once fully typed
+const TALK_UNHAND_TIME = 1.5;    // seconds "Unhand me!" stays once fully typed
 const TALK_CALLOUT_CHANCE = 0.1; // chance a grab of an object draws a callout naming it
 const TALK_CALLOUT_TIME = 2.5;   // seconds a callout stays once fully typed
 const TALK_CALLOUT_GAP = 6;      // seconds after a callout before another can come
@@ -42,6 +43,7 @@ const TALK_DARE = "Don't you DARE touch my plates!";
 const TALK_MAD = "Now you've made me MAD!";
 const TALK_BACKUP = "Calling for backup!";
 const TALK_LOST = "All is lost...";
+const TALK_UNHAND = "Unhand me!";
 
 // What he calls each kind of object, after "the". A kind missing here gets no callout.
 const TALK_NAMES = {
@@ -326,8 +328,15 @@ function listenForTalk() {
             say(TALK_MAD, 'mad', TALK_MAD_TIME);
             return;
         }
-        callOut(e.detail);
+        if (e.detail && isGuy(e.detail)) unhand();
+        else callOut(e.detail);
     });
+}
+
+// A guy has been picked up: every time, unless "All is lost..." is showing.
+function unhand() {
+    if (talk && talk.face === 'sad') return;
+    say(TALK_UNHAND, 'mad', TALK_UNHAND_TIME);
 }
 
 // Now and then, he yells the name of the very thing that was just picked up.

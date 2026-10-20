@@ -86,7 +86,8 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
-      variants, and so on (dhfm91)
+      variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" is in; backup
+      variants next.
 - [ ] Time limits, lax at first and stricter as it goes, so the game can be lost (dhfm91)
 - [ ] Maybe a reset button for a player who's painted themselves into a corner, at a flat
       point cost that hurts a high score (dhfm91)

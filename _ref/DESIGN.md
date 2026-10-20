@@ -273,6 +273,9 @@ gets messier (dhfm91).
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
   the first grab, never over a line still typing or "All is lost...", and at least
   `TALK_CALLOUT_GAP` apart. Spoken names are in `js/talk.js` (`TALK_NAMES`).
+- **Unhand me (dhfm91):** every time the player picks up a guy, the box says "Unhand
+  me!" (mad face, `TALK_UNHAND_TIME`), cutting in over whatever it's saying except "All is
+  lost...". The first grab of the game still gets "Now you've made me MAD!" instead.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.
