@@ -12,8 +12,8 @@ const GRAB_SLOP = 12;
 
 const GRAB_REACH = 8;       // directions to look in, within GRAB_SLOP
 
-// A tall thing being dragged (a cup, a glass) leans toward where it's going,
-// more the faster it's dragged (Paul): DRAG_LEAN radians per m/s, up to
+// A tall thing on the move (a cup, a glass), dragged or otherwise, leans toward
+// where it's going, more the faster it goes (Paul): DRAG_LEAN radians per m/s, up to
 // DRAG_LEAN_MAX, easing in and out at DRAG_LEAN_EASE (per second), so it never
 // snaps. Drawn by js/start.js.
 const DRAG_LEAN = 0.35;

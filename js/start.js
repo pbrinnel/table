@@ -28,10 +28,12 @@ function squashToward(c, at, n, tilt) {
 }
 
 // The lean a tall thing has this frame, as a vector in radians toward where
-// it's leaning, eased toward what its drag speed asks for (DRAG_LEAN).
+// it's leaning, eased toward what its speed asks for (DRAG_LEAN). Whatever is
+// moving it (a hand, a guy hauling it, the saucer it rides on, a flick), so a
+// cup or a glass never slides along bolt upright like a flat disc.
 function leanOf(t, dt) {
     let want = Vec2(0, 0);
-    if (isHeld(t.body)) {
+    if (t.body.isActive()) {
         const v = t.body.getLinearVelocity(), speed = v.length();
         if (speed > 1e-3) want = Vec2.mul(v, Math.min(DRAG_LEAN_MAX, speed * DRAG_LEAN) / speed);
     }

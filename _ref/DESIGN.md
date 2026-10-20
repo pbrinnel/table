@@ -62,6 +62,9 @@ ending of sorts (see **The little guy**).
 - **Leaning (Paul):** a tall thing being dragged (a cup, a glass) leans toward where it's
   going, more the faster it's dragged (`DRAG_LEAN`, up to `DRAG_LEAN_MAX`), easing in and
   out (`DRAG_LEAN_EASE`), and stands up again once let go.
+  - **Update (Paul):** cups still read as flat when moved any other way, so every tall
+    thing leans while it moves, however it's moved: dragged, hauled by a guy, riding a
+    saucer that's dragged, or sliding after a flick.
 - **Release:** let go and the object keeps its speed, then slides to a stop. A quick flick
   sends it across the table.
 - **Two fingers:** on a phone, each finger can hold its own object at the same time.
