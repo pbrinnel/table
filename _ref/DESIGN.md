@@ -244,6 +244,9 @@ gets messier (dhfm91).
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
   as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
   backups wander like the first guy.
+  - **Update (dhfm91):** the line is one of four, picked at random (`TALK_BACKUPS`):
+    "Calling for backup!", "We need more hands on deck!", "Code red! CODE RED!", "All
+    hands to the table!".
   - **Update (Paul): how backups arrive.** A backup crawls out from under something
     still on the table, picked from Paul's spawn lab (`_labs/spawn.html`): from under the
     napkin while it's free, its corner lifting with a true tilt and flipping over, then
@@ -273,9 +276,10 @@ gets messier (dhfm91).
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
   the first grab, never over a line still typing or "All is lost...", and at least
   `TALK_CALLOUT_GAP` apart. Spoken names are in `js/talk.js` (`TALK_NAMES`).
-- **Unhand me (dhfm91):** every time the player picks up a guy, the box says "Unhand
-  me!" (mad face, `TALK_UNHAND_TIME`), cutting in over whatever it's saying except "All is
-  lost...". The first grab of the game still gets "Now you've made me MAD!" instead.
+- **Unhand me (dhfm91):** every time the player picks up the first guy, the box says
+  "Unhand me!" (mad face, `TALK_UNHAND_TIME`), cutting in over whatever it's saying except
+  "All is lost...". Backups say nothing when picked up. The first grab of the game still
+  gets "Now you've made me MAD!" instead.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.

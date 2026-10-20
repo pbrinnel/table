@@ -41,7 +41,13 @@ const SCREAM_TIME = 1.2;         // seconds the scream stays once typed
 
 const TALK_DARE = "Don't you DARE touch my plates!";
 const TALK_MAD = "Now you've made me MAD!";
-const TALK_BACKUP = "Calling for backup!";
+// one picked at random each time (dhfm91)
+const TALK_BACKUPS = [
+    'Calling for backup!',
+    'We need more hands on deck!',
+    'Code red! CODE RED!',
+    'All hands to the table!',
+];
 const TALK_LOST = "All is lost...";
 const TALK_UNHAND = "Unhand me!";
 
@@ -305,12 +311,13 @@ function startTalk() {
     talkWaitingForGrab = true;
 }
 
-// An object has gone over the edge: he calls for backup, in the mad face. It
+// An object has gone over the edge: he calls for backup, in the mad face, in
+// one of TALK_BACKUPS. It
 // replaces whatever the box is showing, the opening included, and so the
 // opening has nothing left to wait for. Each call restarts the line.
 function callForBackup() {
     talkWaitingForGrab = false;
-    say(TALK_BACKUP, 'mad', TALK_BACKUP_TIME);
+    say(TALK_BACKUPS[Math.floor(Math.random() * TALK_BACKUPS.length)], 'mad', TALK_BACKUP_TIME);
 }
 
 // The last object has gone over the edge. Said once, as the guys freeze, and
@@ -328,12 +335,13 @@ function listenForTalk() {
             say(TALK_MAD, 'mad', TALK_MAD_TIME);
             return;
         }
-        if (e.detail && isGuy(e.detail)) unhand();
+        if (guys[0] && e.detail === guys[0].thing) unhand();
         else callOut(e.detail);
     });
 }
 
-// A guy has been picked up: every time, unless "All is lost..." is showing.
+// The first guy has been picked up: every time, unless "All is lost..." is
+// showing. Backups say nothing when picked up.
 function unhand() {
     if (talk && talk.face === 'sad') return;
     say(TALK_UNHAND, 'mad', TALK_UNHAND_TIME);
