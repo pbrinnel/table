@@ -26,6 +26,9 @@ ending of sorts (see **The little guy**).
   - **Update (dhfm91):** the guy's portrait in the dialog box is the one exception: it's
     shaded in solid black shapes (see **The guy talks**). The table itself stays unshaded.
 - One stroke width for every line (`LINE_WIDTH`). The table's edge is the only frame.
+  - **Update (dhfm91):** the first guy's hair is the one exception: its strands use a finer
+    pen (`HAIR_PEN`), since at his size the full pen can only draw a stripe or two across
+    his head.
 - Each object is filled white inside its outline, so it covers the cloth's lines (if any)
   and never shows lines through itself.
 - The whole screen is the table, with a small margin around its edge.
@@ -202,6 +205,9 @@ where it was, and you can knock him around.
     locks, swept a little to one side, with two white streaks of shine combed back
     (see his portrait under **The guy talks**). Backups keep white heads, so he's the
     one you can pick out.
+  - **Update (dhfm91):** the two streaks of shine are now `HAIR_STRANDS` fine strands in
+    `HAIR_PEN`, combed back from the quiff toward his crown, so it reads as hair at his
+    size. The rest of him keeps the one pen.
 
 Every number about him is a slider on the tune page.
 
@@ -220,6 +226,8 @@ gets messier (dhfm91).
   - **Update (dhfm91):** the box's paper is slightly see-through (`TALK_BOX_ALPHA`), so the
     bottom of the table shows faintly through it, in light grey, the one grey in the
     game. The portrait and the words stay solid.
+    - **Update (dhfm91):** the glue soldier's circle is a second grey (see **The glue
+      soldier**).
 - **The portrait (dhfm91):** an original drawing of him, head and shoulders,
   three-quarter view, in the chiseled-hero type of the "chad" memes without copying any
   of them: a black pompadour, a huge square jutting jaw with a cleft chin, a heavy
@@ -236,6 +244,9 @@ gets messier (dhfm91).
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
   as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
   backups wander like the first guy.
+  - **Update (dhfm91):** the line is one of four, picked at random (`TALK_BACKUPS`):
+    "Calling for backup!", "We need more hands on deck!", "Code red! CODE RED!", "All
+    hands to the table!".
   - **Update (Paul): how backups arrive.** A backup crawls out from under something
     still on the table, picked from Paul's spawn lab (`_labs/spawn.html`): from under the
     napkin while it's free, its corner lifting with a true tilt and flipping over, then
@@ -265,11 +276,39 @@ gets messier (dhfm91).
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
   the first grab, never over a line still typing or "All is lost...", and at least
   `TALK_CALLOUT_GAP` apart. Spoken names are in `js/talk.js` (`TALK_NAMES`).
+- **Unhand me (dhfm91):** every time the player picks up the first guy, the box says
+  "Unhand me!" (mad face, `TALK_UNHAND_TIME`), cutting in over whatever it's saying except
+  "All is lost...". Backups say nothing when picked up. The first grab of the game still
+  gets "Now you've made me MAD!" instead.
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.
 - Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
   nothing flashes.
+
+## The glue soldier (dhfm91)
+
+- **When:** each time the share of the table's total weight gone over the edge passes
+  one of `GLUE_MARKS` (25%, 50%, 75%), the box says "GLUE SOLDIER!" (mad face,
+  `GLUE_TALK_TIME`) and a glue soldier comes out from under something, the way a backup
+  does, `GUY_BACKUP_DELAY` later. The drop that passes a mark still brings its usual backup
+  too. Unlike a backup, with nothing to come out from under he keeps waiting until
+  something comes free.
+- **His circle:** wherever he is, a grey circle of radius `GLUE_R_MM` (about a dinner
+  plate across) surrounds him, greying what's under it (`GLUE_ALPHA`). Nothing whose
+  center is inside it can be grabbed by the player, guys included; only he can, so the
+  way in is to drag him away or knock him off. Something already held when the circle
+  reaches it stays held. The guys themselves can still pick up glued things.
+- **What he does:** works like any other guy, so the circle travels with him.
+- **His look:** a soldier's helmet from above in place of his head: a white brim round
+  a solid black crown.
+- **Knocked or dragged off:** he's gone for good, and his circle with him.
+- **Update (dhfm91):** he was too strong. The line is now "Calling GLUE SOLDIER!"; he
+  comes out `GLUE_DELAY` after it (not `GUY_BACKUP_DELAY`), plays his way out from under
+  `GLUE_ENTER_PACE` times as fast as a backup, and tries again for cover every
+  `GLUE_DELAY`. A press anywhere inside his circle grabs him, so he's quick to throw off.
+- **Update (dhfm91):** knocked or dragged off, he climbs back on like any guy, but as a
+  plain backup: no helmet, no circle.
 
 ## Objects
 
@@ -330,6 +369,8 @@ side plates, two knives and a tray.
   one `LINE_WIDTH` his stick limbs and fingers clump together, so the gangly look from the
   references is lost. Either make him bigger (about 90 mm) or give him a thinner pen than
   everything else, which breaks the one-pen rule. Claude's suggestion: bigger.
+  - **Update (dhfm91):** a thinner pen, for his hair only, for now (see **The look**). His
+    size, limbs and fingers are unchanged and still open.
 - Guys bump into each other and can knock each other flat on a crowded table. Keep it
   as slapstick, or let them pass through each other?
 - Whether the guy stays seen from straight above, like everything else, or is drawn

@@ -160,7 +160,8 @@ const GUY_FLAIL_SWING = 0.8;
 // Every guy, the first and each backup. Each has his own body and his own grip.
 let guys = [];
 // Backups on their way: { at: guyClock time they're due, edge: where the object
-// went over, in meters, waited: whether they've already waited for cover }
+// went over, in meters, waited: whether they've already waited for cover,
+// glue: whether he's a glue soldier (js/glue.js) }
 let backups = [];
 // Objects already counted as dropped, so each one calls for backup once
 let countedDrops = new Set();
@@ -218,6 +219,7 @@ function addGuy(xMm, yMm) {
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
         entrance: null,   // while he comes out from under something: see startEntrance()
+        glue: false,      // a glue soldier (js/glue.js)
     };
     thing.guy = g;
     guys.push(g);
@@ -838,21 +840,23 @@ function noticeDrops() {
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
+        noticeGlue(t.edgeAt);
     }
 }
 
 // A backup comes out from under something on the table (see chooseEntrance).
 // With nothing to come out from, he waits GUY_BACKUP_WAIT, and failing that
-// doesn't come at all.
+// doesn't come at all. A glue soldier keeps waiting until something comes free,
+// as long as anything's left.
 function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
         const how = chooseEntrance(b.edge);
-        if (how) startEntrance(how);
-        else if (!b.waited) {
+        if (how) startEntrance(how).glue = !!b.glue;
+        else if (!b.waited || (b.glue && things.some(t => !isGuy(t) && onTable(t)))) {
             // nothing free to come out from under: give something a moment to come free
             b.waited = true;
-            b.at = guyClock + GUY_BACKUP_WAIT;
+            b.at = guyClock + (b.glue ? GLUE_DELAY : GUY_BACKUP_WAIT);
             return true;
         }
         return false;
@@ -1121,6 +1125,7 @@ function startEntrance(how) {
         from: Vec2.clone(at), angle: src.body.getAngle(),     // where the thing was when he started
         pose: ENTER_TUCK, sw: 0, head: 0, shake: 0, rise: 0,  // how he's drawn this step
     };
+    return g;
 }
 
 const enterSeg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
@@ -1224,7 +1229,7 @@ function stepEntrance(g, h) {
         endEntrance(g);
         return;
     }
-    E.t += h;
+    E.t += h * (g.glue ? GLUE_ENTER_PACE : 1);
     if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
     if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
 }
@@ -1275,9 +1280,11 @@ function stepGuy(g, h) {
         letGoOfJob(g);
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
         if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
+        // knocked off with work still to do, he climbs back on where he went
+        // over; a glue soldier comes back as a plain backup, his glue gone
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
-            // knocked off with work still to do: he climbs back on where he went over
+            g.glue = false;
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);
@@ -1398,11 +1405,48 @@ function limb(c, x0, y0, x1, y1, digits) {
 
 // The first guy wears his pompadour: seen from above, a black mass over his
 // whole head that swells forward past his brow into a quiff of three locks,
-// with two streaks of shine swept back from it, so it reads as hair and not
+// combed straight back in fine strands of shine, so it reads as hair and not
 // as a black head. Backups are bareheaded, so he's the one you can pick out.
+// The hair is the one place a finer pen than LINE_WIDTH is used (dhfm91): at
+// his size the full pen can only draw a couple of stripes across his head.
 const QUIFF_MM = 10;             // how far the quiff swells forward of his head
 const QUIFF_STEPS = 48;
+const QUIFF_SWEEP = 0.35;        // radians the quiff is swept toward his left
+const HAIR_PEN = 0.6;            // frame units: the strands and partings
+const HAIR_STRANDS = 6;          // fine strands combed back over his head
+const GLUE_BRIM_MM = 17;         // a glue soldier's helmet brim, from his head's center
+
+// The quiff's outline radius (mm) at angle a round his head: swells toward his
+// front, swept to one side, in three locks with notches between them.
+function quiffR(a) {
+    const front = Math.max(0, Math.cos(a - QUIFF_SWEEP));
+    return 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - QUIFF_SWEEP) * 4.5)));
+}
+
+// Strokes the current path in paper, in pen width w (frame units).
+function paperLine(c, w) {
+    c.save();
+    if (inkFrame) c.setTransform(inkFrame);
+    c.lineWidth = w;
+    c.lineCap = 'round';
+    c.strokeStyle = PAPER;
+    c.stroke();
+    c.restore();
+}
+
 function drawHead(c, x, g) {
+    if (g.glue) {
+        // a soldier's helmet from above: a wide brim round a solid crown,
+        // hiding his ears, so he can't be mistaken for the first guy or a backup
+        c.beginPath();
+        ring(c, x, 0, GLUE_BRIM_MM);
+        inkShape(c);
+        c.beginPath();
+        ring(c, x, 0, GLUE_BRIM_MM * 0.62);
+        c.fillStyle = INK;
+        c.fill();
+        return;
+    }
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
     inkShape(c);
@@ -1414,10 +1458,7 @@ function drawHead(c, x, g) {
     }
     for (let i = 0; i <= QUIFF_STEPS; i++) {
         const a = i / QUIFF_STEPS * Math.PI * 2 - Math.PI;
-        const front = Math.max(0, Math.cos(a - 0.35));
-        // swells toward his front and swept to one side, in three locks with
-        // notches between them
-        const r = 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - 0.35) * 4.5)));
+        const r = quiffR(a);
         const px = x + Math.cos(a) * r, py = Math.sin(a) * r;
         if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
     }
@@ -1425,18 +1466,21 @@ function drawHead(c, x, g) {
     c.fillStyle = INK;
     c.fill();
     inkLine(c);
-    // shine: two paper strokes swept back from the quiff
     c.beginPath();
-    c.moveTo(x + 19, -1);
-    c.quadraticCurveTo(x + 5, -11, x - 9, -5);
-    c.moveTo(x + 19, 7);
-    c.quadraticCurveTo(x + 3, 6, x - 9, 2);
-    c.save();
-    if (inkFrame) c.setTransform(inkFrame);
-    c.lineWidth = LINE_WIDTH;
-    c.strokeStyle = PAPER;
-    c.stroke();
-    c.restore();
+    // strands: from inside the quiff's front edge, spread across it, combed
+    // back toward the crown; alternate ones start further in and stop sooner,
+    // so they read as hair rather than a fan of ribs
+    for (let i = 0; i < HAIR_STRANDS; i++) {
+        const a = QUIFF_SWEEP + (i / (HAIR_STRANDS - 1) - 0.5) * 1.5;
+        const inset = i % 2 ? 5 : 2.5;
+        const r0 = quiffR(a) - inset;
+        const sx = x + Math.cos(a) * r0, sy = Math.sin(a) * r0;
+        const ex = x - (i % 2 ? 4 : 9);
+        const ey = (i / (HAIR_STRANDS - 1) - 0.5) * 10 + 1;   // gathered toward the crown, in order, so none cross
+        c.moveTo(sx, sy);
+        c.quadraticCurveTo((sx + ex) / 2, (sy + ey) / 2 + 1.5, ex, ey);
+    }
+    paperLine(c, HAIR_PEN);
 }
 
 // Running, legs and arms swinging opposite each other; reaching out in front

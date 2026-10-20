@@ -8,8 +8,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       plates, side plates, knives and a tray stands in until the objects are chosen.
 - [x] The little guy, falling off the edge, and his ending (Claude, for Paul)
 - [ ] Tune the feel, the guy included, on `_labs/tune.html` (Paul or dhfm91)
-- [ ] Decide how to make the guy readable: bigger, or a thinner pen (Paul or dhfm91, see
-      `DESIGN.md` → Open)
+- [x] Decide how to make the guy readable: bigger, or a thinner pen (Paul or dhfm91, see
+      `DESIGN.md` → Open). A thinner pen for the first guy's hair (dhfm91; Claude, for
+      dhfm91). Size, limbs and fingers still open.
 - [x] The guy talks: dialog box, his portrait, the opening lines (Claude, for dhfm91)
 - [x] Backup: every object that drops brings one more guy, "Calling for backup!"; "All is
       lost..." at the end; the guy's portrait redrawn (Claude, for dhfm91)
@@ -78,3 +79,22 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
+
+- [x] The glue soldier: at 25%, 50% and 75% of the table's weight gone over, a guy in a
+      helmet comes with a grey circle inside which only he can be grabbed (dhfm91; Claude,
+      for dhfm91)
+
+dhfm91's priorities, in order:
+- [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
+      variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
+      and four backup lines are in; more to come.
+- [ ] Time limits, lax at first and stricter as it goes, so the game can be lost (dhfm91)
+- [ ] Maybe a reset button for a player who's painted themselves into a corner, at a flat
+      point cost that hurts a high score (dhfm91)
+- [ ] Level variants in a loop: the player keeps clearing tables for as long as they like
+      (dhfm91)
+- [ ] Some story about the little guys who love neat tables, shown at game over or on a
+      high score (dhfm91)
+- [ ] High score board, on Paul's plan under **Later** in `CLAUDE.md` (a Cloudflare
+      Worker on his account). If that doesn't happen, dhfm91's fallback is the way his other
+      games do it: a JSON bin on extendsclass (dhfm91)
