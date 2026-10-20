@@ -78,3 +78,17 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
+
+dhfm91's priorities, in order:
+- [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
+      variants, and so on (dhfm91)
+- [ ] Time limits, lax at first and stricter as it goes, so the game can be lost (dhfm91)
+- [ ] Maybe a reset button for a player who's painted themselves into a corner, at a flat
+      point cost that hurts a high score (dhfm91)
+- [ ] Level variants in a loop: the player keeps clearing tables for as long as they like
+      (dhfm91)
+- [ ] Some story about the little guys who love neat tables, shown at game over or on a
+      high score (dhfm91)
+- [ ] High score board, the way dhfm91's other games do it: a JSON bin on extendsclass.
+      This differs from **Later** in `CLAUDE.md` (a Cloudflare Worker on Paul's account), so
+      agree with Paul first (dhfm91)
