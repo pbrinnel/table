@@ -52,6 +52,11 @@ const GUY_DESPAIR_TIME = 2;      // seconds frozen, once the last thing has gone
 const GUY_LOOK_TIME = 1.3;       // seconds looking at each empty spot
 const GUY_BRINK_TIME = 2.8;      // seconds at the edge before he steps off
 const GUY_SAD_LOOKS = 3;         // how many empty spots he looks at
+// The ending speeds up as it goes (dhfm91), so it's never a long wait: it
+// starts at normal speed and reaches GUY_END_PACE times as fast after
+// GUY_END_RAMP seconds of real time.
+const GUY_END_PACE = 5;
+const GUY_END_RAMP = 4;
 
 // Wandering: with no job, a guy ambles to a spot picked to be far from the other
 // idle guys, and eases off any who come close, so they spread out evenly.
@@ -166,6 +171,7 @@ let backups = [];
 // Objects already counted as dropped, so each one calls for backup once
 let countedDrops = new Set();
 let guyClock = 0;
+let endClock = 0;   // real seconds since the ending began
 
 // Objects and guys share the world's list of things; this tells them apart.
 function isGuy(t) {
@@ -193,6 +199,15 @@ function resetGuys() {
     backups = [];
     countedDrops = new Set();
     guyClock = 0;
+    endClock = 0;
+}
+
+// How many times faster than real time the game runs this frame: 1 until the
+// ending begins, then ramping up to GUY_END_PACE. dt is real seconds.
+function endingPace(dt) {
+    if (!guys.some(g => g.leaving)) return 1;
+    endClock += dt;
+    return 1 + (GUY_END_PACE - 1) * Math.min(1, endClock / GUY_END_RAMP);
 }
 
 function addGuy(xMm, yMm) {
@@ -837,6 +852,7 @@ function noticeDrops() {
     for (const t of things) {
         if (isGuy(t) || t.fall === undefined || countedDrops.has(t)) continue;
         countedDrops.add(t);
+        scoreObject(t);
         if (!things.some(o => !isGuy(o) && onTable(o))) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
@@ -1279,7 +1295,7 @@ function stepGuy(g, h) {
         g.expect = null;
         letGoOfJob(g);
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
-        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
+        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); scoreGuy(g); }
         // knocked off with work still to do, he climbs back on where he went
         // over; a glue soldier comes back as a plain backup, his glue gone
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {

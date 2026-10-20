@@ -15,6 +15,11 @@ const GLUE_DELAY = 0.25;               // seconds from the call to his coming ou
 const GLUE_ENTER_PACE = 5;             // how many times faster than a backup he comes out
 const GLUE_LINE = 'Calling GLUE SOLDIER!';
 
+// He's off on the live site while he's still being playtested (dhfm91): on only
+// when the game is served from this machine, or with ?glue in the address.
+const GLUE_ON = ['localhost', '127.0.0.1'].includes(location.hostname)
+    || new URLSearchParams(location.search).has('glue');
+
 let glueWeight = 0;   // the table's total weight in grams, as it was laid
 let glueNext = 0;     // index into GLUE_MARKS of the next mark to pass
 
@@ -29,6 +34,7 @@ function resetGlue() {
 // his way, arriving the way backups do (arriveBackups in js/guy.js), but
 // sooner.
 function noticeGlue(edge) {
+    if (!GLUE_ON) return;
     const gone = things.reduce((sum, t) => sum + (!isGuy(t) && !onTable(t) ? t.kind.mass : 0), 0);
     let passed = 0;
     while (glueNext < GLUE_MARKS.length && gone >= GLUE_MARKS[glueNext] * glueWeight) {

@@ -50,6 +50,7 @@ const TALK_BACKUPS = [
 ];
 const TALK_LOST = "All is lost...";
 const TALK_UNHAND = "Unhand me!";
+const TALK_DAMAGE = "Haven't you done enough damage?";   // with the final score
 
 // What he calls each kind of object, after "the". A kind missing here gets no callout.
 const TALK_NAMES = {

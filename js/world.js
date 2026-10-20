@@ -294,8 +294,10 @@ function applyFeelTo(t) {
 
 // Runs the physics at a fixed rate whatever the screen's refresh rate.
 // eachStep(seconds) runs before every step, for anything that steers itself.
-function stepWorld(dt, eachStep) {
-    stepLeft = Math.min(stepLeft + dt, MAX_STEPS_PER_FRAME / STEP_HZ);
+// pace runs the game that many times faster than real time (the ending's
+// speed-up, endingPace in js/guy.js), with room for that many more steps.
+function stepWorld(dt, eachStep, pace = 1) {
+    stepLeft = Math.min(stepLeft + dt * pace, MAX_STEPS_PER_FRAME * pace / STEP_HZ);
     while (stepLeft >= 1 / STEP_HZ) {
         eachStep(1 / STEP_HZ);
         world.step(1 / STEP_HZ);

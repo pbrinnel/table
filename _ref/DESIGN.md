@@ -18,6 +18,7 @@ runs into. Heavy things are hard to push; light things scatter.
 There's no score or goal. What there is: a little guy who keeps putting everything back,
 so moving things becomes a fight with him, and pushing everything off the table is an
 ending of sorts (see **The little guy**).
+  - **Update (dhfm91):** there's a score now (see **The score**).
 
 ## The look
 
@@ -195,6 +196,9 @@ where it was, and you can knock him around.
   off. **Nothing resets:** the table stays empty until the page is reloaded (Paul).
   - **Update (dhfm91):** once there are backups, every guy does this together, and first
     the box says "All is lost..." (see **The guy talks**).
+  - **Update (dhfm91):** it mustn't be a long wait. It starts at normal speed and speeds
+    up to `GUY_END_PACE` (5) times as fast over `GUY_END_RAMP` seconds, everything at
+    once: about 5 s from the last object going over to the score, was about 17.
 - **His look:** from Paul's references (a cartoon fusspot, a bigfoot, a scrawled
   gremlin): gangly, a big head with ears, a small body, stick limbs, splayed three-digit
   hands and feet. Same black line on white, seen from straight above. About 50 mm across,
@@ -286,6 +290,17 @@ gets messier (dhfm91).
 - Text types out at `TALK_CHARS_PER_SEC`. No blinking cursor and no "next" arrow:
   nothing flashes.
 
+## The score (dhfm91)
+
+- Everything that goes over the edge scores, whoever pushed it: an object
+  `SCORE_PER_GRAM` points per gram of its weight (a dinner plate 750, the charger 1,000,
+  a fork about 55); a backup or glue soldier knocked or dragged off `SCORE_GUY` (5); the
+  first guy `SCORE_FIRST_GUY` (25). Each guy scores the first time only, so climbing
+  back on can't be farmed; stepping off at the end doesn't count.
+- Nothing shows during play. Once the table is empty and the last guy has gone over,
+  "Score: N" fades in over the middle of the table, in the lettering font, and the box
+  shows the first guy, sad: "Haven't you done enough damage?"
+
 ## The glue soldier (dhfm91)
 
 - **When:** each time the share of the table's total weight gone over the edge passes
@@ -309,6 +324,9 @@ gets messier (dhfm91).
   `GLUE_DELAY`. A press anywhere inside his circle grabs him, so he's quick to throw off.
 - **Update (dhfm91):** knocked or dragged off, he climbs back on like any guy, but as a
   plain backup: no helmet, no circle.
+- **Update (dhfm91):** off on the live site while he's playtested (`GLUE_ON`): he comes
+  only when the game is served locally, or with `?glue` in the address
+  (paulbrinnel.com/table/?glue).
 
 ## Objects
 
@@ -361,6 +379,7 @@ side plates, two knives and a tray.
 - How many place settings, and the table's size (it sets how big everything looks). Two
   on a long table was tried and taken back (see above).
 - A goal, a challenge, or a reason to move things. None for now.
+  - **Update (dhfm91):** a score, for now (see **The score**).
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
 - Whether the table remembers where things were left between visits.
