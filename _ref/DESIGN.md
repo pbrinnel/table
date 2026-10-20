@@ -39,6 +39,7 @@ ending of sorts (see **The little guy**).
   - **Update (Paul):** a long table, 2.4 x 1.25 m, in a 2:1 frame: about the shape of a
     phone held either way, so it fills a phone screen better (everything a little bigger
     there, a little smaller on a desktop).
+    - **Update (Paul):** tried and taken back: the table is the 3:2 one again.
 - On a portrait screen (a phone held upright) the view turns 90° so the table still fills
   the screen. The table and everything on it stay where they were; touches map through the
   same turn.
@@ -275,6 +276,8 @@ gets messier (dhfm91).
   - **Update (Paul):** two settings, one at each end of the long table facing the other
     along its length, at the reference's own spacing. Shared pieces down the middle:
     *prototype choice*, a three-arm candelabra, salt and pepper shakers, and a bread basket.
+    - **Update (Paul):** taken back: one setting again, as before. The candelabra, shakers
+      and bread basket stay in the catalog (`_labs/objects.html`), off the table.
 
 **Was open.** The list below was a brainstorm to choose from, before the update above. Sizes are real ones,
 to keep proportions honest; masses set the weight.
@@ -308,7 +311,8 @@ side plates, two knives and a tray.
 ## Open
 
 - Which objects are in, and how many of each.
-- ~~How many place settings, and the table's size~~: two, on a long table (see above).
+- How many place settings, and the table's size (it sets how big everything looks). Two
+  on a long table was tried and taken back (see above).
 - A goal, a challenge, or a reason to move things. None for now.
 - Whether the player can turn objects on purpose (beyond grabbing off-center).
 - Sound.
@@ -322,4 +326,5 @@ side plates, two knives and a tray.
   as slapstick, or let them pass through each other?
 - Whether the guy stays seen from straight above, like everything else, or is drawn
   upright the way Paul's references are.
-- ~~Step 2: one full setting or several~~: two full settings (see above).
+- Step 2: one full formal place setting from the reference, or several simpler ones round
+  the table. One for now; two facing on a long table was tried and taken back.

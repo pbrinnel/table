@@ -3,8 +3,7 @@
 // frame, just bigger or smaller. On a portrait screen the frame is turned a
 // quarter clockwise, so the landscape table still fills it.
 
-// 2:1, about the shape of a phone held either way, so the long table fills it (Paul)
-const LW = 1400, LH = 700;
+const LW = 1200, LH = 800;
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');

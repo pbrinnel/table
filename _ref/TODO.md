@@ -69,13 +69,10 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       `_labs/color.html`. Next: Paul reacts.
 - [x] A guy knocked off screams on the way down; not when he steps off at the end (Claude,
       for Paul)
-- [x] A long 2:1 table (2.4 x 1.25 m) with a formal setting at each end, facing each other,
-      and shared pieces down the middle: candelabra, salt and pepper, bread basket (Claude,
-      for Paul). On a phone the table now covers about 63% of the screen (was 44%) at the
-      same size; on a desktop everything is 12% smaller.
-- [x] One guy is stretched on a table twice the length with 60 things (3 of 22 knocked
-      things not back within 30 s in the placement test). Decided: keep one guy at the
-      start; backups come as things fall (Paul).
+- [x] Tried a long 2:1 table with a setting at each end and shared pieces in the middle;
+      taken back to one setting on the 3:2 table (Paul). The candelabra, shakers and bread
+      basket stay in the catalog.
+- [x] One guy at the start; backups come as things fall (Paul).
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
