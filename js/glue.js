@@ -4,7 +4,8 @@
 // far quicker. He works like any other guy, but wherever he is, a grey circle
 // surrounds him, and inside it nothing but him can be grabbed. So he isn't too
 // strong, a press anywhere in his circle grabs him, and he's quick to throw
-// off. Once he's off the table he's gone for good, and his circle with him.
+// off. Once he's off the table his circle is gone for good: he climbs back on
+// as a plain backup.
 
 const GLUE_MARKS = [0.25, 0.5, 0.75];  // shares of the table's weight gone over the edge
 const GLUE_R_MM = 140;                 // the circle's radius: about a dinner plate across

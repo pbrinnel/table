@@ -1281,9 +1281,10 @@ function stepGuy(g, h) {
         // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
         if (!g.leaving && !g.screamed) { g.screamed = true; scream(); }
         // knocked off with work still to do, he climbs back on where he went
-        // over; a glue soldier never does
-        if (!g.leaving && !g.glue && t.fall > GUY_CLIMB_TIME) {
+        // over; a glue soldier comes back as a plain backup, his glue gone
+        if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
+            g.glue = false;
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);

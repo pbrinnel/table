@@ -307,6 +307,8 @@ gets messier (dhfm91).
   comes out `GLUE_DELAY` after it (not `GUY_BACKUP_DELAY`), plays his way out from under
   `GLUE_ENTER_PACE` times as fast as a backup, and tries again for cover every
   `GLUE_DELAY`. A press anywhere inside his circle grabs him, so he's quick to throw off.
+- **Update (dhfm91):** knocked or dragged off, he climbs back on like any guy, but as a
+  plain backup: no helmet, no circle.
 
 ## Objects
 
