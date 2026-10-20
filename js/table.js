@@ -80,6 +80,8 @@ function frameToMm(p) {
 
 function drawTable(c) {
     const w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
+    c.fillStyle = CLOTH;
+    c.fillRect((LW - w) / 2, (LH - h) / 2, w, h);
     c.lineWidth = LINE_WIDTH;
     c.strokeStyle = INK;
     c.strokeRect((LW - w) / 2, (LH - h) / 2, w, h);

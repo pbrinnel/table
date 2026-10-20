@@ -49,6 +49,7 @@ const TALK_BACKUPS = [
     'All hands to the table!',
 ];
 const TALK_LOST = "All is lost...";
+const TALK_SAVED = "At least we saved something...";   // in place of TALK_LOST, if anything was glued
 const TALK_UNHAND = "Unhand me!";
 const TALK_DAMAGE = "Haven't you done enough damage?";   // with the final score
 
@@ -168,7 +169,8 @@ function drawPortrait(c, face, x, y, side) {
     const k = side / PORTRAIT_SIZE;
     c.save();
     // the box behind is see-through; the portrait isn't
-    c.fillStyle = PAPER;
+    setInkSpec(PORTRAIT_SPEC);
+    c.fillStyle = inkFill();
     c.fillRect(x, y, side, side);
     c.translate(x, y);
     c.scale(k, k);
@@ -181,11 +183,12 @@ function drawPortrait(c, face, x, y, side) {
     c.lineCap = 'round';
     c.strokeStyle = INK;
     for (const [kind, path] of portraitFor(face)) {
-        if (kind === 'shape' || kind === 'paper') { c.fillStyle = PAPER; c.fill(path); }
+        if (kind === 'shape' || kind === 'paper') { c.fillStyle = inkFill(); c.fill(path); }
         if (kind === 'ink') { c.fillStyle = INK; c.fill(path); }
         if (kind === 'shape' || kind === 'line') c.stroke(path);
     }
     c.restore();
+    clearInkSpec();
 
     c.lineWidth = LINE_WIDTH;
     c.strokeStyle = INK;
@@ -278,7 +281,11 @@ function drawTalk(c, dt) {
     talkBox = { x, y, w, h: TALK_BOX_H };
 
     c.globalAlpha = shown * TALK_BOX_ALPHA;
-    c.fillStyle = PAPER;
+    // the box is filled through the ink spec like everything else, and made
+    // see-through by globalAlpha
+    setInkSpec(DIALOG_SPEC);
+    c.fillStyle = inkFill();
+    clearInkSpec();
     c.fillRect(x, y, w, TALK_BOX_H);
     c.globalAlpha = shown;
     c.lineWidth = LINE_WIDTH;
@@ -321,12 +328,14 @@ function callForBackup() {
     say(TALK_BACKUPS[Math.floor(Math.random() * TALK_BACKUPS.length)], 'mad', TALK_BACKUP_TIME);
 }
 
-// The last object has gone over the edge. Said once, as the guys freeze, and
-// it replaces whatever the box is showing. The frozen and looking phases in
-// guy.js last longer than this line, so they trudge off after it is gone.
+// Nothing is left in play: the last object has gone over the edge, or the
+// rest are glued. Said once, as the guys freeze, and it replaces whatever the
+// box is showing; anything glued down is something saved. The frozen and
+// looking phases in guy.js last longer than this line, so they trudge off
+// after it is gone.
 function allIsLost() {
     talkWaitingForGrab = false;
-    say(TALK_LOST, 'sad', TALK_LOST_TIME);
+    say(things.some(t => t.glued) ? TALK_SAVED : TALK_LOST, 'sad', TALK_LOST_TIME);
 }
 
 function listenForTalk() {

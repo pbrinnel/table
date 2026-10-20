@@ -24,12 +24,12 @@ const DRAG_LEAN_EASE = 10;
 const holds = new Map();
 
 // What a press grabs: whatever's under it, or failing that, nearest round it.
-// A press inside a glue soldier's circle (js/glue.js) grabs him, and nothing
-// else inside it can be grabbed.
+// A press anywhere on a glue soldier's big body grabs him (js/glue.js);
+// anything glued can't be grabbed.
 function grabAt(xMm, yMm) {
     const soldier = glueAt(xMm, yMm);
     if (soldier) return soldier;
-    const free = t => t && !glued(t);
+    const free = t => t && !t.glued;
     const hit = thingAt(xMm, yMm);
     if (free(hit)) return hit;
     const r = GRAB_SLOP * MM_PER_UNIT;
@@ -63,7 +63,7 @@ function grab(e) {
     things.push(t);
 
     t.body.setAwake(true);
-    // a glue soldier grabbed from anywhere in his circle is held by himself, so
+    // a glue soldier grabbed anywhere on his big body is held by his middle, so
     // he comes to the finger rather than trailing behind it
     const hold = t.guy && t.guy.glue ? t.body.getPosition() : Vec2(p.x / 1000, p.y / 1000);
     const joint = world.createJoint(planck.MouseJoint({
@@ -103,6 +103,16 @@ function dropFallen() {
     for (const [id, joint] of holds) {
         const t = things.find(t => t.body === joint.getBodyB());
         if (!t || t.fall !== undefined) {
+            world.destroyJoint(joint);
+            holds.delete(id);
+        }
+    }
+}
+
+// Whatever hand has hold of t lets go (it's just been glued).
+function letGoOfThing(t) {
+    for (const [id, joint] of holds) {
+        if (joint.getBodyB() === t.body) {
             world.destroyJoint(joint);
             holds.delete(id);
         }

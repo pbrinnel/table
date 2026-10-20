@@ -134,7 +134,8 @@ function loosen(text) {
     return text
         .replace(/^const LINE_WIDTH =/m, 'var LINE_WIDTH =')
         .replace(/^const TALK_BOX_ALPHA =/m, 'var TALK_BOX_ALPHA =')
-        .replace(/^const PAPER = .*$/m, '');
+        .replace(/^const PAPER = .*$/m, '')
+        .replace(/^const (FLOOR|CLOTH) = .*$/m, '');
 }
 
 async function loadGame() {
@@ -148,6 +149,10 @@ async function loadGame() {
     // PAPER is read by every drawing as "the fill under the ink": the lab
     // answers with the current thing's fill, so each helper needs no changes.
     Object.defineProperty(window, 'PAPER', { get: () => paperNow(), configurable: true });
+    // the game's own palette (js/color.js) is not this lab's: the floor is the
+    // chosen palette's, and the cloth is filled by drawTable below
+    Object.defineProperty(window, 'FLOOR', { get: () => paperNow(), configurable: true });
+    Object.defineProperty(window, 'CLOTH', { get: () => 'transparent', configurable: true });
     srcs.forEach((s, i) => {
         const el = document.createElement('script');
         el.textContent = s === 'js/lib/planck.min.js' ? texts[i] : loosen(texts[i]);
@@ -221,6 +226,8 @@ function labInkShape(c) {
 function installHooks() {
     window.inkLine = labInkLine;
     window.inkShape = labInkShape;
+    // the game sets its own fills around each drawing; here the lab does
+    window.setInkSpec = window.clearInkSpec = () => {};
 
     for (const name of Object.keys(KINDS)) {
         const kind = KINDS[name];

@@ -44,7 +44,7 @@ const GUY_SETDOWN_MM = 40;
 const GUY_SETDOWN_TIME = 0.45;   // seconds
 const GUY_SETDOWN_GAP_MM = 6;    // how far clear of its home he stands to do it
 const GUY_CLIMB_TIME = 3;        // seconds after being knocked off before he's back up
-const GUY_BACKUP_DELAY = 1.5;    // seconds from an object going over to the backup climbing up
+const GUY_BACKUP_DELAY = 0.5;    // seconds from an object going over to the backup climbing up
 // The end: frozen, then a slow look at the empty spots, a trudge to the edge,
 // a pause there, and one step more.
 const GUY_SAD_SPEED = 0.075;     // m/s
@@ -115,6 +115,7 @@ const GUY_BARGE_TIME = 1.5;      // seconds
 const GUY_ENTER_MOVE_MM = 20;    // the thing he's under moving this far ends it
 const GUY_ENTER_TURN = 0.3;      // or turning this far
 const GUY_ENTER_DIRS = 16;       // directions tried for a clear spot to come out at
+const GUY_ENTER_PACE = 3;        // how many times faster than the times below he plays it (dhfm91)
 // With nothing free to come out from under, a backup waits up to
 // GUY_BACKUP_WAIT for something to come free; if nothing does, he doesn't come
 // (Paul): a guy only ever arrives from somewhere he could have been hiding.
@@ -186,6 +187,7 @@ const GUY_KIND = {
     pieces: [{ circle: GUY_R_MM }],
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
+        if (t.guy.glue) c.scale(GLUE_SCALE, GLUE_SCALE);
         if (isHeld(t.body)) drawGuyFlailing(c, t.guy);
         else if (t.guy.entrance) drawGuyEntrance(c, t.guy);
         else if (t.guy.down > 0) drawGuyFlat(c, t.guy);
@@ -234,7 +236,11 @@ function addGuy(xMm, yMm) {
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
         entrance: null,   // while he comes out from under something: see startEntrance()
-        glue: false,      // a glue soldier (js/glue.js)
+        glue: false,      // a glue soldier (js/glue.js): drawn big and square
+        glueLeft: 0,      // how many more things he can glue
+        glueJob: null,    // what he's on his way to glue
+        gluing: 0,        // seconds spent gluing it so far
+        glueSince: 0,     // his clock when he set out for it
     };
     thing.guy = g;
     guys.push(g);
@@ -417,7 +423,7 @@ function pickJob(g) {
     }
     let pick = null, far = 0;
     for (const t of things) {
-        if (!t.home || isGuy(t) || !onTable(t) || busy(t)) continue;
+        if (!t.home || !inPlay(t) || busy(t)) continue;
         // the stack goes back from the bottom up
         if (t.homeOn && !t.on && !settled(t.homeOn)) continue;
         if ((g.sulks.get(t) || 0) > g.clock || isTidy(t, 1)) continue;
@@ -715,7 +721,7 @@ function guyWants(g, h) {
     const at = g.thing.body.getPosition();
 
     g.faceTo = null;
-    if (!g.leaving && !things.some(t => !isGuy(t) && onTable(t))) {
+    if (!g.leaving && !things.some(inPlay)) {
         letGoOfJob(g);
         // the nearest of the spots things used to be
         const homes = things.filter(t => t.home && !isGuy(t)).map(t => t.home)
@@ -729,10 +735,14 @@ function guyWants(g, h) {
         return leaving(g, at, h);
     }
 
+    // a glue soldier with glue left, and something to glue, glues it
+    const gluing = glueWants(g, at, h);
+    if (gluing) return gluing;
+
     // Half the slack to finish as to start, so he doesn't twitch at the
     // threshold.
     const j = g.job;
-    if (j && (!onTable(j) || busy(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
+    if (j && (!onTable(j) || j.glued || busy(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
     // drop what he's doing for anything the player has just grabbed
     if (g.job && !isHeld(g.job.body) && !g.grip) {
         const grabbed = things.find(t => !isGuy(t) && t.home && onTable(t) && isHeld(t.body));
@@ -853,7 +863,7 @@ function noticeDrops() {
         if (isGuy(t) || t.fall === undefined || countedDrops.has(t)) continue;
         countedDrops.add(t);
         scoreObject(t);
-        if (!things.some(o => !isGuy(o) && onTable(o))) continue;
+        if (!things.some(inPlay)) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
         noticeGlue(t.edgeAt);
@@ -868,8 +878,10 @@ function arriveBackups() {
     backups = backups.filter(b => {
         if (b.at > guyClock) return true;
         const how = chooseEntrance(b.edge);
-        if (how) startEntrance(how).glue = !!b.glue;
-        else if (!b.waited || (b.glue && things.some(t => !isGuy(t) && onTable(t)))) {
+        if (how) {
+            const g = startEntrance(how);
+            if (b.glue) makeGlueSoldier(g);
+        } else if (!b.waited || (b.glue && things.some(inPlay))) {
             // nothing free to come out from under: give something a moment to come free
             b.waited = true;
             b.at = guyClock + (b.glue ? GLUE_DELAY : GUY_BACKUP_WAIT);
@@ -1094,7 +1106,7 @@ function napkinCorner(kind, at, angle, sx, sy) {
 // where the object fell (edge, in meters). Each must have a clear spot to come
 // out at.
 function chooseEntrance(edge) {
-    const free = things.filter(t => !isGuy(t) && onTable(t) && t.level === LEVEL_ON_CLOTH
+    const free = things.filter(t => inPlay(t) && t.level === LEVEL_ON_CLOTH
         && !isHeld(t.body) && !busy(t) && !things.some(o => o.on === t) && !guys.some(o => o.job === t));
     const probe = { thing: { level: LEVEL_ON_CLOTH } };    // stands in for him, who doesn't exist yet
     const napkin = free.find(t => t.kind === KINDS.napkin);
@@ -1245,7 +1257,7 @@ function stepEntrance(g, h) {
         endEntrance(g);
         return;
     }
-    E.t += h * (g.glue ? GLUE_ENTER_PACE : 1);
+    E.t += h * (g.glue ? GLUE_ENTER_PACE : GUY_ENTER_PACE);
     if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
     if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
 }
@@ -1301,6 +1313,8 @@ function stepGuy(g, h) {
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
             g.glue = false;
+            g.glueLeft = 0;
+            g.glueJob = null;
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);
@@ -1357,6 +1371,8 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
+    // a glue soldier is slow on his feet, so he's easy to catch
+    if (g.glue && !g.grip) want.mul(GLUE_PACE);
     // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
     // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
     const speed0 = v.length();
@@ -1412,6 +1428,13 @@ function splay(c, x, y, a, len) {
     }
 }
 
+// His body, centered at (x, 0) with half-sizes rx by ry: round, or for a
+// glue soldier a broad square block.
+function torso(c, g, x, rx, ry) {
+    if (g.glue) c.rect(x - rx - 5, -ry - 3, (rx + 5) * 2, (ry + 3) * 2);
+    else c.ellipse(x, 0, rx, ry, 0, 0, Math.PI * 2);
+}
+
 // A limb from (x0, y0) to (x1, y1), ending in a splayed hand or foot.
 function limb(c, x0, y0, x1, y1, digits) {
     c.moveTo(x0, y0);
@@ -1430,7 +1453,6 @@ const QUIFF_STEPS = 48;
 const QUIFF_SWEEP = 0.35;        // radians the quiff is swept toward his left
 const HAIR_PEN = 0.6;            // frame units: the strands and partings
 const HAIR_STRANDS = 6;          // fine strands combed back over his head
-const GLUE_BRIM_MM = 17;         // a glue soldier's helmet brim, from his head's center
 
 // The quiff's outline radius (mm) at angle a round his head: swells toward his
 // front, swept to one side, in three locks with notches between them.
@@ -1452,15 +1474,10 @@ function paperLine(c, w) {
 
 function drawHead(c, x, g) {
     if (g.glue) {
-        // a soldier's helmet from above: a wide brim round a solid crown,
-        // hiding his ears, so he can't be mistaken for the first guy or a backup
+        // a glue soldier's head is square and smaller than his body
         c.beginPath();
-        ring(c, x, 0, GLUE_BRIM_MM);
+        c.rect(x - 8, -9, 18, 18);
         inkShape(c);
-        c.beginPath();
-        ring(c, x, 0, GLUE_BRIM_MM * 0.62);
-        c.fillStyle = INK;
-        c.fill();
         return;
     }
     c.beginPath();
@@ -1515,7 +1532,7 @@ function drawGuyStanding(c, g) {
     }
     inkLine(c);
     c.beginPath();
-    c.ellipse(-3, 0, 7, sad ? 10 : 12, 0, 0, Math.PI * 2);
+    torso(c, g, -3, 7, sad ? 10 : 12);
     inkShape(c);
     drawHead(c, sad ? 9 : 3, g);
 }
@@ -1534,7 +1551,7 @@ function drawGuyFlailing(c, g) {
     }
     inkLine(c);
     c.beginPath();
-    c.ellipse(-3, 0, 7, 12, 0, 0, Math.PI * 2);
+    torso(c, g, -3, 7, 12);
     inkShape(c);
     drawHead(c, 3, g);
 }
@@ -1549,7 +1566,7 @@ function drawGuyFlat(c, g) {
     }
     inkLine(c);
     c.beginPath();
-    c.ellipse(-4, 0, 12, 9, 0, 0, Math.PI * 2);
+    torso(c, g, -4, 12, 9);
     inkShape(c);
     drawHead(c, 20, g);
 }
@@ -1584,7 +1601,7 @@ function drawGuyPose(c, g, pose, sw, headTurn) {
     }
     inkLine(c);
     c.beginPath();
-    c.ellipse(bx, 0, brx, bry, 0, 0, Math.PI * 2);
+    torso(c, g, bx, brx, bry);
     inkShape(c);
     c.save();
     c.translate(bx + brx, 0);

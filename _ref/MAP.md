@@ -7,14 +7,15 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `index.html` | The page: hidden-page tags, layout, and the script list in load order |
 | `js/lib/planck.min.js` | Planck.js 1.5.0, the physics engine, vendored as is (`js/world.js` replaces its friction joint's velocity solve, which has a bug). License in `js/lib/planck-LICENSE.txt` |
 | `js/frame.js` | The field: `LW` x `LH` logical units, scaled to fit, turned on portrait screens; defines `canvas`, `ctx` and `screenToFrame()` |
-| `js/look.js` | Ink, paper, `LINE_WIDTH`, and `inkLine`/`inkShape`, which every drawing strokes with so the pen stays even |
+| `js/look.js` | Ink, paper, `LINE_WIDTH`, and `inkLine`/`inkShape`, which every drawing strokes with so the pen stays even; the current fill spec they paint with (`setInkSpec`) |
+| `js/color.js` | The pastel palette as named consts, and which fills each object kind and each guy gets |
 | `js/table.js` | The table's size, `MM_PER_UNIT`, mm-to-frame conversion, the test layout, the table's outline |
 | `js/objects.js` | `KINDS`: each object's mass, collision pieces and drawing |
 | `js/world.js` | The Planck world: cloth friction, levels (`setLevel`, `placeOn`; a thing resting on another tips down a level when it slides off), falling off the edge, the fixed step, `thingAt()`, `byLevel()` |
 | `js/drag.js` | Pointer grab and spring drag, one joint per pointer; `isHeld()` |
 | `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
-| `js/glue.js` | The glue soldier: comes at each quarter of the table's weight gone over the edge; his grey circle, inside which only he can be grabbed |
+| `js/glue.js` | The glue soldier: comes at each quarter of the table's weight gone over the edge, big and square; glues things in their home spots for good (`inPlay`, the glue puddle) |
 | `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys; shown once the table is empty and the guys are gone |
 | `js/debug.js` | Debug mode: the DEBUG button, a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |

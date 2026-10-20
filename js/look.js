@@ -1,4 +1,5 @@
-// The whole look: black lines on white, one stroke width for everything.
+// The whole look: black lines, one stroke width for everything. PAPER is the
+// fill under the ink when nothing has set a color (js/color.js).
 
 const INK = '#000';
 const PAPER = '#fff';
@@ -9,7 +10,32 @@ const LINE_WIDTH = 2;   // frame units, the same for every line on the table
 // same pen rather than going hairline along one side.
 let inkFrame = null;   // the frame's transform, captured before each drawing pass
 
-function inkLine(c) {
+// What the object being drawn is filled with (js/color.js makes these):
+// { fills, lines }. fills[n] is the fill of the nth inkShape call, the last
+// one repeating; lines[n] is an inner fill for the nth inkLine call, painted
+// before its stroke. With none set, shapes are filled with PAPER, as plain
+// paper.
+let inkSpec = null;
+let inkShapeN = 0;   // inkShape calls made under the current spec
+let inkLineN = 0;    // inkLine calls made under the current spec
+
+function setInkSpec(spec) {
+    inkSpec = spec;
+    inkShapeN = 0;
+    inkLineN = 0;
+}
+
+function clearInkSpec() {
+    inkSpec = null;
+}
+
+// The fill the next inkShape will use; also for drawings that fill a path of
+// their own under the ink.
+function inkFill() {
+    return inkSpec ? inkSpec.fills[Math.min(inkShapeN, inkSpec.fills.length - 1)] : PAPER;
+}
+
+function inkStroke(c) {
     c.save();
     if (inkFrame) c.setTransform(inkFrame);
     c.lineWidth = LINE_WIDTH;
@@ -18,12 +44,24 @@ function inkLine(c) {
     c.restore();
 }
 
-// Fill the current path with paper, so it hides whatever is under it, then
-// outline it in ink.
+function inkLine(c) {
+    if (inkSpec && inkSpec.lines[inkLineN] !== undefined) {
+        c.save();
+        c.fillStyle = inkSpec.lines[inkLineN];
+        c.fill();
+        c.restore();
+    }
+    inkLineN++;
+    inkStroke(c);
+}
+
+// Fill the current path, so it hides whatever is under it, then outline it in
+// ink.
 function inkShape(c) {
-    c.fillStyle = PAPER;
+    c.fillStyle = inkFill();
     c.fill();
-    inkLine(c);
+    inkShapeN++;
+    inkStroke(c);
 }
 
 // Adds a full circle to the current path without joining it to the last point.

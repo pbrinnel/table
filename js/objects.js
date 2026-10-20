@@ -213,7 +213,7 @@ function drawNapkinFlap(c, f) {
         c.lineTo(100, -42);
         inkLine(c);
     };
-    const fillPaper = () => { c.fillStyle = PAPER; c.fill(); };
+    const fillPaper = () => { c.fillStyle = inkFill(); c.fill(); };
     const clipped = (path, draw) => { c.save(); path(); c.clip(); draw(); c.restore(); };
     const corner = close => poly([P1, K, P2], close);
     // the main part's outline, all but the fold: from just past the fold's end

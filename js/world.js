@@ -314,6 +314,7 @@ function stepWorld(dt, eachStep, pace = 1) {
                 continue;
             }
             if (t.lifted) continue;     // a guy has it in his hands (js/guy.js)
+            if (t.glued) continue;      // stuck where it is for good, whatever's under it (js/glue.js)
             const p = t.body.getPosition();
             if (Math.abs(p.x) > TABLE_W_MM / 2000 || Math.abs(p.y) > TABLE_H_MM / 2000
                 || (t.on && t.on.fall !== undefined)) {
