@@ -58,8 +58,11 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
       (Claude, for Paul)
 - [x] Tall things lean toward where they're dragged, more the faster (Claude, for Paul)
-- [x] Backups with no cover to crawl out from: they wait a moment, then climb up over the
-      edge (Claude, for Paul)
+- [x] Backups with no cover to crawl out from: they wait a moment for one, and if none
+      comes free they don't come (Paul; Claude, for Paul)
+- [x] Tall things tipping or leaning stop at, and lean on, their tall neighbors instead of
+      passing through them (Claude, for Paul). Tested: a wine glass tipping 0.64 rad into
+      the red wine glass stops at 0.33, and the red glass leans 0.14 away.
 - [x] Now and then (about 1 in 10) a guy calls out the very thing the player grabbed: "Not
       the salad fork!" (Claude, for Paul)
 - [x] A color mock-up in an MS Paint look, as a lab (Claude, for Paul):

@@ -65,6 +65,12 @@ ending of sorts (see **The little guy**).
   - **Update (Paul):** cups still read as flat when moved any other way, so every tall
     thing leans while it moves, however it's moved: dragged, hauled by a guy, riding a
     saucer that's dragged, or sliding after a flick.
+  - **Update (Paul):** tipping or leaning, a tall thing doesn't pass through its tall
+    neighbors. It's checked height by height against them and tips only until it touches
+    one, coming to rest leaning against it (`TILT_GAP_MM`); that neighbor takes a share
+    of the push as a lean of its own (`TILT_PASS`, up to `TILT_PASS_MAX`). Flat things
+    are below a glass's rim, so it leans out over them freely. Drawing only: the physics
+    still knows footprints.
 - **Release:** let go and the object keeps its speed, then slides to a stop. A quick flick
   sends it across the table.
 - **Two fingers:** on a phone, each finger can hold its own object at the same time.
@@ -234,6 +240,10 @@ gets messier (dhfm91).
       failing that, he climbs up over the table's edge where the object fell, after it:
       hands first gripping the edge, three heaves, then he stands. What of him is still
       below the edge isn't drawn.
+      - **Update (Paul):** no climbing up the edge. With nothing to come out from under,
+        he still waits `GUY_BACKUP_WAIT` for something to come free, and if nothing does,
+        that backup doesn't come: a guy only arrives from somewhere he could have been
+        hiding.
 - **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
   yells at the player about the very thing just grabbed, by name, in the mad face:
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
