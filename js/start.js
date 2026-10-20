@@ -190,11 +190,11 @@ function drawThings(c, dt) {
         const base = baseHeight(t);
         if (t.kind.tall) {
             for (const p of tallPieces(c, t.kind, t, tilt, tiltOut || Vec2(1, 0), shrink / MM_PER_UNIT)) {
-                pieces.push({ z: base + p.z, draw: p.draw });
+                pieces.push({ z: base + p.z, draw: c => { setInkSpec(inkSpecOf(t)); p.draw(c); clearInkSpec(); } });
             }
         } else {
             const m = c.getTransform();
-            pieces.push({ z: base + (isGuy(t) ? GUY_Z_MM : FLAT_Z_MM), draw: c => { c.setTransform(m); t.kind.draw(c, t); } });
+            pieces.push({ z: base + (isGuy(t) ? GUY_Z_MM : FLAT_Z_MM), draw: c => { c.setTransform(m); setInkSpec(inkSpecOf(t)); t.kind.draw(c, t); clearInkSpec(); } });
         }
         c.restore();
     }
@@ -216,7 +216,7 @@ function loop(time) {
     if (!debugPaused) stepWorld(dt, stepGuys, endingPace(dt));
     dropFallen();
 
-    ctx.fillStyle = PAPER;
+    ctx.fillStyle = FLOOR;
     ctx.fillRect(0, 0, LW, LH);
     drawTable(ctx);
     drawThings(ctx, dt);

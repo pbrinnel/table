@@ -29,10 +29,10 @@ function scoreGuy(g) {
     score += g === guys[0] ? SCORE_FIRST_GUY : SCORE_GUY;
 }
 
-// Whether the run is over: nothing left on the table, and every guy has gone
-// over and out of sight.
+// Whether the run is over: nothing left in play (thrown off or glued down),
+// and every guy has gone over and out of sight.
 function runOver() {
-    return !things.some(t => !isGuy(t) && onTable(t))
+    return !things.some(inPlay)
         && guys.every(g => !onTable(g.thing) && g.thing.fall >= FALL_TIME);
 }
 

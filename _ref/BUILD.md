@@ -52,14 +52,15 @@ In load order. Each declares what the ones after it use.
 |---|---|
 | `js/lib/planck.min.js` | Physics engine (pinned, vendored) |
 | `js/frame.js` | The frame, scaling, the portrait turn, screen-to-frame mapping |
-| `js/look.js` | Line and fill style (`LINE_WIDTH`, ink, paper) and small drawing helpers |
+| `js/look.js` | Line and fill style (`LINE_WIDTH`, ink, paper) and small drawing helpers; the fill spec `inkShape`/`inkLine` paint with |
+| `js/color.js` | The palette and the fill spec for each object kind and guy; `drawThings` sets it around each draw |
 | `js/table.js` | The table's size, mm-to-frame conversion, and the starting layout |
 | `js/objects.js` | The catalog: each kind of object's real size, mass, physics shape and drawing |
 | `js/world.js` | The Planck world, cloth friction, falling off the edge, the fixed step |
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
 | `js/guy.js` | The little guys: sharing jobs, backups arriving, grabbing and hauling, knockdowns, the end |
 | `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines, the backup call |
-| `js/glue.js` | The glue soldier: when he's called, his circle, and what it stops the player grabbing |
+| `js/glue.js` | The glue soldier: when he's called, what he glues, and the glue puddle; `inPlay()` for what's still left |
 | `js/score.js` | The score: counted as things go over, shown at the end |
 | `js/start.js` | Builds the table and runs the loop. Last |
 

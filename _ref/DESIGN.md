@@ -23,6 +23,11 @@ ending of sorts (see **The little guy**).
 ## The look
 
 - Black line drawings on white. Simple, simple, simple.
+  - **Update (dhfm91):** flat pastel colors under the same black lines, from the art
+    styles lab's "Pastel-ish but flat" palette (`js/color.js`): a pale blue cloth on a pink
+    floor, white plates with butter-yellow wells, a gold charger, mint glasses, lilac
+    cups, a pink napkin, and each backup in his own shirt color. No shading, gradients
+    or pixel look: fills only, lines as before.
 - Straight overhead, flat 2D. No perspective, no shadows, no shading.
   - **Update (dhfm91):** the guy's portrait in the dialog box is the one exception: it's
     shaded in solid black shapes (see **The guy talks**). The table itself stays unshaded.
@@ -248,6 +253,9 @@ gets messier (dhfm91).
   and stays for the rest of the run. Each guy takes a different job, so two tidy twice
   as fast; anything the player grabs, every guy on his feet rushes it. With nothing to do,
   backups wander like the first guy.
+  - **Update (dhfm91):** backups come 3x as fast: `GUY_BACKUP_DELAY` 0.5 s (was 1.5), and
+    their way out from under plays at `GUY_ENTER_PACE` (3x). About 3 s from a drop to a
+    backup on his feet, was about 9.
   - **Update (dhfm91):** the line is one of four, picked at random (`TALK_BACKUPS`):
     "Calling for backup!", "We need more hands on deck!", "Code red! CODE RED!", "All
     hands to the table!".
@@ -327,6 +335,18 @@ gets messier (dhfm91).
 - **Update (dhfm91):** off on the live site while he's playtested (`GLUE_ON`): he comes
   only when the game is served locally, or with `?glue` in the address
   (paulbrinnel.com/table/?glue).
+- **Update (dhfm91): reworked.** No circle and no grab-blocking any more. He's drawn
+  `GLUE_SCALE` times a guy's size, square: a broad square body, a small square head with
+  a black cap. A press anywhere on that body grabs him (`GLUE_BODY_MM`); his footprint on
+  the table is still a guy's, so he fits between things. He carries `GLUE_DOSES` (4)
+  glues: he runs to the nearest thing that's back in its home spot, stands beside it
+  `GLUE_TIME`, and glues it there. A glued thing sits in a pale amber puddle, can't be
+  grabbed, and can't be moved by anything; it stays for the rest of the game. It counts
+  as gone for the ending: once everything is either over the edge or glued, the ending
+  plays, and if anything was glued the line is "At least we saved something..." instead
+  of "All is lost...". Glued things don't score. Out of glue he works like any guy, and
+  keeps his look until he's knocked off; he climbs back on a plain backup. His quick
+  arrival and the live-site switch stay.
 
 ## Objects
 
