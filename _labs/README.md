@@ -16,8 +16,9 @@ Dev tools that never reach the site: slider pages for tuning, test pages, build 
   `_labs-windows.bat` at the repo root starts the server and opens it.
 - `objects.html`: every object kind drawn large with its collision shape over it.
 - `color.html`: the real game recolored at runtime in an MS Paint look, with palettes,
-  pixel size, thicker outlines and hard edges to try. A mock-up only: the game itself
-  stays black on white.
+  pixel size, thicker outlines and hard edges to try, and a Game Boy Camera mode (four
+  shades, grey or DMG green, ordered dithering, a light gradient on the cloth). A mock-up
+  only: the game itself stays black on white.
 - `spawn.html`: candidate animations for how a new guy arrives (Keep at the top, the
   rest under a collapsed UNUSED), each looping in its own
   panel with replay, speed and a scrub slider. Its guy drawing is a copy of

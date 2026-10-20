@@ -92,10 +92,37 @@ const PALETTES = {
         skin: '#ffe0b0', shirt: '#ff9090', caps: ['#90e090', '#b090ff', '#ffc060', '#60c0ff'],
         dialog: '#ffffff', portrait: '#ffe0b0',
     },
+    // Mid-tones on purpose: the Game Boy Camera look dithers them down to four
+    // shades, so the greys here are brightness levels, not colors. See GB_*.
+    'Game Boy Camera': {
+        floor: '#eeeeee', cloth: '#8c8c8c', plate: '#f6f6f6', plateWell: '#dedede',
+        charger: '#b4b4b4', chargerWell: '#d2d2d2', glass: '#dadada', cutlery: '#9a9a9a',
+        cutleryDark: '#4c4c4c', napkin: '#5a5a5a', cup: '#f0f0f0', cupBand: '#686868',
+        skin: '#d4d4d4', shirt: '#787878', caps: ['#505050', '#a0a0a0', '#686868', '#c0c0c0'],
+        dialog: '#f0f0f0', portrait: '#d4d4d4',
+    },
 };
 
+// ---- the Game Boy Camera look ----
+const GB_NAME = 'Game Boy Camera';
+const GB_GREY = ['#000000', '#555555', '#aaaaaa', '#ffffff'];       // darkest to lightest
+const GB_GREEN = ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'];
+const GB_PIXEL = 3;          // screen pixels per pixel when the look is chosen
+const GB_BLACK_CUT = 0.14;   // luminance (0 to 1) at or below this is outline: darkest shade, no dither
+const GB_CONTRAST = 1.15;    // starting contrast
+const GB_BRIGHT = 0;         // starting brightness shift (-0.3 to 0.3)
+const GB_GLOW_LIGHT = 1.3;   // the table gradient: cloth brightness at the glow's center
+const GB_GLOW_DARK = 0.68;   // and at its far edge
+const GB_GLOW_X = 0.5;       // the glow's center, as a fraction of the frame
+const GB_GLOW_Y = 0.38;
+const GB_GLOW_REACH = 0.62;  // the glow's radius, as a fraction of the frame's width
+// 4x4 Bayer matrix, fixed to backing-canvas pixels so still areas never shimmer
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
 // ---- state ----
-const state = { palette: 'Paint classic', colored: true, pixel: 2, thick: true, hard: true };
+const state = { palette: 'Paint classic', colored: true, pixel: 2, thick: true, hard: true,
+    gbGreen: false, gbGlow: true, gbContrast: GB_CONTRAST, gbBright: GB_BRIGHT };
+const isGB = () => state.palette === GB_NAME;
 const THICK = 1.75;         // outline multiplier for "thicker outlines"
 const THICK_PIXELS = 1;      // and the least thick lines are, in screen pixels, when pixelated
 const PLAIN_PIXELS = 1;     // the same, plain
@@ -225,7 +252,7 @@ function installHooks() {
     window.drawTable = function (c) {
         if (state.colored) {
             const w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
-            c.fillStyle = pal().cloth;
+            c.fillStyle = isGB() && state.gbGlow ? glowFill(c) : pal().cloth;
             c.fillRect((LW - w) / 2, (LH - h) / 2, w, h);
         }
         drawTableOrig(c);
@@ -244,8 +271,43 @@ function installHooks() {
         begin({ fills: [pal().dialog], lines: {} });
         talkOrig(c, dt);
         spec = null;
-        if (state.hard && state.pixel > 1) hardEdges(c);
+        if (isGB()) gbDither(c);
+        else if (state.hard && state.pixel > 1) hardEdges(c);
     };
+}
+
+// ---- Game Boy Camera: luminance, contrast, 4x4 Bayer dither, four shades ----
+// The cloth fades from lighter to darker (a radial glow) so the dither has
+// a gradation to show, like a photo.
+function glowFill(c) {
+    const g = c.createRadialGradient(LW * GB_GLOW_X, LH * GB_GLOW_Y, 0, LW * GB_GLOW_X, LH * GB_GLOW_Y, LW * GB_GLOW_REACH);
+    const v = hexRgb(pal().cloth)[0];
+    const grey = k => { const n = Math.max(0, Math.min(255, Math.round(v * k))); return 'rgb(' + n + ',' + n + ',' + n + ')'; };
+    g.addColorStop(0, grey(GB_GLOW_LIGHT));
+    g.addColorStop(1, grey(GB_GLOW_DARK));
+    return g;
+}
+function gbDither(c) {
+    const shades = (state.gbGreen ? GB_GREEN : GB_GREY).map(hexRgb);
+    const w = canvas.width, h = canvas.height;
+    const img = c.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const k = (y * w + x) * 4;
+            const raw = (0.299 * d[k] + 0.587 * d[k + 1] + 0.114 * d[k + 2]) / 255;
+            let level;
+            if (raw <= GB_BLACK_CUT) level = 0;
+            else {
+                const v = Math.max(0, Math.min(1, (raw - 0.5) * state.gbContrast + 0.5 + state.gbBright)) * 3;
+                const base = Math.min(2, Math.floor(v));
+                level = base + (v - base > (BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16 ? 1 : 0);
+            }
+            const col = shades[level];
+            d[k] = col[0]; d[k + 1] = col[1]; d[k + 2] = col[2]; d[k + 3] = 255;
+        }
+    }
+    c.putImageData(img, 0, 0);
 }
 
 // ---- no anti-aliasing: snap every pixel to the nearest palette color ----
@@ -339,12 +401,15 @@ function buildPanel() {
     choices.className = 'choices';
     const swatches = add('div');
     swatches.className = 'swatches';
+    let gbBox, setPixel;
     const refresh = () => {
         for (const b of choices.children) b.classList.toggle('on', b.textContent === state.palette);
+        gbBox.style.display = isGB() ? '' : 'none';
         swatches.textContent = '';
         const p = pal();
         const seen = new Set();
-        for (const v of Object.values(p)) for (const h of [].concat(v)) {
+        const shown = isGB() ? { shades: state.gbGreen ? GB_GREEN : GB_GREY } : p;
+        for (const v of Object.values(shown)) for (const h of [].concat(v)) {
             if (seen.has(h)) continue;
             seen.add(h);
             const s = add('span', '', swatches);
@@ -353,8 +418,39 @@ function buildPanel() {
     };
     for (const name of Object.keys(PALETTES)) {
         const b = add('button', name, choices);
-        b.addEventListener('click', () => { state.palette = name; refresh(); });
+        b.addEventListener('click', () => {
+            state.palette = name;
+            if (isGB()) setPixel(GB_PIXEL);
+            refresh();
+        });
     }
+
+    // the Game Boy Camera look's own controls
+    gbBox = add('div');
+    gbBox.className = 'toggles';
+    const gbLabel = (text, key, onChange) => {
+        const label = add('label', '', gbBox);
+        const box = add('input', '', label);
+        box.type = 'checkbox';
+        box.checked = state[key];
+        add('span', text, label);
+        box.addEventListener('change', () => { state[key] = box.checked; onChange(); });
+    };
+    gbLabel('Green DMG shades (off: grey)', 'gbGreen', refresh);
+    gbLabel('Light gradient on the table', 'gbGlow', () => {});
+    const gbSlider = (text, key, min, max, step) => {
+        const r = add('div', '', gbBox);
+        r.className = 'row';
+        add('span', text, r);
+        const o = add('span', String(state[key]), r);
+        const s = add('input', '', gbBox);
+        s.type = 'range';
+        s.min = min; s.max = max; s.step = step;
+        s.value = state[key];
+        s.addEventListener('input', () => { state[key] = parseFloat(s.value); o.textContent = state[key]; });
+    };
+    gbSlider('contrast', 'gbContrast', 0.5, 2, 0.05);
+    gbSlider('brightness', 'gbBright', -0.3, 0.3, 0.02);
 
     add('h2', 'Pixel size');
     const row = add('div');
@@ -365,11 +461,13 @@ function buildPanel() {
     slider.type = 'range';
     slider.min = 1; slider.max = 6; slider.step = 1;
     slider.value = state.pixel;
-    slider.addEventListener('input', () => {
-        state.pixel = parseInt(slider.value, 10);
-        out.textContent = state.pixel;
+    setPixel = n => {
+        state.pixel = n;
+        slider.value = n;
+        out.textContent = n;
         applyLook();
-    });
+    };
+    slider.addEventListener('input', () => setPixel(parseInt(slider.value, 10)));
     add('p', '1 is off: sharp and smooth.');
 
     add('h2', 'Look');
