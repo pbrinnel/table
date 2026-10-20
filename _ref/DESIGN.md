@@ -26,6 +26,9 @@ ending of sorts (see **The little guy**).
   - **Update (dhfm91):** the guy's portrait in the dialog box is the one exception: it's
     shaded in solid black shapes (see **The guy talks**). The table itself stays unshaded.
 - One stroke width for every line (`LINE_WIDTH`). The table's edge is the only frame.
+  - **Update (dhfm91):** the first guy's hair is the one exception: its strands use a finer
+    pen (`HAIR_PEN`), since at his size the full pen can only draw a stripe or two across
+    his head.
 - Each object is filled white inside its outline, so it covers the cloth's lines (if any)
   and never shows lines through itself.
 - The whole screen is the table, with a small margin around its edge.
@@ -202,6 +205,9 @@ where it was, and you can knock him around.
     locks, swept a little to one side, with two white streaks of shine combed back
     (see his portrait under **The guy talks**). Backups keep white heads, so he's the
     one you can pick out.
+  - **Update (dhfm91):** the two streaks of shine are now `HAIR_STRANDS` fine strands in
+    `HAIR_PEN`, combed back from the quiff toward his crown, so it reads as hair at his
+    size. The rest of him keeps the one pen.
 
 Every number about him is a slider on the tune page.
 
@@ -330,6 +336,8 @@ side plates, two knives and a tray.
   one `LINE_WIDTH` his stick limbs and fingers clump together, so the gangly look from the
   references is lost. Either make him bigger (about 90 mm) or give him a thinner pen than
   everything else, which breaks the one-pen rule. Claude's suggestion: bigger.
+  - **Update (dhfm91):** a thinner pen, for his hair only, for now (see **The look**). His
+    size, limbs and fingers are unchanged and still open.
 - Guys bump into each other and can knock each other flat on a crowded table. Keep it
   as slapstick, or let them pass through each other?
 - Whether the guy stays seen from straight above, like everything else, or is drawn

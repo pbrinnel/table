@@ -1398,10 +1398,34 @@ function limb(c, x0, y0, x1, y1, digits) {
 
 // The first guy wears his pompadour: seen from above, a black mass over his
 // whole head that swells forward past his brow into a quiff of three locks,
-// with two streaks of shine swept back from it, so it reads as hair and not
+// combed straight back in fine strands of shine, so it reads as hair and not
 // as a black head. Backups are bareheaded, so he's the one you can pick out.
+// The hair is the one place a finer pen than LINE_WIDTH is used (dhfm91): at
+// his size the full pen can only draw a couple of stripes across his head.
 const QUIFF_MM = 10;             // how far the quiff swells forward of his head
 const QUIFF_STEPS = 48;
+const QUIFF_SWEEP = 0.35;        // radians the quiff is swept toward his left
+const HAIR_PEN = 0.6;            // frame units: the strands and partings
+const HAIR_STRANDS = 6;          // fine strands combed back over his head
+
+// The quiff's outline radius (mm) at angle a round his head: swells toward his
+// front, swept to one side, in three locks with notches between them.
+function quiffR(a) {
+    const front = Math.max(0, Math.cos(a - QUIFF_SWEEP));
+    return 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - QUIFF_SWEEP) * 4.5)));
+}
+
+// Strokes the current path in paper, in pen width w (frame units).
+function paperLine(c, w) {
+    c.save();
+    if (inkFrame) c.setTransform(inkFrame);
+    c.lineWidth = w;
+    c.lineCap = 'round';
+    c.strokeStyle = PAPER;
+    c.stroke();
+    c.restore();
+}
+
 function drawHead(c, x, g) {
     c.beginPath();
     for (const s of [-1, 1]) c.ellipse(x, s * 13, 4, 6, 0, 0, Math.PI * 2);   // ears
@@ -1414,10 +1438,7 @@ function drawHead(c, x, g) {
     }
     for (let i = 0; i <= QUIFF_STEPS; i++) {
         const a = i / QUIFF_STEPS * Math.PI * 2 - Math.PI;
-        const front = Math.max(0, Math.cos(a - 0.35));
-        // swells toward his front and swept to one side, in three locks with
-        // notches between them
-        const r = 13 + front * front * QUIFF_MM * (0.45 + 0.55 * Math.abs(Math.cos((a - 0.35) * 4.5)));
+        const r = quiffR(a);
         const px = x + Math.cos(a) * r, py = Math.sin(a) * r;
         if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
     }
@@ -1425,18 +1446,21 @@ function drawHead(c, x, g) {
     c.fillStyle = INK;
     c.fill();
     inkLine(c);
-    // shine: two paper strokes swept back from the quiff
     c.beginPath();
-    c.moveTo(x + 19, -1);
-    c.quadraticCurveTo(x + 5, -11, x - 9, -5);
-    c.moveTo(x + 19, 7);
-    c.quadraticCurveTo(x + 3, 6, x - 9, 2);
-    c.save();
-    if (inkFrame) c.setTransform(inkFrame);
-    c.lineWidth = LINE_WIDTH;
-    c.strokeStyle = PAPER;
-    c.stroke();
-    c.restore();
+    // strands: from inside the quiff's front edge, spread across it, combed
+    // back toward the crown; alternate ones start further in and stop sooner,
+    // so they read as hair rather than a fan of ribs
+    for (let i = 0; i < HAIR_STRANDS; i++) {
+        const a = QUIFF_SWEEP + (i / (HAIR_STRANDS - 1) - 0.5) * 1.5;
+        const inset = i % 2 ? 5 : 2.5;
+        const r0 = quiffR(a) - inset;
+        const sx = x + Math.cos(a) * r0, sy = Math.sin(a) * r0;
+        const ex = x - (i % 2 ? 4 : 9);
+        const ey = (i / (HAIR_STRANDS - 1) - 0.5) * 10 + 1;   // gathered toward the crown, in order, so none cross
+        c.moveTo(sx, sy);
+        c.quadraticCurveTo((sx + ex) / 2, (sy + ey) / 2 + 1.5, ex, ey);
+    }
+    paperLine(c, HAIR_PEN);
 }
 
 // Running, legs and arms swinging opposite each other; reaching out in front
