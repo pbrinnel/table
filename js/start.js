@@ -213,7 +213,7 @@ function loop(time) {
     // a hidden tab stops the clock; don't replay the gap
     const dt = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.25);
     lastTime = time;
-    if (!debugPaused) stepWorld(dt, stepGuys);
+    if (!debugPaused) stepWorld(dt, stepGuys, endingPace(dt));
     dropFallen();
 
     ctx.fillStyle = PAPER;

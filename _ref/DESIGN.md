@@ -196,6 +196,9 @@ where it was, and you can knock him around.
   off. **Nothing resets:** the table stays empty until the page is reloaded (Paul).
   - **Update (dhfm91):** once there are backups, every guy does this together, and first
     the box says "All is lost..." (see **The guy talks**).
+  - **Update (dhfm91):** it mustn't be a long wait. It starts at normal speed and speeds
+    up to `GUY_END_PACE` (5) times as fast over `GUY_END_RAMP` seconds, everything at
+    once: about 5 s from the last object going over to the score, was about 17.
 - **His look:** from Paul's references (a cartoon fusspot, a bigfoot, a scrawled
   gremlin): gangly, a big head with ears, a small body, stick limbs, splayed three-digit
   hands and feet. Same black line on white, seen from straight above. About 50 mm across,
@@ -292,10 +295,11 @@ gets messier (dhfm91).
 - Everything that goes over the edge scores, whoever pushed it: an object
   `SCORE_PER_GRAM` points per gram of its weight (a dinner plate 750, the charger 1,000,
   a fork about 55); a backup or glue soldier knocked or dragged off `SCORE_GUY` (5); the
-  first guy `SCORE_FIRST_GUY` (25). Guys score every time, since they climb back on;
-  stepping off at the end doesn't count.
+  first guy `SCORE_FIRST_GUY` (25). Each guy scores the first time only, so climbing
+  back on can't be farmed; stepping off at the end doesn't count.
 - Nothing shows during play. Once the table is empty and the last guy has gone over,
-  "Score: N" fades in over the middle of the table, in the lettering font.
+  "Score: N" fades in over the middle of the table, in the lettering font, and the box
+  shows the first guy, sad: "Haven't you done enough damage?"
 
 ## The glue soldier (dhfm91)
 
