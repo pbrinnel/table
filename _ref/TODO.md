@@ -43,8 +43,15 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Barging, the guys' last resort when boxed in, sometimes nudges cutlery and makes
       more work: in three chaos runs one guy left 0 to 7 pieces out of place after 25 s.
       Tune `GUY_STALL_TIME` and `GUY_BARGE_TIME`, or barge only into light things.
-- [ ] The guys put things back badly: find out why, propose fixes (Claude, for Paul).
-      Files: `js/guy.js`.
+- [x] Why the guys put things back badly (Claude, for Paul). Measured: position ends within
+      6 to 10 mm, but (1) nothing restores which way a thing is turned, since its starting
+      angle isn't even recorded, so cups end up with handles pointing anywhere; (2) homes
+      are often occupied while a thing waits, mostly by another out-of-place object, and
+      with three guys sometimes by a guy; (3) it's slow, 13 to 29 s for five things with
+      one guy, partly from nudging neighbors on the way.
+- [ ] Pick fixes for the above (Paul or dhfm91): record and restore the starting angle;
+      a careful "set it down" for the last few cm; clear whatever squats on a home first;
+      keep idle guys off home spots.
 - [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
       (Claude, for Paul)
 - [x] Tall things lean toward where they're dragged, more the faster (Claude, for Paul)
