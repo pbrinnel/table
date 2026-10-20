@@ -65,10 +65,12 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       the red wine glass stops at 0.33, and the red glass leans 0.14 away.
 - [x] Now and then (about 1 in 10) a guy calls out the very thing the player grabbed: "Not
       the salad fork!" (Claude, for Paul)
-- [x] A color mock-up in an MS Paint look, as a lab (Claude, for Paul):
-      `_labs/color.html`. Next: Paul reacts.
-- [x] A guy knocked off screams on the way down; not when he steps off at the end (Claude,
-      for Paul)
+- [x] Art-style mock-ups, as a lab (Claude, for Paul): `_labs/color.html`, "art styles",
+      an MS Paint look and a Game Boy Camera look with ordered dithering. The game stays
+      black on white (Paul).
+- [x] A guy knocked off screams on the way down, in the dialog box; not when he steps off
+      at the end (Claude, for Paul)
+- [x] Tipping glasses draw over and under their neighbors by height (Claude, for Paul)
 - [x] Tried a long 2:1 table with a setting at each end and shared pieces in the middle;
       taken back to one setting on the 3:2 table (Paul). The candelabra, shakers and bread
       basket stay in the catalog.
