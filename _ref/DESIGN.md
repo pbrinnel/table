@@ -215,6 +215,11 @@ gets messier (dhfm91).
     wriggles out and shakes himself off (1a). With nothing free to come out from under,
     he climbs up lying flat as before. Grabbing him or his cover, or moving it, ends his
     arrival at once.
+- **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
+  yells at the player about the very thing just grabbed, by name, in the mad face:
+  "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
+  the first grab, never over a line still typing or "All is lost...", and at least
+  `TALK_CALLOUT_GAP` apart. Spoken names are in `js/talk.js` (`TALK_NAMES`).
 - **All is lost (dhfm91):** when the last object goes over, there's no backup: the box
   says "All is lost..." (sad face, `TALK_LOST_TIME`) while the guys stand frozen, and
   then every one of them plays the ending.

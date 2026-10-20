@@ -997,8 +997,10 @@ function stepNap(g, E) {
     const du = easeLift(enterSeg(t, e.dropT0, e.dropEnd));
     let tilt;
     if (t < GUY_NAP_LIFT_T0) {
-        tilt = Math.max(0, Math.sin(enterSeg(t, GUY_NAP_TWITCH_T0, GUY_NAP_TWITCH_T0 + GUY_NAP_TWITCH_T)
-            * GUY_NAP_TWITCH_HZ * GUY_NAP_TWITCH_T * Math.PI * 2)) * GUY_NAP_TWITCH;
+        // stirring, eased in and out so it's flat again when the lift begins
+        const wu = enterSeg(t, GUY_NAP_TWITCH_T0, GUY_NAP_TWITCH_T0 + GUY_NAP_TWITCH_T);
+        tilt = Math.max(0, Math.sin(wu * GUY_NAP_TWITCH_HZ * GUY_NAP_TWITCH_T * Math.PI * 2))
+            * Math.sin(Math.PI * wu) * GUY_NAP_TWITCH;
     } else if (t < e.dropEnd) {
         tilt = Math.PI * lu * (1 - du);
     } else {

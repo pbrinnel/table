@@ -184,12 +184,10 @@ function drawCup(c, cup, inner, handleFrom, handleTo, handleW) {
 // back over itself, drawn squashed toward the fold by cos(tilt). Its top side
 // shows the hem line, as the napkin does flat; once tipped past edge-on, its
 // plain underside shows.
-const NAP_SEAM_MM = 1;   // the paper line painted over the fold's seam
-// The crease along the fold, only on the corner's underside: none until the
-// corner passes upright, where its edges lie along the fold anyway, then it
-// grows in from both ends of the fold over this much more tilt, joined to the
-// outline, rather than popping in all at once (which reads as a flash). Radians.
-const NAP_CREASE_GROW = 0.8;
+// The crease is a line on the cloth underneath the corner: the corner's white
+// fill covers it, so it's seen only where the corner has moved out of the way,
+// never popping in (Paul). It sits one pen width inside the corner, clear of
+// the seam where the corner meets the rest, so no edge of a fill lets it show.
 
 function drawNapkinFlap(c, f) {
     const corners = [[-100, -60], [100, -60], [100, 60], [-100, 60]];
@@ -214,60 +212,39 @@ function drawNapkinFlap(c, f) {
         inkLine(c);
     };
     const fillPaper = () => { c.fillStyle = PAPER; c.fill(); };
-    // the corner is drawn squashed toward the fold by cos(tilt)
-    const onCorner = draw => {
-        c.save();
-        const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2;
-        const k = Math.cos(f.tilt) - 1, nx = f.sx / Math.SQRT2, ny = f.sy / Math.SQRT2;
-        c.translate(mx, my);
-        c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
-        c.translate(-mx, -my);
-        draw();
-        c.restore();
-    };
-    const corner = close => poly([P1, K, P2], close);
     const clipped = (path, draw) => { c.save(); path(); c.clip(); draw(); c.restore(); };
-    // the crease, grown in from both ends of the fold to its share for this tilt
-    const crease = () => {
-        const q = Math.max(0, Math.min(1, (Math.abs(f.tilt) - Math.PI / 2) / NAP_CREASE_GROW));
-        if (q <= 0) return;
-        const hx = (P2[0] - P1[0]) / 2 * q, hy = (P2[1] - P1[1]) / 2 * q;
-        c.beginPath();
-        c.moveTo(P1[0], P1[1]);
-        c.lineTo(P1[0] + hx, P1[1] + hy);
-        c.moveTo(P2[0], P2[1]);
-        c.lineTo(P2[0] - hx, P2[1] - hy);
-        inkLine(c);
-    };
+    const corner = close => poly([P1, K, P2], close);
     // the main part's outline, all but the fold: from just past the fold's end
     const i2 = pts.findIndex(p => p === P2 || p === P1);
     const outline = pts.slice(i2 + 1).concat(pts.slice(0, i2 + 1));
 
-    if (Math.cos(f.tilt) >= 0) {
-        // Tipping up, its top side still showing: no crease, so both halves are
-        // filled, the seam between them papered over, and only then the hem
-        // and outlines go on, so nothing paints over a line.
-        poly(pts, true); fillPaper();
-        onCorner(() => { corner(true); fillPaper(); });
+    // the rest of the napkin
+    poly(pts, true); fillPaper();
+    clipped(() => poly(pts, true), hem);
+    poly(outline, false); inkLine(c);
+
+    // the crease, on the cloth where the corner lies flat, kept inside it
+    // run past both ends of the fold, for the corner's shape to trim
+    const off = LINE_WIDTH * MM_PER_UNIT, nx = f.sx / Math.SQRT2, ny = f.sy / Math.SQRT2;
+    const ux = (P2[0] - P1[0]) / leg, uy = (P2[1] - P1[1]) / leg;   // along the fold, per mm of leg
+    clipped(() => corner(true), () => {
         c.beginPath();
-        c.moveTo(P1[0], P1[1]);
-        c.lineTo(P2[0], P2[1]);
-        c.lineWidth = NAP_SEAM_MM;
-        c.strokeStyle = PAPER;
-        c.stroke();
-        clipped(() => poly(pts, true), hem);
-        onCorner(() => clipped(() => corner(true), hem));
-        poly(outline, false); inkLine(c);
-        onCorner(() => { corner(false); inkLine(c); });
-    } else {
-        // Flipped past upright, lying over the napkin: its plain underside
-        // shows, with the crease along the fold (Paul).
-        poly(pts, true); fillPaper();
-        clipped(() => poly(pts, true), hem);
-        poly(outline, false); inkLine(c);
-        onCorner(() => { corner(true); fillPaper(); corner(false); inkLine(c); });
-        crease();
-    }
+        c.moveTo(P1[0] + nx * off - ux * leg, P1[1] + ny * off - uy * leg);
+        c.lineTo(P2[0] + nx * off + ux * leg, P2[1] + ny * off + uy * leg);
+        inkLine(c);
+    });
+
+    // the corner, squashed toward the fold by cos(tilt), over it all: its top
+    // side shows the hem while it's tipping up, its plain underside once flipped
+    c.save();
+    const mx = (P1[0] + P2[0]) / 2, my = (P1[1] + P2[1]) / 2, k = Math.cos(f.tilt) - 1;
+    c.translate(mx, my);
+    c.transform(1 + k * nx * nx, k * nx * ny, k * nx * ny, 1 + k * ny * ny, 0, 0);
+    c.translate(-mx, -my);
+    corner(true); fillPaper();
+    if (Math.cos(f.tilt) >= 0) clipped(() => corner(true), hem);
+    corner(false); inkLine(c);
+    c.restore();
 }
 
 // The pieces of a fork, spoon or knife: the long handle and the working end.

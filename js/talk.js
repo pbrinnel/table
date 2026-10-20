@@ -12,6 +12,9 @@ const TALK_CHARS_PER_SEC = 40;   // the typewriter
 const TALK_MAD_TIME = 5;         // seconds the MAD line stays once fully typed
 const TALK_BACKUP_TIME = 2;      // seconds the backup line stays once fully typed
 const TALK_LOST_TIME = 4;        // seconds "All is lost..." stays once fully typed
+const TALK_CALLOUT_CHANCE = 0.1; // chance a grab of an object draws a callout naming it
+const TALK_CALLOUT_TIME = 2.5;   // seconds a callout stays once fully typed
+const TALK_CALLOUT_GAP = 6;      // seconds after a callout before another can come
 const TALK_FADE_TIME = 0.3;      // seconds to fade out after that
 // How solid the box's paper is: just short of 1, so the bottom of the table
 // shows faintly through it while the words stay easy to read. The portrait and
@@ -31,6 +34,53 @@ const TALK_DARE = "Don't you DARE touch my plates!";
 const TALK_MAD = "Now you've made me MAD!";
 const TALK_BACKUP = "Calling for backup!";
 const TALK_LOST = "All is lost...";
+
+// What he calls each kind of object, after "the". A kind missing here gets no callout.
+const TALK_NAMES = {
+    dinnerPlate: 'dinner plate',
+    sidePlate: 'side plate',
+    knife: 'knife',
+    tray: 'tray',
+    charger: 'charger',
+    saladPlate: 'salad plate',
+    consommeCup: 'consomm\u00e9 cup',
+    breadPlate: 'bread plate',
+    napkin: 'napkin',
+    saladFork: 'salad fork',
+    fishFork: 'fish fork',
+    meatFork: 'meat fork',
+    cakeFork: 'cake fork',
+    seafoodFork: 'seafood fork',
+    meatKnife: 'meat knife',
+    fishKnife: 'fish knife',
+    saladKnife: 'salad knife',
+    butterKnife: 'butter knife',
+    teaspoon: 'teaspoon',
+    demitasseSpoon: 'demitasse spoon',
+    soupSpoon: 'soup spoon',
+    dessertSpoon: 'dessert spoon',
+    waterGoblet: 'water goblet',
+    champagneFlute: 'champagne flute',
+    whiteWineGlass: 'white wine glass',
+    redWineGlass: 'red wine glass',
+    cordialGlass: 'cordial glass',
+    coffeeSaucer: 'coffee saucer',
+    coffeeCup: 'coffee cup',
+    demitasseSaucer: 'demitasse saucer',
+    demitasseCup: 'demitasse cup',
+};
+
+// {n} is the name above.
+const TALK_CALLOUTS = [
+    'Not the {n}!',
+    'Put the {n} DOWN!',
+    'Hands off the {n}!',
+    'That {n} is FRENCH!',
+    'Leave the {n} ALONE!',
+    'Not the {n}, you BRUTE!',
+    'Careful with the {n}!',
+    'The {n} has a PLACE!',
+];
 
 const PORTRAIT_SIZE = 200;       // the art's coordinates are a 200 x 200 box
 
@@ -131,6 +181,7 @@ let talk = null;
 let talkFontReady = false;
 let talkFontAsked = false;
 let talkWaitingForGrab = false;
+let talkLastCallout = -Infinity;   // performance.now() of the last callout, in ms
 // Where the box was last drawn, in upright-view units, so a press on it can
 // dismiss it; null when nothing is showing.
 let talkBox = null;
@@ -256,9 +307,29 @@ function allIsLost() {
 }
 
 function listenForTalk() {
-    addEventListener('grabbed', () => {
-        if (!talkWaitingForGrab) return;
-        talkWaitingForGrab = false;
-        say(TALK_MAD, 'mad', TALK_MAD_TIME);
+    addEventListener('grabbed', e => {
+        if (talkWaitingForGrab) {
+            talkWaitingForGrab = false;
+            say(TALK_MAD, 'mad', TALK_MAD_TIME);
+            return;
+        }
+        callOut(e.detail);
     });
+}
+
+// Now and then, he yells the name of the very thing that was just picked up.
+// It never cuts off a line still typing or "All is lost...", and it keeps its
+// distance from the last callout.
+function callOut(t) {
+    if (!t || isGuy(t)) return;
+    if (Math.random() >= TALK_CALLOUT_CHANCE) return;
+    const now = performance.now();
+    if (now - talkLastCallout < TALK_CALLOUT_GAP * 1000) return;
+    if (talk && (talk.typed < talk.text.length || talk.face === 'sad')) return;
+    const key = Object.keys(KINDS).find(k => KINDS[k] === t.kind);
+    const name = TALK_NAMES[key];
+    if (!name) return;
+    const line = TALK_CALLOUTS[Math.floor(Math.random() * TALK_CALLOUTS.length)];
+    talkLastCallout = now;
+    say(line.replace('{n}', name), 'mad', TALK_CALLOUT_TIME);
 }

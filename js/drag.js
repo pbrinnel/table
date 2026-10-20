@@ -55,7 +55,8 @@ function grab(e) {
         dampingRatio: DRAG_DAMPING,
     }, cloth, t.body, Vec2(p.x / 1000, p.y / 1000)));
     holds.set(e.pointerId, joint);
-    dispatchEvent(new Event('grabbed'));
+    // detail: the thing grabbed, for whoever wants to react to what it was
+    dispatchEvent(new CustomEvent('grabbed', { detail: t }));
 }
 
 function pull(e) {

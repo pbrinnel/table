@@ -43,6 +43,18 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Barging, the guys' last resort when boxed in, sometimes nudges cutlery and makes
       more work: in three chaos runs one guy left 0 to 7 pieces out of place after 25 s.
       Tune `GUY_STALL_TIME` and `GUY_BARGE_TIME`, or barge only into light things.
+- [ ] The guys put things back badly: find out why, propose fixes (Claude, for Paul).
+      Files: `js/guy.js`.
+- [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
+      (Claude, for Paul)
+- [ ] Tall things lean toward where they're dragged, more the faster (Claude, for Paul).
+      Files: `js/start.js`, `js/drag.js`.
+- [ ] Backups with no cover to crawl out from: a proper arrival instead of appearing
+      (Claude, for Paul). Files: `js/guy.js`.
+- [x] Now and then (about 1 in 10) a guy calls out the very thing the player grabbed: "Not
+      the salad fork!" (Claude, for Paul)
+- [ ] A color mock-up in an MS Paint look, as a lab (Claude, for Paul). Files: new
+      `_labs/color.html`.
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
