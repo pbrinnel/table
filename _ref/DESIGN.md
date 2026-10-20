@@ -309,6 +309,9 @@ gets messier (dhfm91).
   `GLUE_DELAY`. A press anywhere inside his circle grabs him, so he's quick to throw off.
 - **Update (dhfm91):** knocked or dragged off, he climbs back on like any guy, but as a
   plain backup: no helmet, no circle.
+- **Update (dhfm91):** off on the live site while he's playtested (`GLUE_ON`): he comes
+  only when the game is served locally, or with `?glue` in the address
+  (paulbrinnel.com/table/?glue).
 
 ## Objects
 
