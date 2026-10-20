@@ -73,9 +73,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       and shared pieces down the middle: candelabra, salt and pepper, bread basket (Claude,
       for Paul). On a phone the table now covers about 63% of the screen (was 44%) at the
       same size; on a desktop everything is 12% smaller.
-- [ ] One guy is stretched on a table twice the length with 60 things: in the placement
-      test 3 of 22 knocked things weren't back within 30 s, and a hard shove into a setting
-      can send pieces off the edge. Start with two guys, one per end? (Paul or dhfm91)
+- [x] One guy is stretched on a table twice the length with 60 things (3 of 22 knocked
+      things not back within 30 s in the placement test). Decided: keep one guy at the
+      start; backups come as things fall (Paul).
 - [ ] Try two-finger drag on a real phone (anyone with one)
 - [x] Keep `CLAUDE.md` and `README.md` off the site: `_config.yml` (Claude, for Paul). Once
       merged, check that paulbrinnel.com/table/CLAUDE.md is a 404.
