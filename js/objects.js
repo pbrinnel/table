@@ -14,6 +14,8 @@
 // side; js/table.js turns them to lie as a place setting does.
 // fixedRotation, if set, keeps the body from turning (the little guy turns
 // himself, in js/guy.js).
+// facing: true for a round thing whose turn still shows (a handle), so it's put
+// back the right way round; other round things look the same any way round.
 // tall, for things with height that can be seen when they tip (cups, glasses):
 //   { parts: [[z0, r0, z1, r1], ...] } in mm, from the bottom up: each part a
 //   round section from height z0 with radius r0 to height z1 with radius r1. A
@@ -351,6 +353,7 @@ const KINDS = {
     // two-handled, for soup
     consommeCup: {
         mass: 250,
+        facing: true,
         pieces: [{ circle: 48 }],
         tall: { parts: [[0, 32, 45, 48]] },
         draw(c) {
@@ -563,6 +566,7 @@ const KINDS = {
 
     coffeeCup: {
         mass: 200,
+        facing: true,
         pieces: [{ circle: 40 }],
         tall: { parts: [[0, 28, 70, 40]] },
         draw(c) { drawCup(c, 40, 30, 34, 66, 26); },
@@ -576,6 +580,7 @@ const KINDS = {
 
     demitasseCup: {
         mass: 120,
+        facing: true,
         pieces: [{ circle: 30 }],
         tall: { parts: [[0, 21, 55, 30]] },
         draw(c) { drawCup(c, 30, 22, 26, 53, 20); },

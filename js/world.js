@@ -130,7 +130,7 @@ function addThing(kind, xMm, yMm, angle) {
     body.resetMassData();
 
     const friction = world.createJoint(planck.FrictionJoint({}, cloth, body, body.getWorldCenter()));
-    const thing = { kind, body, friction, home: Vec2(xMm / 1000, yMm / 1000), level: LEVEL_ON_CLOTH, on: null, homeOn: null };
+    const thing = { kind, body, friction, home: Vec2(xMm / 1000, yMm / 1000), homeAngle: angle || 0, level: LEVEL_ON_CLOTH, on: null, homeOn: null };
     things.push(thing);
     setLevel(thing, LEVEL_ON_CLOTH);
     applyFeelTo(thing);

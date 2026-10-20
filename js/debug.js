@@ -50,6 +50,7 @@ function dbgGuyState(g) {
     if (g.down > 0) return 'down, ' + dbgOneDec(g.down) + ' s left';
     if (g.entrance) return 'arriving (' + g.entrance.kind + ')';
     if (g.over) return 'climbing over';
+    if (g.setDown) return 'setting down ' + dbgKindName(g.setDown.obj.kind);
     if (g.lift) return 'putting a piece back: ' + g.lift.phase;
     if (g.grip) return 'hauling';
     if (g.job) return 'working';

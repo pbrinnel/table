@@ -36,6 +36,13 @@ const GUY_STUN_TIME = 2;         // seconds on the floor
 const GUY_PATIENCE = 3;          // seconds without progress before he tries another
 const GUY_SULK_TIME = 5;         // seconds before he'll go back to one he gave up on
 const GUY_TIDY_MM = 20;          // this close to home counts as put back
+const GUY_TIDY_ANGLE = 0.08;     // radians: this near its starting angle too, where its angle shows
+// Setting down: within GUY_SETDOWN_MM of home he stops hauling, lifts it, turns
+// it to its starting angle and sets it exactly in place, over GUY_SETDOWN_TIME,
+// so the last few cm are careful rather than a tussle with the spring.
+const GUY_SETDOWN_MM = 40;
+const GUY_SETDOWN_TIME = 0.45;   // seconds
+const GUY_SETDOWN_GAP_MM = 6;    // how far clear of its home he stands to do it
 const GUY_CLIMB_TIME = 3;        // seconds after being knocked off before he's back up
 const GUY_BACKUP_DELAY = 1.5;    // seconds from an object going over to the backup climbing up
 // The end: frozen, then a slow look at the empty spots, a trudge to the edge,
@@ -84,6 +91,8 @@ const GUY_LIFT_BUMP = 0.12;      // how much bigger the cup looks at the top of 
 const GUY_LIFT_REACH_MM = 30;    // this close to its spot beside the saucer, he starts
 const GUY_LIFT_SHIFT_MM = 30;    // the saucer moving this far under him ends it
 const GUY_FALLEN_FIRST = 0.5;    // m added to a fallen cup's claim on him, so it comes first
+const GUY_PARK_MM = 50;          // steps out from a squatter when looking for somewhere to park it
+const GUY_ANGLE_CLAIM = 0.05;    // m of claim on him per radian a thing is turned off its start
 const GUY_SIDE_TRIES = 8;        // steps each way round a fallen cup looking for room to grab it
 // Stuck on foot, going nowhere for GUY_STALL_TIME, he climbs over what's in his
 // way to the first clear spot past it, the way he climbs up onto a stack. With
@@ -235,8 +244,8 @@ function knockDown(g) {
 
 // How far an object reaches from its center in direction d (a unit Vec2), from
 // its collision pieces.
-function reachToward(t, d) {
-    const a = t.body.getAngle(), cos = Math.cos(a), sin = Math.sin(a);
+function reachToward(t, d, angle) {
+    const a = angle === undefined ? t.body.getAngle() : angle, cos = Math.cos(a), sin = Math.sin(a);
     // d in the object's own frame
     const lx = d.x * cos + d.y * sin, ly = -d.x * sin + d.y * cos;
     let reach = 0;
@@ -256,13 +265,86 @@ function reachToward(t, d) {
 // A piece that started resting on another is put back once it's on it again,
 // wherever that one is; the bottom of a stack is put back like anything else.
 function isTidy(t, slack) {
-    if (t.homeOn) return t.on === t.homeOn;
-    return Vec2.distance(t.body.getPosition(), t.home) < GUY_TIDY_MM * slack / 1000;
+    const turned = turnShows(t) && angleOff(t) > GUY_TIDY_ANGLE * slack;
+    if (t.homeOn) return t.on === t.homeOn && !turned;
+    return !turned && Vec2.distance(t.body.getPosition(), t.home) < GUY_TIDY_MM * slack / 1000;
+}
+
+// Whether which way round a thing sits can be seen: not for a plate or a glass,
+// a single circle with nothing sticking out.
+function turnShows(t) {
+    const p = t.kind.pieces;
+    return !!t.kind.facing || !(p.length === 1 && p[0].circle && !p[0].x && !p[0].y);
+}
+
+// How far it's turned from its starting angle, either way, in radians.
+function angleOff(t) {
+    const d = t.body.getAngle() - t.homeAngle;
+    return Math.abs(Math.atan2(Math.sin(d), Math.cos(d)));
+}
+
+// Whether point p (meters) is within `margin` of t's footprint as it sits at
+// home: its pieces placed at its home spot and angle.
+function inHomeFootprint(t, p, margin) {
+    const c = Math.cos(-t.homeAngle), s = Math.sin(-t.homeAngle);
+    const dx = (p.x - t.home.x) * 1000, dy = (p.y - t.home.y) * 1000;
+    const lx = dx * c - dy * s, ly = dx * s + dy * c, m = margin * 1000;
+    return t.kind.pieces.some(q => {
+        const x = lx - (q.x || 0), y = ly - (q.y || 0);
+        if (q.circle) return Math.hypot(x, y) < q.circle + m;
+        const a = -(q.angle || 0), u = x * Math.cos(a) - y * Math.sin(a), v = x * Math.sin(a) + y * Math.cos(a);
+        return Math.abs(u) < q.box[0] / 2 + m && Math.abs(v) < q.box[1] / 2 + m;
+    });
+}
+
+// Whatever sits on t's home spot on the cloth now, guys included: tested at
+// points across its footprint there.
+function homeBlockers(t) {
+    const c = Math.cos(t.homeAngle), s = Math.sin(t.homeAngle), pts = [];
+    for (const q of t.kind.pieces) {
+        const r = q.circle ? [[0, 0], ...[0, 1, 2, 3, 4, 5, 6, 7].map(i => [Math.cos(i * Math.PI / 4) * q.circle * 0.75, Math.sin(i * Math.PI / 4) * q.circle * 0.75])]
+            : [[0, 0], [-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => [i * q.box[0] * 0.4, j * q.box[1] * 0.4]);
+        for (const [x, y] of r) {
+            const lx = x + (q.x || 0), ly = y + (q.y || 0);
+            pts.push(Vec2(t.home.x + (lx * c - ly * s) / 1000, t.home.y + (lx * s + ly * c) / 1000));
+        }
+    }
+    return things.filter(o => o !== t && onTable(o) && o.drop === undefined && !o.lifted
+        && o.level === LEVEL_ON_CLOTH && pts.some(p => {
+            for (let f = o.body.getFixtureList(); f; f = f.getNext()) if (f.testPoint(p)) return true;
+            return false;
+        }));
+}
+
+// Somewhere near t to leave it for now: on the table, clear of what's on the
+// cloth, and on nobody's home spot, its own included. Null if nowhere is.
+function parkingFor(t) {
+    const p = t.body.getPosition(), r = reachOf(t);
+    for (let d = GUY_PARK_MM; d <= GUY_PARK_MM * 6; d += GUY_PARK_MM) {
+        for (let i = 0; i < 12; i++) {
+            const a = i * Math.PI / 6, spot = Vec2.add(p, Vec2(Math.cos(a) * d / 1000, Math.sin(a) * d / 1000));
+            if (Math.abs(spot.x) > TABLE_W_MM / 2000 - r || Math.abs(spot.y) > TABLE_H_MM / 2000 - r) continue;
+            const clear = !things.some(o => o !== t && onTable(o) && o.level === LEVEL_ON_CLOTH
+                && (Vec2.distance(spot, o.body.getPosition()) < reachOf(o) + r
+                    || (o.home && !isGuy(o) && !o.homeOn && inHomeFootprint(o, spot, r))))
+                && !inHomeFootprint(t, spot, r);
+            if (clear) return spot;
+        }
+    }
+    return null;
+}
+
+// An out-of-place thing squatting on t's home, free to be moved first, if any.
+function squatterOn(g, t) {
+    if (t.homeOn) return null;
+    return homeBlockers(t).find(o => !isGuy(o) && o.home && !isTidy(o, 1) && !busy(o) && !isHeld(o.body)
+        && !guys.some(x => x !== g && x.job === o)) || null;
 }
 
 // Where he hauls a thing to: home, or for a fallen piece the cloth just beside
 // the stack it goes back on, on the side it's on, ready to be lifted up.
 function goalOf(t) {
+    if (t.parkAt) return t.parkAt;
     if (!t.homeOn || t.on) return t.home;
     const base = baseOf(t.homeOn), bp = base.body.getPosition();
     let side = Vec2.sub(t.body.getPosition(), bp);
@@ -329,10 +411,12 @@ function pickJob(g) {
         if (t.homeOn && !t.on && !settled(t.homeOn)) continue;
         if ((g.sulks.get(t) || 0) > g.clock || isTidy(t, 1)) continue;
         if (guys.some(o => o !== g && o.job === t)) continue;
-        const d = Vec2.distance(t.body.getPosition(), goalOf(t)) + (t.homeOn ? GUY_FALLEN_FIRST : 0);
+        const d = Vec2.distance(t.body.getPosition(), goalOf(t)) + (t.homeOn && !t.on ? GUY_FALLEN_FIRST : 0)
+            + angleOff(t) * GUY_ANGLE_CLAIM;
         if (d > far) { far = d; pick = t; }
     }
-    return pick;
+    // whatever's sitting on its home goes first, or it has nowhere to go
+    return (pick && squatterOn(g, pick)) || pick;
 }
 
 // Keeps a point where he can stand: on the table, his whole body inside the edge.
@@ -546,7 +630,7 @@ function steer(g, want, toGo) {
 
 // Standing, not knocked down, and nothing to do.
 function isIdle(g) {
-    return !g.job && g.down <= 0 && !g.leaving && !g.entrance && onTable(g.thing);
+    return !g.job && g.down <= 0 && !g.leaving && !g.entrance && !g.setDown && !g.lift && onTable(g.thing);
 }
 
 // Is there an object (not a guy) where he'd stand at p? Tested at a grid of
@@ -574,7 +658,9 @@ function pickRoam(g) {
     for (let i = 0; i < GUY_ROAM_PICKS; i++) {
         const p = Vec2((Math.random() * 2 - 1) * hw, (Math.random() * 2 - 1) * hh);
         let near = Infinity;
-        if (spotTaken(p)) near = -1;     // never a spot under something: he'd just lean on it
+        // never a spot under something (he'd just lean on it), or on where
+        // something belongs (he'd be in the way of putting it back)
+        if (spotTaken(p) || onAHome(p)) near = -1;
         for (const o of guys) {
             if (near < 0) break;
             if (o === g || !isIdle(o)) continue;
@@ -587,9 +673,16 @@ function pickRoam(g) {
     g.roamT = 0;
 }
 
+// Whether a guy standing at p would be on some object's home spot on the cloth.
+function onAHome(p) {
+    return things.some(t => t.home && !isGuy(t) && !t.homeOn && inHomeFootprint(t, p, GUY_R_MM / 1000));
+}
+
 // Idle: amble toward the wander spot, easing away from idle guys who come close.
 function wander(g, at, h) {
     if (!g.roam || (g.roamT += h) > GUY_ROAM_TIME || Vec2.distance(at, g.roam) < 0.03) pickRoam(g);
+    // standing about on a home spot, he moves off it rather than waiting for his spot to change
+    if (onAHome(at) && onAHome(g.roam)) pickRoam(g);
     const top = GUY_WALK_SPEED * GUY_WANDER_PACE;
     const want = walkTo(at, g.roam, top);
     const range = GUY_SPREAD_MM / 1000;
@@ -646,10 +739,14 @@ function guyWants(g, h) {
     const toGuy = Vec2.sub(at, p);
     const apart = toGuy.length();
     let side = apart > 1e-6 ? Vec2.mul(toGuy, 1 / apart) : Vec2(1, 0);
-    // A fallen cup lies close by its saucer, often closer than he's wide: he
-    // takes it from the far side, which is also the side to haul it home from,
-    // or the nearest side to that with room for him.
-    if (t.homeOn && !t.on && !g.grip) side = roomySide(g, t, Vec2.sub(p, baseOf(t.homeOn).body.getPosition()));
+    // He takes it from a side with room for him to stand: the side he's coming
+    // from if there's room, or the nearest that has. A fallen cup lies close by
+    // its saucer, often closer than he's wide: he takes it from the far side,
+    // which is also the side to haul it home from.
+    if (!g.grip) {
+        const want = t.homeOn && !t.on ? Vec2.sub(p, baseOf(t.homeOn).body.getPosition()) : side;
+        side = roomySide(g, t, want);
+    }
     const touching = reachToward(t, side) + GUY_R_MM / 1000;
     const dist = Vec2.distance(p, goalOf(t));
 
@@ -660,6 +757,16 @@ function guyWants(g, h) {
     else if ((g.stuck += h) > GUY_PATIENCE) {
         g.sulks.set(t, g.clock + GUY_SULK_TIME);
         letGoOfJob(g);
+        return Vec2(0, 0);
+    }
+
+    // A cup on its own saucer, just turned the wrong way: he climbs up and
+    // turns it there, without hauling it off.
+    if (t.homeOn && t.on === t.homeOn && !g.grip) {
+        const base = baseOf(t.homeOn), bp = base.body.getPosition();
+        const beside = standable(Vec2.add(bp, Vec2.mul(unitFrom(bp, at), reachOf(base) + GUY_R_MM / 1000 + GUY_SETDOWN_GAP_MM / 1000)));
+        if (Vec2.distance(at, beside) > GUY_REACH_MM / 1000 * 2) return walkAround(g, at, beside, GUY_WALK_SPEED);
+        if (settled(t.homeOn) && !busy(t.homeOn) && !isHeld(t.homeOn.body)) startLift(g, t);
         return Vec2(0, 0);
     }
 
@@ -684,6 +791,28 @@ function guyWants(g, h) {
         && settled(saucer) && !busy(saucer) && !isHeld(saucer.body)) {
         startLift(g, t);
         return Vec2(0, 0);
+    }
+
+    // Nearly home: set it down carefully, once its spot is clear.
+    if (!t.homeOn && dist < GUY_SETDOWN_MM / 1000 && !isHeld(t.body)) {
+        const sq = t.parkAt ? null : squatterOn(g, t);
+        if (sq) {
+            // Two things on each other's homes would have him go back and
+            // forth for ever: the squatter is parked out of the way instead.
+            if (homeBlockers(sq).includes(t)) sq.parkAt = parkingFor(sq);
+            letGoOfJob(g); g.job = sq; g.best = Infinity; g.stuck = 0;
+            return Vec2(0, 0);
+        }
+        if (t.parkAt) {
+            // parked: he leaves it there, and it goes home once its spot is free
+            t.parkAt = null;
+            letGoOfJob(g);
+            return Vec2(0, 0);
+        }
+        const inWay = homeBlockers(t).filter(o => isGuy(o) && o !== g.thing);
+        if (!inWay.length) { startSetDown(g, t); return Vec2(0, 0); }
+        // a guy standing on its spot: idle ones are sent off it, and he waits
+        for (const o of inWay) if (isIdle(o.guy)) o.guy.roam = null;
     }
 
     // Haul: the point he pulls toward runs ahead to home at carrying speed,
@@ -758,6 +887,7 @@ function startLift(g, cup) {
         floor: Vec2.clone(b.getPosition()),
         onto: Vec2.add(sp, Vec2.mul(toCup, rimOf(saucer) * 0.45)),
         cupFrom: Vec2.clone(cup.body.getPosition()),
+        cupAngle: cup.body.getAngle(),
         saucerAt: Vec2.clone(sp),
         levels: saucer.level - 1,      // how many levels he climbs
     };
@@ -794,7 +924,8 @@ function stepLift(g, h) {
         }
     } else if (L.phase === 'lift') {
         const v = Math.min(1, L.t / GUY_LIFT_TIME);
-        L.cup.body.setTransform(Vec2.add(L.cupFrom, Vec2.mul(Vec2.sub(sp, L.cupFrom), easeLift(v))), L.cup.body.getAngle());
+        const turnBy = Math.atan2(Math.sin(L.cup.homeAngle - L.cupAngle), Math.cos(L.cup.homeAngle - L.cupAngle));
+        L.cup.body.setTransform(Vec2.add(L.cupFrom, Vec2.mul(Vec2.sub(sp, L.cupFrom), easeLift(v))), L.cupAngle + turnBy * easeLift(v));
         L.cup.drawScale = 1 + GUY_LIFT_BUMP * Math.sin(Math.PI * v);
         if (L.t >= GUY_LIFT_TIME) {
             setCupDown(L);
@@ -815,8 +946,53 @@ function stepLift(g, h) {
 function setCupDown(L) {
     L.cup.lifted = false;
     L.cup.drawScale = 1;
+    L.cup.body.setTransform(L.cup.body.getPosition(), L.cup.homeAngle);
     L.cup.body.setActive(true);
     placeOn(L.cup, L.saucer);
+}
+
+// Setting a thing down exactly at home, turned its starting way. His body and
+// its are off while it happens and moved by hand; he steps to just clear of
+// its home spot as he does it, so nothing is shoved when they're back on.
+function startSetDown(g, t) {
+    const b = g.thing.body, at = b.getPosition();
+    letGoOfJob(g);
+    const side = unitFrom(t.home, at);
+    const reach = reachToward(t, side, t.homeAngle) + GUY_R_MM / 1000 + GUY_SETDOWN_GAP_MM / 1000;
+    g.setDown = {
+        t: 0, obj: t,
+        from: Vec2.clone(t.body.getPosition()), fromAngle: t.body.getAngle(),
+        guyFrom: Vec2.clone(at), guyTo: standable(Vec2.add(t.home, Vec2.mul(side, reach))),
+    };
+    for (const body of [b, t.body]) { body.setLinearVelocity(Vec2(0, 0)); body.setAngularVelocity(0); body.setActive(false); }
+    g.thing.lifted = true;
+    t.lifted = true;
+}
+
+function stepSetDown(g, h) {
+    const S = g.setDown, t = S.obj;
+    S.t += h;
+    const u = easeLift(Math.min(1, S.t / GUY_SETDOWN_TIME));
+    const turnBy = Math.atan2(Math.sin(t.homeAngle - S.fromAngle), Math.cos(t.homeAngle - S.fromAngle));
+    t.body.setTransform(Vec2.add(S.from, Vec2.mul(Vec2.sub(t.home, S.from), u)), S.fromAngle + turnBy * u);
+    t.drawScale = 1 + GUY_LIFT_BUMP * Math.sin(Math.PI * u);
+    g.thing.body.setTransform(Vec2.add(S.guyFrom, Vec2.mul(Vec2.sub(S.guyTo, S.guyFrom), u)), 0);
+    const look = Vec2.sub(t.body.getPosition(), g.thing.body.getPosition());
+    if (look.length() > 1e-6) g.facing = Math.atan2(look.y, look.x);
+    if (S.t >= GUY_SETDOWN_TIME) endSetDown(g);
+}
+
+// It's at home, exactly; or, cut short, it stays where it had got to.
+function endSetDown(g) {
+    const S = g.setDown, t = S.obj, b = g.thing.body;
+    if (S.t >= GUY_SETDOWN_TIME) t.body.setTransform(t.home, t.homeAngle);
+    t.drawScale = 1;
+    t.lifted = false;
+    t.body.setActive(true);
+    b.setActive(true);
+    g.thing.lifted = false;
+    g.expect = null;
+    g.setDown = null;
 }
 
 // Back on the cloth where he climbed up, whatever stage it reached. A cup in
@@ -838,7 +1014,9 @@ function endLift(g) {
 // the first spot past it with room for him. False if there's nowhere.
 function startClimbOver(g, want) {
     const b = g.thing.body, at = b.getPosition();
-    const dir = Vec2.mul(want, 1 / want.length());
+    // asking for barely any speed, his way is toward his job
+    const dir = want.length() > GUY_STALL_SPEED / 4 ? Vec2.mul(want, 1 / want.length())
+        : g.job ? unitFrom(at, g.job.body.getPosition()) : Vec2(1, 0);
     for (let d = GUY_R_MM * 2; d <= GUY_OVER_LOOK_MM; d += 10) {
         const spot = Vec2.add(at, Vec2.mul(dir, d / 1000));
         if (!hasRoom(g, spot, null)) continue;
@@ -1161,6 +1339,12 @@ function stepGuy(g, h) {
         endClimbOver(g);
     }
 
+    // setting something down, unless he or it is grabbed
+    if (g.setDown) {
+        if (!isHeld(b) && !isHeld(g.setDown.obj.body)) { stepSetDown(g, h); return; }
+        endSetDown(g);
+    }
+
     // up on a saucer putting a cup back, unless he's grabbed
     if (g.lift) {
         if (!isHeld(b)) { stepLift(g, h); return; }
@@ -1191,7 +1375,10 @@ function stepGuy(g, h) {
     // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
     // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
     const speed0 = v.length();
-    if (!g.grip && want.length() > GUY_STALL_SPEED && speed0 < GUY_STALL_SPEED) g.stall = (g.stall || 0) + h;
+    // On his way to a job, barely moving is stuck however slowly he means to go:
+    // steering round a tight spot can ask for a crawl that never gets there.
+    const trying = g.job ? true : want.length() > GUY_STALL_SPEED;
+    if (!g.grip && trying && speed0 < GUY_STALL_SPEED) g.stall = (g.stall || 0) + h;
     else g.stall = 0;
     if (g.stall > GUY_STALL_TIME) {
         g.stall = 0;

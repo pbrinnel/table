@@ -122,6 +122,14 @@ where it was, and you can knock him around.
 
 - **What "where it was" means:** each object's starting position. *Prototype choice:* he
   restores position only, not which way an object is turned.
+  - **Update (Paul):** the way it's turned too, wherever that shows (not for a plate or a
+    glass; yes for cutlery, the napkin and anything with a handle), within
+    `GUY_TIDY_ANGLE`. Within `GUY_SETDOWN_MM` of home he stops hauling, lifts it, turns it
+    and sets it exactly in place (`GUY_SETDOWN_TIME`), stepping clear of its spot as he
+    does. A cup turned the wrong way on its own saucer is turned from up on the saucer.
+    Whatever is out of place on a thing's home is moved first, and two things on each
+    other's homes have one parked aside out of everyone's way. Idle guys keep off home
+    spots, and are sent off one that's wanted.
 - **How he moves things:** fast and aggressive (Paul). He runs to an object, grabs its near
   edge and hauls it home, shoving aside whatever's in the way. His grip is a capped spring
   like the player's (`GUY_GRIP_FORCE`), so heavy things still drag on him.

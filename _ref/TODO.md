@@ -49,9 +49,12 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       are often occupied while a thing waits, mostly by another out-of-place object, and
       with three guys sometimes by a guy; (3) it's slow, 13 to 29 s for five things with
       one guy, partly from nudging neighbors on the way.
-- [ ] Pick fixes for the above (Paul or dhfm91): record and restore the starting angle;
-      a careful "set it down" for the last few cm; clear whatever squats on a home first;
-      keep idle guys off home spots.
+- [x] All four fixes for the above (Paul's pick; Claude, for Paul). Same test: everything
+      back every run, with one guy by 12 to 13 s, three by 6 to 8 s, set down at 0 mm and
+      0°. Also fixed on the way: he'd crawl forever toward a grab spot with no room, so he
+      now takes a roomy side, and a crawl counts as stuck. Now stricter about angles, a
+      hard fling leaves more to do: one guy had 3 to 5 things still turned or off after
+      25 s.
 - [x] The napkin's crease as a line underneath, only seen once the corner is out of the way
       (Claude, for Paul)
 - [x] Tall things lean toward where they're dragged, more the faster (Claude, for Paul)
