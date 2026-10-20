@@ -16,6 +16,7 @@ const GLUE_DOSES = 4;                  // things he can glue before he runs out
 const GLUE_TIME = 0.8;                 // seconds he spends gluing a thing, standing beside it
 const GLUE_PATIENCE = 6;               // seconds he'll try to reach a thing before trying another
 const GLUE_SCALE = 1.6;                // how much bigger than a guy he's drawn, and grabbed
+const GLUE_PACE = 0.5;                 // his speed on foot, as a share of a guy's
 const GLUE_BODY_MM = 34;               // half the side of the square that grabs him (at GLUE_SCALE)
 const GLUE_TALK_TIME = 2;              // seconds the line stays once fully typed
 const GLUE_DELAY = 0.25;               // seconds from the call to his coming out, and between tries for cover

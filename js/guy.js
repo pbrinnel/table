@@ -1371,6 +1371,8 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
+    // a glue soldier is slow on his feet, so he's easy to catch
+    if (g.glue && !g.grip) want.mul(GLUE_PACE);
     // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
     // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
     const speed0 = v.length();
@@ -1472,15 +1474,10 @@ function paperLine(c, w) {
 
 function drawHead(c, x, g) {
     if (g.glue) {
-        // a glue soldier's head is square and smaller than his body, his cap
-        // a solid square on top
+        // a glue soldier's head is square and smaller than his body
         c.beginPath();
         c.rect(x - 8, -9, 18, 18);
         inkShape(c);
-        c.beginPath();
-        c.rect(x - 6, -6, 9, 12);
-        c.fillStyle = INK;
-        c.fill();
         return;
     }
     c.beginPath();
