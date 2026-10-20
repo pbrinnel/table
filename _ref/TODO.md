@@ -95,6 +95,12 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Score multiplier by how many guys are out on the table, so saving a big plate
       for the end is a strategy (Paul's idea)
 
+- [ ] Glue becomes bubblegum: "gummed" in every line and name, and a pleasant pink
+      everywhere it shows. Plus a simple sprite that sits well on every object, so a
+      gummed thing reads as trapped at a glance (dhfm91)
+- [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
+      movement); let go, one snaps back to where it was gummed (dhfm91)
+
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
       variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
