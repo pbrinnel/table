@@ -15,7 +15,7 @@ Dev tools that never reach the site: slider pages for tuning, test pages, build 
 - `index.html`: links to every lab, each opening in its own tab. `_labs-mac.command` or
   `_labs-windows.bat` at the repo root starts the server and opens it.
 - `objects.html`: every object kind drawn large with its collision shape over it.
-- `color.html`: the real game recolored at runtime in an MS Paint look, with palettes,
+- `color.html` ("art styles" in the index): the real game redrawn at runtime in an MS Paint look, with palettes,
   pixel size, thicker outlines and hard edges to try, and a Game Boy Camera mode (four
   shades, grey or DMG green, ordered dithering, a light gradient on the cloth). A mock-up
   only: the game itself stays black on white.
