@@ -17,8 +17,8 @@ const SCORE_POP_PX = 34;
 const SCORE_POP_GAP = 36;       // between stacked ones
 const SCORE_POP_MARGIN = 24;    // from the top and right edges
 const SCORE_CREDITS = [
-    'Designed and coded by Paul Brinnel',
-    'Co-designed and co-coded by David Feuling',
+    'Designed by Paul Brinnel',
+    'Co-designed by David Feuling',
 ];
 const SCORE_CREDIT_PX = 22;
 const SCORE_CREDIT_LINE = 28;   // between the credit lines

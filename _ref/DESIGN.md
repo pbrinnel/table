@@ -310,8 +310,8 @@ gets messier (dhfm91).
   shows the first guy, sad: "Haven't you done enough damage?"
 - **Update (dhfm91):** points show as they come: a small "+N" in the top right corner,
   held `SCORE_POP_HOLD` then faded over `SCORE_POP_FADE`, several stacking downward. Under
-  the final score, in small lettering, two credit lines: "Designed and coded by Paul
-  Brinnel" and "Co-designed and co-coded by David Feuling". The counter and the final
+  the final score, in small lettering, two credit lines: "Designed by Paul Brinnel" and
+  "Co-designed by David Feuling". The counter and the final
   score read upright on a turned phone, like the dialog box.
 
 ## The glue soldier (dhfm91)
