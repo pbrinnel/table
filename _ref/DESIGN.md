@@ -317,6 +317,10 @@ gets messier (dhfm91).
   score read upright on a turned phone, like the dialog box.
 - **Update (dhfm91):** the final score and credits sit on a panel like the dialog box
   (`SCORE_PANEL_ALPHA`, nearly solid), so they read over gummed things left on the table.
+- **Update (dhfm91):** the credits are half the size (`SCORE_CREDIT_PX`), in a small box
+  of their own in the top right corner, under the DEBUG button; the score's panel holds
+  only the score. On a small screen they never go below `SCORE_CREDIT_MIN_PX` real
+  pixels, so a phone can still read them.
 
 ## The glue soldier (dhfm91)
 

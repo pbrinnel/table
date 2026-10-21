@@ -20,11 +20,15 @@ const SCORE_CREDITS = [
     'Designed by Paul Brinnel',
     'Co-designed by David Feuling',
 ];
-const SCORE_CREDIT_PX = 22;
-const SCORE_CREDIT_LINE = 28;   // between the credit lines
-// A panel behind the score and credits, like the dialog box, so they read over
-// whatever is left on the table (dhfm91)
-const SCORE_PANEL_PAD = 24;     // round the text
+// The credits sit small in a box of their own in the top right corner, under
+// the DEBUG button (dhfm91)
+const SCORE_CREDIT_PX = 11;
+const SCORE_CREDIT_LINE = 14;   // between the credit lines
+const SCORE_CREDIT_PAD = 8;     // round them, inside their box
+const SCORE_CREDIT_MIN_PX = 9;  // never smaller than this on the screen, in real pixels, so a phone can read them
+// A panel behind the final score, and the credits' box, like the dialog box, so
+// they read over whatever is left on the table (dhfm91)
+const SCORE_PANEL_PAD = 24;     // round the score
 const SCORE_PANEL_ALPHA = 0.92; // nearly solid: the table only just shows through
 
 let score = 0;
@@ -61,6 +65,28 @@ function runOver() {
         && guys.every(g => !onTable(g.thing) && g.thing.fall >= FALL_TIME);
 }
 
+// A box like the dialog box, nearly solid, faded in by `shown`; leaves the ink
+// ready for what goes in it.
+function scorePanel(c, shown, x, y, w, h) {
+    c.globalAlpha = shown * SCORE_PANEL_ALPHA;
+    c.fillStyle = DIALOG;
+    c.fillRect(x, y, w, h);
+    c.globalAlpha = shown;
+    c.lineWidth = LINE_WIDTH;
+    c.strokeStyle = INK;
+    c.strokeRect(x, y, w, h);
+    c.fillStyle = INK;
+}
+
+// How far down the upright view the DEBUG button reaches, in view units, so
+// nothing in the corner sits under it.
+function belowDebug(view) {
+    const button = document.getElementById('debug-button');
+    if (!button) return 0;
+    const r = canvas.getBoundingClientRect();
+    return Math.max(0, (button.getBoundingClientRect().bottom - r.top) * view.w / r.width);
+}
+
 // The points as they come, and once the run is over the final score with the
 // credits, fading in over the middle. All upright on the screen, like the
 // dialog box, even when the table is turned on a phone.
@@ -89,28 +115,28 @@ function drawScore(c, dt) {
         scoreShown += dt;
         const shown = Math.min(1, scoreShown / SCORE_FADE_TIME);
         const text = 'Score: ' + score.toLocaleString('en-US');
-        const cx = view.w / 2, cy = view.h / 2, creditsY = cy + SCORE_FONT_PX * 0.75;
         c.font = SCORE_FONT_PX + 'px "Patrick Hand"';
-        let w = c.measureText(text).width;
-        c.font = SCORE_CREDIT_PX + 'px "Patrick Hand"';
-        for (const line of SCORE_CREDITS) w = Math.max(w, c.measureText(line).width);
-        const top = cy - SCORE_FONT_PX * 0.55 - SCORE_PANEL_PAD;
-        const bottom = creditsY + (SCORE_CREDITS.length - 1) * SCORE_CREDIT_LINE + SCORE_CREDIT_PX * 0.6 + SCORE_PANEL_PAD;
-        const left = cx - w / 2 - SCORE_PANEL_PAD;
-        c.globalAlpha = shown * SCORE_PANEL_ALPHA;
-        c.fillStyle = DIALOG;
-        c.fillRect(left, top, w + SCORE_PANEL_PAD * 2, bottom - top);
-        c.globalAlpha = shown;
-        c.lineWidth = LINE_WIDTH;
-        c.strokeStyle = INK;
-        c.strokeRect(left, top, w + SCORE_PANEL_PAD * 2, bottom - top);
-        c.fillStyle = INK;
+        const w = c.measureText(text).width;
+        scorePanel(c, shown, view.w / 2 - w / 2 - SCORE_PANEL_PAD, view.h / 2 - SCORE_FONT_PX * 0.55 - SCORE_PANEL_PAD,
+            w + SCORE_PANEL_PAD * 2, SCORE_FONT_PX * 1.1 + SCORE_PANEL_PAD * 2);
         c.textAlign = 'center';
         c.textBaseline = 'middle';
-        c.font = SCORE_FONT_PX + 'px "Patrick Hand"';
-        c.fillText(text, cx, cy);
-        c.font = SCORE_CREDIT_PX + 'px "Patrick Hand"';
-        SCORE_CREDITS.forEach((line, i) => c.fillText(line, cx, creditsY + i * SCORE_CREDIT_LINE));
+        c.fillText(text, view.w / 2, view.h / 2);
+
+        // the credits: right-aligned box in the corner, below the DEBUG button
+        // the whole box scaled up together on a small screen
+        const perPx = view.w / canvas.getBoundingClientRect().width;
+        const k = Math.max(1, SCORE_CREDIT_MIN_PX * perPx / SCORE_CREDIT_PX);
+        const pad = SCORE_CREDIT_PAD * k, line = SCORE_CREDIT_LINE * k;
+        c.font = SCORE_CREDIT_PX * k + 'px "Patrick Hand"';
+        let cw = 0;
+        for (const l of SCORE_CREDITS) cw = Math.max(cw, c.measureText(l).width);
+        const bw = cw + pad * 2, bh = SCORE_CREDITS.length * line + pad * 2;
+        const bx = view.w - SCORE_POP_MARGIN - bw, by = belowDebug(view) + SCORE_POP_MARGIN;
+        scorePanel(c, shown, bx, by, bw, bh);
+        c.textAlign = 'left';
+        c.textBaseline = 'top';
+        SCORE_CREDITS.forEach((l, i) => c.fillText(l, bx + pad, by + pad + i * line + k));
     }
     c.restore();
 }
