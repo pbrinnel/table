@@ -1306,8 +1306,14 @@ function stepGuy(g, h) {
     if (!onTable(t)) {
         g.expect = null;
         letGoOfJob(g);
-        // pushed, dropped or knocked over, he screams; stepping off at the end, he doesn't
-        if (!g.leaving && !g.screamed) { g.screamed = true; scream(); scoreGuy(g); }
+        // pushed, dropped or knocked over, he scores, and the first guy screams
+        // (the box is his voice; backups go quietly); stepping off at the end,
+        // none of it
+        if (!g.leaving && !g.screamed) {
+            g.screamed = true;
+            if (g === guys[0]) scream();
+            scoreGuy(g);
+        }
         // knocked off with work still to do, he climbs back on where he went
         // over; a glue soldier comes back as a plain backup, his glue gone
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {

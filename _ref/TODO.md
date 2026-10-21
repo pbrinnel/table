@@ -92,6 +92,17 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] A basic score, shown at the end: objects by weight, 5 a guy, 25 the first guy
       (dhfm91; Claude, for dhfm91)
 
+- [ ] Score multiplier by how many guys are out on the table, so saving a big plate
+      for the end is a strategy (Paul's idea)
+
+- [ ] Glue becomes bubblegum (dhfm91): the mechanic is "gummed" (was "glued"), in names
+      and text where it fits; in the dialog the guys are "Bubblegum Soldiers" (so "Calling
+      BUBBLEGUM SOLDIER!" or similar). Bubblegum is always a pleasant pink. Plus a simple
+      sprite that sits well on every object, so a gummed thing reads as trapped at a glance
+      - Paul: knives cut gummed things free?
+- [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
+      movement); let go, one snaps back to where it was gummed (dhfm91)
+
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
       variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
@@ -106,3 +117,5 @@ dhfm91's priorities, in order:
 - [ ] High score board, on Paul's plan under **Later** in `CLAUDE.md` (a Cloudflare
       Worker on his account). If that doesn't happen, dhfm91's fallback is the way his other
       games do it: a JSON bin on extendsclass (dhfm91)
+- [ ] Terrain: table and tablecloth properties that change play, for more varied
+      games, possibly including the cloth being destroyed, by fire say (dhfm91)

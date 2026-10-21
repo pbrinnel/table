@@ -283,6 +283,8 @@ gets messier (dhfm91).
   - **Update (Paul):** in the box, like every other line. **Whoever talks, talks through
     the box**: no speech bubbles or floating text, ever. The scream cuts in over whatever
     the box is saying, except "All is lost...", and stays `SCREAM_TIME`.
+  - **Update (dhfm91):** only the first guy screams. The box shows his face, so a backup
+    going over made it look like he was screaming for someone else. Backups fall quietly.
 - **Callouts (Paul):** now and then (`TALK_CALLOUT_CHANCE`, about one grab in ten) he
   yells at the player about the very thing just grabbed, by name, in the mad face:
   "Not the salad fork!", "That champagne flute is FRENCH!". Rare on purpose: never on
