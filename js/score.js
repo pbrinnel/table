@@ -20,11 +20,12 @@ const SCORE_CREDITS = [
     'Designed by Paul Brinnel',
     'Co-designed by David Feuling',
 ];
-// The credits sit small in a box of their own in the top right corner, under
-// the DEBUG button (dhfm91)
-const SCORE_CREDIT_PX = 11;
-const SCORE_CREDIT_LINE = 14;   // between the credit lines
-const SCORE_CREDIT_PAD = 8;     // round them, inside their box
+// The credits sit small in a box of their own, tucked inside the table's top
+// right corner as the screen shows it (dhfm91)
+const SCORE_CREDIT_PX = 16.5;
+const SCORE_CREDIT_LINE = 21;   // between the credit lines
+const SCORE_CREDIT_PAD = 10;    // round them, inside their box
+const SCORE_CREDIT_INSET = 14;  // from the table's edges
 const SCORE_CREDIT_MIN_PX = 9;  // never smaller than this on the screen, in real pixels, so a phone can read them
 // A panel behind the final score, and the credits' box, like the dialog box, so
 // they read over whatever is left on the table (dhfm91)
@@ -78,13 +79,14 @@ function scorePanel(c, shown, x, y, w, h) {
     c.fillStyle = INK;
 }
 
-// How far down the upright view the DEBUG button reaches, in view units, so
-// nothing in the corner sits under it.
-function belowDebug(view) {
-    const button = document.getElementById('debug-button');
-    if (!button) return 0;
-    const r = canvas.getBoundingClientRect();
-    return Math.max(0, (button.getBoundingClientRect().bottom - r.top) * view.w / r.width);
+// The table's top right corner as the screen shows it, in upright view units:
+// on a phone held upright the frame is turned (js/frame.js), and frame (x, y)
+// is (LH - y, x) in the view.
+function tableCornerInView() {
+    const w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
+    const xs = [(LW - w) / 2, (LW + w) / 2], ys = [(LH - h) / 2, (LH + h) / 2];
+    if (frameTurned) return { x: LH - ys[0], y: xs[0] };
+    return { x: xs[1], y: ys[0] };
 }
 
 // The points as they come, and once the run is over the final score with the
@@ -123,7 +125,7 @@ function drawScore(c, dt) {
         c.textBaseline = 'middle';
         c.fillText(text, view.w / 2, view.h / 2);
 
-        // the credits: right-aligned box in the corner, below the DEBUG button
+        // the credits: a box tucked inside the table's top right corner
         // the whole box scaled up together on a small screen
         const perPx = view.w / canvas.getBoundingClientRect().width;
         const k = Math.max(1, SCORE_CREDIT_MIN_PX * perPx / SCORE_CREDIT_PX);
@@ -132,7 +134,8 @@ function drawScore(c, dt) {
         let cw = 0;
         for (const l of SCORE_CREDITS) cw = Math.max(cw, c.measureText(l).width);
         const bw = cw + pad * 2, bh = SCORE_CREDITS.length * line + pad * 2;
-        const bx = view.w - SCORE_POP_MARGIN - bw, by = belowDebug(view) + SCORE_POP_MARGIN;
+        const corner = tableCornerInView();
+        const bx = corner.x - SCORE_CREDIT_INSET - bw, by = corner.y + SCORE_CREDIT_INSET;
         scorePanel(c, shown, bx, by, bw, bh);
         c.textAlign = 'left';
         c.textBaseline = 'top';
