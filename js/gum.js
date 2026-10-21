@@ -3,7 +3,7 @@
 // BUBBLEGUM SOLDIER!" and a big, square, pink guy comes out from under
 // something, quicker than a backup. He carries GUM_DOSES of bubblegum: he runs
 // to the nearest thing that's back in its home spot and gums it there for
-// good. A gummed thing sits in a pink puddle, pinned by wads of gum over its
+// good. A gummed thing sits in a pink puddle, with gum spilling up over its
 // edge. Nothing knocks it loose; the player can grab it, but it moves only
 // GUM_LEASH_MM, sliding off its puddle's middle, and snaps back when let go.
 // It no longer counts as left on the table, so the ending can come with it
@@ -193,8 +193,8 @@ function edgeOf(t, d) {
 
 // How each gummed thing is drawn, as pieces for drawThings (js/start.js): a
 // pink puddle just under it, where it was gummed, following its outline with
-// a wobbling edge; and over it GUM_WADS wads of gum stuck across its edge,
-// half on it and half on the puddle. On the edge rather than the middle, so
+// a wobbling edge; and over it GUM_WADS wads of the same gum stuck across its
+// edge, half on it and half on the puddle, no two alike. On the edge rather than the middle, so
 // they show on anything, a plate with a bowl on it included, and pin down any
 // shape. Pulled on its leash, the thing and its wads slide off the puddle.
 function gumPieces() {
@@ -244,24 +244,28 @@ function gumPieces() {
                     const u = (want - run[i - 1]) / Math.max(1e-9, run[i] - run[i - 1]);
                     const e = Vec2.add(edge[i - 1], Vec2.mul(Vec2.sub(edge[i], edge[i - 1]), u));
                     const at = mmToFrame(e.x * 1000, e.y * 1000);
+                    // each wad its own shape, fixed per thing: its size, how
+                    // drawn out it is along the edge, and how many lumps
+                    const rnd = j => { const x = Math.sin(seed * 12.9898 + k * 78.233 + j * 37.719) * 43758.5453; return x - Math.floor(x); };
+                    const size = r * (0.7 + 0.6 * rnd(1)), long = 1 + 0.7 * rnd(2);
+                    const lumps = 2 + Math.floor(rnd(3) * 3), bump = 0.06 + 0.12 * rnd(4), phase = rnd(5) * Math.PI * 2;
+                    const along = Math.atan2(edge[i].y - edge[i - 1].y, edge[i].x - edge[i - 1].x);
+                    c.save();
+                    c.translate(at.x, at.y);
+                    c.rotate(along);
                     c.beginPath();
-                    for (let i = 0; i < GUM_STEPS; i++) {
-                        const b = i / GUM_STEPS * Math.PI * 2;
-                        const lump = r * (1 + 0.15 * Math.sin(b * 3 + seed + k));
-                        const x = at.x + Math.cos(b) * lump, y = at.y + Math.sin(b) * lump;
-                        if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+                    for (let s = 0; s < GUM_STEPS; s++) {
+                        const b = s / GUM_STEPS * Math.PI * 2;
+                        const lump = size * (1 + bump * Math.sin(b * lumps + phase));
+                        const x = Math.cos(b) * lump * long, y = Math.sin(b) * lump;
+                        if (s === 0) c.moveTo(x, y); else c.lineTo(x, y);
                     }
                     c.closePath();
-                    c.fillStyle = GUM;
+                    // the puddle's own pink, and no ink: the same gum spilling
+                    // up over the thing
+                    c.fillStyle = GUM_PUDDLE;
                     c.fill();
-                    inkLine(c);
-                    // a glint, so it reads as a glossy wad and not a dot
-                    c.beginPath();
-                    c.arc(at.x, at.y, r * 0.55, Math.PI * 1.1, Math.PI * 1.45);
-                    c.lineCap = 'round';
-                    c.lineWidth = LINE_WIDTH * 0.75;
-                    c.strokeStyle = PAPER;
-                    c.stroke();
+                    c.restore();
                 }
             },
         });

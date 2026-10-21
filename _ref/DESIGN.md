@@ -315,6 +315,8 @@ gets messier (dhfm91).
   the final score, in small lettering, two credit lines: "Designed by Paul Brinnel" and
   "Co-designed by David Feuling". The counter and the final
   score read upright on a turned phone, like the dialog box.
+- **Update (dhfm91):** the final score and credits sit on a panel like the dialog box
+  (`SCORE_PANEL_ALPHA`, nearly solid), so they read over gummed things left on the table.
 
 ## The glue soldier (dhfm91)
 
@@ -362,7 +364,10 @@ gets messier (dhfm91).
   the box he's a bubblegum soldier ("Calling BUBBLEGUM SOLDIER!"). Bubblegum is always a
   pleasant pink (`GUM`, `GUM_PUDDLE` in `js/color.js`): his body, and every gummed thing,
   which sits in a pink puddle pinned by `GUM_WADS` wads of gum stuck across its edge,
-  so it reads as trapped whatever its shape, even with things stacked on it. A gummed thing can be
+  so it reads as trapped whatever its shape, even with things stacked on it.
+  - **Update (dhfm91):** the wads are the puddle's own pink, with no ink outline, and no
+    two alike (size, stretch along the edge, lumps), like the same gum spilling up over
+    the thing. A gummed thing can be
   grabbed again but only tugged: it moves at most `GUM_LEASH_MM` (about 5 px on a
   laptop) from where it was gummed, never turns, sliding off its puddle, and snaps back
   when let go. Nothing else moves it. It still counts as gone for the ending, and the

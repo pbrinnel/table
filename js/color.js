@@ -16,8 +16,8 @@ const CUP_BAND = '#b090ff';
 const GUY_SKIN = '#ffe0b0';
 const GUY_SHIRT = '#ff9090';   // the first guy's; backups wear a GUY_CAPS color
 const GUY_CAPS = ['#90e090', '#b090ff', '#ffc060', '#60c0ff'];
-const GUM = '#ff7fc0';         // bubblegum: the wad, its strands, a bubblegum soldier's body
-const GUM_PUDDLE = '#ffc6e3';  // the puddle a gummed thing sits in
+const GUM = '#ff7fc0';         // bubblegum: a bubblegum soldier's body
+const GUM_PUDDLE = '#ffc6e3';  // the gum on a gummed thing: its puddle and the wads over its edge
 const DIALOG = '#ffffff';      // the talk box (drawn see-through, TALK_BOX_ALPHA)
 const PORTRAIT = '#ffe0b0';
 

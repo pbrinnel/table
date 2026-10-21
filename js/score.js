@@ -22,6 +22,10 @@ const SCORE_CREDITS = [
 ];
 const SCORE_CREDIT_PX = 22;
 const SCORE_CREDIT_LINE = 28;   // between the credit lines
+// A panel behind the score and credits, like the dialog box, so they read over
+// whatever is left on the table (dhfm91)
+const SCORE_PANEL_PAD = 24;     // round the text
+const SCORE_PANEL_ALPHA = 0.92; // nearly solid: the table only just shows through
 
 let score = 0;
 let scoreShown = null;   // seconds the final score has been showing; null before then
@@ -83,14 +87,30 @@ function drawScore(c, dt) {
             say(TALK_DAMAGE, 'sad', null);
         }
         scoreShown += dt;
-        c.globalAlpha = Math.min(1, scoreShown / SCORE_FADE_TIME);
+        const shown = Math.min(1, scoreShown / SCORE_FADE_TIME);
+        const text = 'Score: ' + score.toLocaleString('en-US');
+        const cx = view.w / 2, cy = view.h / 2, creditsY = cy + SCORE_FONT_PX * 0.75;
+        c.font = SCORE_FONT_PX + 'px "Patrick Hand"';
+        let w = c.measureText(text).width;
+        c.font = SCORE_CREDIT_PX + 'px "Patrick Hand"';
+        for (const line of SCORE_CREDITS) w = Math.max(w, c.measureText(line).width);
+        const top = cy - SCORE_FONT_PX * 0.55 - SCORE_PANEL_PAD;
+        const bottom = creditsY + (SCORE_CREDITS.length - 1) * SCORE_CREDIT_LINE + SCORE_CREDIT_PX * 0.6 + SCORE_PANEL_PAD;
+        const left = cx - w / 2 - SCORE_PANEL_PAD;
+        c.globalAlpha = shown * SCORE_PANEL_ALPHA;
+        c.fillStyle = DIALOG;
+        c.fillRect(left, top, w + SCORE_PANEL_PAD * 2, bottom - top);
+        c.globalAlpha = shown;
+        c.lineWidth = LINE_WIDTH;
+        c.strokeStyle = INK;
+        c.strokeRect(left, top, w + SCORE_PANEL_PAD * 2, bottom - top);
+        c.fillStyle = INK;
         c.textAlign = 'center';
         c.textBaseline = 'middle';
         c.font = SCORE_FONT_PX + 'px "Patrick Hand"';
-        c.fillText('Score: ' + score.toLocaleString('en-US'), view.w / 2, view.h / 2);
+        c.fillText(text, cx, cy);
         c.font = SCORE_CREDIT_PX + 'px "Patrick Hand"';
-        SCORE_CREDITS.forEach((line, i) =>
-            c.fillText(line, view.w / 2, view.h / 2 + SCORE_FONT_PX * 0.75 + i * SCORE_CREDIT_LINE));
+        SCORE_CREDITS.forEach((line, i) => c.fillText(line, cx, creditsY + i * SCORE_CREDIT_LINE));
     }
     c.restore();
 }

@@ -100,8 +100,8 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       back (dhfm91; Claude, for dhfm91)
 - [ ] Knives cut gummed things free? (Paul's idea)
 
-- [ ] The score screen is hard to read over gummed things left on the table: the score
-      and credits run across them. Give the text a backing or move it clear (dhfm91)
+- [x] The score screen is hard to read over gummed things left on the table: the score
+      and credits now sit on a panel like the dialog box (dhfm91; Claude, for dhfm91)
 - [ ] A prompt on the score screen to play again, something like "Press to Keep
       Smashing". For now it resets the same table; later it leads to the next level, with
       scores carried from level to level (dhfm91)
