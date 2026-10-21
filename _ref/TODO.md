@@ -95,13 +95,16 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Score multiplier by how many guys are out on the table, so saving a big plate
       for the end is a strategy (Paul's idea)
 
-- [ ] Glue becomes bubblegum (dhfm91): the mechanic is "gummed" (was "glued"), in names
-      and text where it fits; in the dialog the guys are "Bubblegum Soldiers" (so "Calling
-      BUBBLEGUM SOLDIER!" or similar). Bubblegum is always a pleasant pink. Plus a simple
-      sprite that sits well on every object, so a gummed thing reads as trapped at a glance
-      - Paul: knives cut gummed things free?
-- [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
-      movement); let go, one snaps back to where it was gummed (dhfm91)
+- [x] Glue becomes bubblegum: "gummed", "Bubblegum Soldiers" in the box, pink, wads of gum
+      pinning every gummed thing; gummed things tugged on a strict leash and snapped
+      back (dhfm91; Claude, for dhfm91)
+- [ ] Knives cut gummed things free? (Paul's idea)
+
+- [x] The score screen is hard to read over gummed things left on the table: the score
+      and credits now sit on a panel like the dialog box (dhfm91; Claude, for dhfm91)
+- [ ] A prompt on the score screen to play again, something like "Press to Keep
+      Smashing". For now it resets the same table; later it leads to the next level, with
+      scores carried from level to level (dhfm91)
 
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"

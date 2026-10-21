@@ -15,7 +15,7 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/drag.js` | Pointer grab and spring drag, one joint per pointer; `isHeld()` |
 | `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
-| `js/glue.js` | The glue soldier: comes at each quarter of the table's weight gone over the edge, big and square; glues things in their home spots for good (`inPlay`, the glue puddle) |
+| `js/gum.js` | The bubblegum soldier: comes at each quarter of the table's weight gone over the edge, big, square and pink; gums things in their home spots for good (`inPlay`, the leash `holdGum`, the puddle and wads) |
 | `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys; shown once the table is empty and the guys are gone |
 | `js/debug.js` | Debug mode: the DEBUG button, a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |

@@ -14,7 +14,7 @@ function setTable(layout) {
         placed[o.kind] = t;
     }
     addGuy(GUY_START.x, GUY_START.y);
-    resetGlue();
+    resetGum();
     resetScore();
     startTalk();
 }
@@ -198,7 +198,7 @@ function drawThings(c, dt) {
         }
         c.restore();
     }
-    pieces.push(...gluePieces());
+    pieces.push(...gumPieces());
     // stable, so things at the same height keep their level-then-list order
     pieces.map((p, i) => [p, i]).sort((a, b) => a[0].z - b[0].z || a[1] - b[1]).forEach(([p]) => {
         c.save();
