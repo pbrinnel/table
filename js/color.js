@@ -16,6 +16,8 @@ const CUP_BAND = '#b090ff';
 const GUY_SKIN = '#ffe0b0';
 const GUY_SHIRT = '#ff9090';   // the first guy's; backups wear a GUY_CAPS color
 const GUY_CAPS = ['#90e090', '#b090ff', '#ffc060', '#60c0ff'];
+const GUM = '#ff7fc0';         // bubblegum: the wad, its strands, a bubblegum soldier's body
+const GUM_PUDDLE = '#ffc6e3';  // the puddle a gummed thing sits in
 const DIALOG = '#ffffff';      // the talk box (drawn see-through, TALK_BOX_ALPHA)
 const PORTRAIT = '#ffe0b0';
 
@@ -45,6 +47,8 @@ function kindSpec(name) {
 // and skin, and his head is his black hair; each backup's shirt is a GUY_CAPS
 // color and his head the one before it.
 function guySpec(g) {
+    // a bubblegum soldier: pink body, square head (js/guy.js)
+    if (g.gum) return { fills: [GUM, GUY_SKIN], lines: {} };
     const i = guys.indexOf(g);
     const cap = i > 0 ? GUY_CAPS[(i - 1) % GUY_CAPS.length] : GUY_SKIN;
     const shirt = i > 0 ? GUY_CAPS[i % GUY_CAPS.length] : GUY_SHIRT;

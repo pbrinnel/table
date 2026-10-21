@@ -24,19 +24,17 @@ const DRAG_LEAN_EASE = 10;
 const holds = new Map();
 
 // What a press grabs: whatever's under it, or failing that, nearest round it.
-// A press anywhere on a glue soldier's big body grabs him (js/glue.js);
-// anything glued can't be grabbed.
+// A press anywhere on a bubblegum soldier's big body grabs him (js/gum.js).
 function grabAt(xMm, yMm) {
-    const soldier = glueAt(xMm, yMm);
+    const soldier = gumAt(xMm, yMm);
     if (soldier) return soldier;
-    const free = t => t && !t.glued;
     const hit = thingAt(xMm, yMm);
-    if (free(hit)) return hit;
+    if (hit) return hit;
     const r = GRAB_SLOP * MM_PER_UNIT;
     for (let i = 0; i < GRAB_REACH; i++) {
         const a = i / GRAB_REACH * Math.PI * 2;
         const near = thingAt(xMm + Math.cos(a) * r, yMm + Math.sin(a) * r);
-        if (free(near)) return near;
+        if (near) return near;
     }
     return null;
 }
@@ -62,10 +60,12 @@ function grab(e) {
     things.splice(things.indexOf(t), 1);
     things.push(t);
 
+    // a gummed thing can be tugged on its leash (holdGum in js/gum.js)
+    if (t.gummed) t.body.setDynamic();
     t.body.setAwake(true);
-    // a glue soldier grabbed anywhere on his big body is held by his middle, so
+    // a bubblegum soldier grabbed anywhere on his big body is held by his middle, so
     // he comes to the finger rather than trailing behind it
-    const hold = t.guy && t.guy.glue ? t.body.getPosition() : Vec2(p.x / 1000, p.y / 1000);
+    const hold = t.guy && t.guy.gum ? t.body.getPosition() : Vec2(p.x / 1000, p.y / 1000);
     const joint = world.createJoint(planck.MouseJoint({
         maxForce: DRAG_MAX_FORCE,
         frequencyHz: DRAG_HZ,
@@ -109,7 +109,7 @@ function dropFallen() {
     }
 }
 
-// Whatever hand has hold of t lets go (it's just been glued).
+// Whatever hand has hold of t lets go (it's just been gummed).
 function letGoOfThing(t) {
     for (const [id, joint] of holds) {
         if (joint.getBodyB() === t.body) {

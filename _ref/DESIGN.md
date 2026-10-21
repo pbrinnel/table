@@ -358,6 +358,16 @@ gets messier (dhfm91).
 - **Update (dhfm91):** no cap: a plain square head. He walks at `GLUE_PACE` (half) a
   guy's speed, so he's easy to catch.
 
+- **Update (dhfm91): bubblegum.** Glue is now bubblegum and the mechanic is "gummed"; in
+  the box he's a bubblegum soldier ("Calling BUBBLEGUM SOLDIER!"). Bubblegum is always a
+  pleasant pink (`GUM`, `GUM_PUDDLE` in `js/color.js`): his body, and every gummed thing,
+  which sits in a pink puddle pinned by `GUM_WADS` wads of gum stuck across its edge,
+  so it reads as trapped whatever its shape, even with things stacked on it. A gummed thing can be
+  grabbed again but only tugged: it moves at most `GUM_LEASH_MM` (about 5 px on a
+  laptop) from where it was gummed, never turns, sliding off its puddle, and snaps back
+  when let go. Nothing else moves it. It still counts as gone for the ending, and the
+  guys leave it alone.
+
 ## Objects
 
 - **Update (Paul):** the catalog now holds every piece of a traditional formal place

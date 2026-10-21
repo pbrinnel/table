@@ -60,7 +60,7 @@ In load order. Each declares what the ones after it use.
 | `js/drag.js` | Pointer events: grab, spring drag, release, one joint per pointer |
 | `js/guy.js` | The little guys: sharing jobs, backups arriving, grabbing and hauling, knockdowns, the end |
 | `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines, the backup call |
-| `js/glue.js` | The glue soldier: when he's called, what he glues, and the glue puddle; `inPlay()` for what's still left |
+| `js/gum.js` | The bubblegum soldier: when he's called, what he gums, the leash, and how gum is drawn; `inPlay()` for what's still left |
 | `js/score.js` | The score: counted as things go over, shown at the end |
 | `js/start.js` | Builds the table and runs the loop. Last |
 

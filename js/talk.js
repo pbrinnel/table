@@ -49,7 +49,7 @@ const TALK_BACKUPS = [
     'All hands to the table!',
 ];
 const TALK_LOST = "All is lost...";
-const TALK_SAVED = "At least we saved something...";   // in place of TALK_LOST, if anything was glued
+const TALK_SAVED = "At least we saved something...";   // in place of TALK_LOST, if anything was gummed
 const TALK_UNHAND = "Unhand me!";
 const TALK_DAMAGE = "Haven't you done enough damage?";   // with the final score
 
@@ -329,13 +329,13 @@ function callForBackup() {
 }
 
 // Nothing is left in play: the last object has gone over the edge, or the
-// rest are glued. Said once, as the guys freeze, and it replaces whatever the
-// box is showing; anything glued down is something saved. The frozen and
+// rest are gummed. Said once, as the guys freeze, and it replaces whatever the
+// box is showing; anything gummed down is something saved. The frozen and
 // looking phases in guy.js last longer than this line, so they trudge off
 // after it is gone.
 function allIsLost() {
     talkWaitingForGrab = false;
-    say(things.some(t => t.glued) ? TALK_SAVED : TALK_LOST, 'sad', TALK_LOST_TIME);
+    say(things.some(t => t.gummed) ? TALK_SAVED : TALK_LOST, 'sad', TALK_LOST_TIME);
 }
 
 function listenForTalk() {

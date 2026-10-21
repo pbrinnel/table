@@ -167,7 +167,7 @@ const GUY_FLAIL_SWING = 0.8;
 let guys = [];
 // Backups on their way: { at: guyClock time they're due, edge: where the object
 // went over, in meters, waited: whether they've already waited for cover,
-// glue: whether he's a glue soldier (js/glue.js) }
+// gum: whether he's a bubblegum soldier (js/gum.js) }
 let backups = [];
 // Objects already counted as dropped, so each one calls for backup once
 let countedDrops = new Set();
@@ -187,7 +187,7 @@ const GUY_KIND = {
     pieces: [{ circle: GUY_R_MM }],
     // t.guy is the guy this thing is, so each is drawn in his own pose
     draw(c, t) {
-        if (t.guy.glue) c.scale(GLUE_SCALE, GLUE_SCALE);
+        if (t.guy.gum) c.scale(GUM_SCALE, GUM_SCALE);
         if (isHeld(t.body)) drawGuyFlailing(c, t.guy);
         else if (t.guy.entrance) drawGuyEntrance(c, t.guy);
         else if (t.guy.down > 0) drawGuyFlat(c, t.guy);
@@ -236,11 +236,11 @@ function addGuy(xMm, yMm) {
         roamT: 0,         // seconds spent on that spot
         steerDir: null,   // the direction he chose last step, so he doesn't dither
         entrance: null,   // while he comes out from under something: see startEntrance()
-        glue: false,      // a glue soldier (js/glue.js): drawn big and square
-        glueLeft: 0,      // how many more things he can glue
-        glueJob: null,    // what he's on his way to glue
-        gluing: 0,        // seconds spent gluing it so far
-        glueSince: 0,     // his clock when he set out for it
+        gum: false,      // a bubblegum soldier (js/gum.js): drawn big and square
+        gumLeft: 0,      // how many more things he can gum
+        gumJob: null,    // what he's on his way to gum
+        gumming: 0,        // seconds spent gumming it so far
+        gumSince: 0,     // his clock when he set out for it
     };
     thing.guy = g;
     guys.push(g);
@@ -419,7 +419,7 @@ function busy(t) {
 // free, he wanders.
 function pickJob(g) {
     for (const t of things) {
-        if (!isGuy(t) && t.home && onTable(t) && isHeld(t.body)) return t;
+        if (inPlay(t) && t.home && isHeld(t.body)) return t;
     }
     let pick = null, far = 0;
     for (const t of things) {
@@ -735,17 +735,17 @@ function guyWants(g, h) {
         return leaving(g, at, h);
     }
 
-    // a glue soldier with glue left, and something to glue, glues it
-    const gluing = glueWants(g, at, h);
-    if (gluing) return gluing;
+    // a bubblegum soldier with gum left, and something to gum, gums it
+    const gumming = gumWants(g, at, h);
+    if (gumming) return gumming;
 
     // Half the slack to finish as to start, so he doesn't twitch at the
     // threshold.
     const j = g.job;
-    if (j && (!onTable(j) || j.glued || busy(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
+    if (j && (!onTable(j) || j.gummed || busy(j) || (isTidy(j, 0.5) && !isHeld(j.body)))) letGoOfJob(g);
     // drop what he's doing for anything the player has just grabbed
     if (g.job && !isHeld(g.job.body) && !g.grip) {
-        const grabbed = things.find(t => !isGuy(t) && t.home && onTable(t) && isHeld(t.body));
+        const grabbed = things.find(t => inPlay(t) && t.home && isHeld(t.body));
         if (grabbed) g.job = null;
     }
     if (!g.job) {
@@ -866,13 +866,13 @@ function noticeDrops() {
         if (!things.some(inPlay)) continue;
         callForBackup();
         backups.push({ at: guyClock + GUY_BACKUP_DELAY, edge: Vec2.clone(t.edgeAt) });
-        noticeGlue(t.edgeAt);
+        noticeGum(t.edgeAt);
     }
 }
 
 // A backup comes out from under something on the table (see chooseEntrance).
 // With nothing to come out from, he waits GUY_BACKUP_WAIT, and failing that
-// doesn't come at all. A glue soldier keeps waiting until something comes free,
+// doesn't come at all. A bubblegum soldier keeps waiting until something comes free,
 // as long as anything's left.
 function arriveBackups() {
     backups = backups.filter(b => {
@@ -880,11 +880,11 @@ function arriveBackups() {
         const how = chooseEntrance(b.edge);
         if (how) {
             const g = startEntrance(how);
-            if (b.glue) makeGlueSoldier(g);
-        } else if (!b.waited || (b.glue && things.some(inPlay))) {
+            if (b.gum) makeGumSoldier(g);
+        } else if (!b.waited || (b.gum && things.some(inPlay))) {
             // nothing free to come out from under: give something a moment to come free
             b.waited = true;
-            b.at = guyClock + (b.glue ? GLUE_DELAY : GUY_BACKUP_WAIT);
+            b.at = guyClock + (b.gum ? GUM_DELAY : GUY_BACKUP_WAIT);
             return true;
         }
         return false;
@@ -1257,7 +1257,7 @@ function stepEntrance(g, h) {
         endEntrance(g);
         return;
     }
-    E.t += h * (g.glue ? GLUE_ENTER_PACE : GUY_ENTER_PACE);
+    E.t += h * (g.gum ? GUM_ENTER_PACE : GUY_ENTER_PACE);
     if (E.kind === '1a') stepPeek(g, E); else stepNap(g, E);
     if (E.t >= (E.kind === '1a' ? peekEnds() : napEnds()).end) endEntrance(g);
 }
@@ -1315,12 +1315,12 @@ function stepGuy(g, h) {
             scoreGuy(g);
         }
         // knocked off with work still to do, he climbs back on where he went
-        // over; a glue soldier comes back as a plain backup, his glue gone
+        // over; a bubblegum soldier comes back as a plain backup, his gum gone
         if (!g.leaving && t.fall > GUY_CLIMB_TIME) {
             g.screamed = false;
-            g.glue = false;
-            g.glueLeft = 0;
-            g.glueJob = null;
+            g.gum = false;
+            g.gumLeft = 0;
+            g.gumJob = null;
             b.setTransform(standable(t.fallAt), 0);
             b.setLinearVelocity(Vec2(0, 0));
             b.setActive(true);
@@ -1377,8 +1377,8 @@ function stepGuy(g, h) {
     t.friction.setMaxTorque(0);
 
     const want = guyWants(g, h);
-    // a glue soldier is slow on his feet, so he's easy to catch
-    if (g.glue && !g.grip) want.mul(GLUE_PACE);
+    // a bubblegum soldier is slow on his feet, so he's easy to catch
+    if (g.gum && !g.grip) want.mul(GUM_PACE);
     // Boxed in on his way to a job, going nowhere: after GUY_STALL_TIME he
     // barges through for GUY_BARGE_TIME, shoving aside what's in his way.
     const speed0 = v.length();
@@ -1435,9 +1435,9 @@ function splay(c, x, y, a, len) {
 }
 
 // His body, centered at (x, 0) with half-sizes rx by ry: round, or for a
-// glue soldier a broad square block.
+// bubblegum soldier a broad square block.
 function torso(c, g, x, rx, ry) {
-    if (g.glue) c.rect(x - rx - 5, -ry - 3, (rx + 5) * 2, (ry + 3) * 2);
+    if (g.gum) c.rect(x - rx - 5, -ry - 3, (rx + 5) * 2, (ry + 3) * 2);
     else c.ellipse(x, 0, rx, ry, 0, 0, Math.PI * 2);
 }
 
@@ -1479,8 +1479,8 @@ function paperLine(c, w) {
 }
 
 function drawHead(c, x, g) {
-    if (g.glue) {
-        // a glue soldier's head is square and smaller than his body
+    if (g.gum) {
+        // a bubblegum soldier's head is square and smaller than his body
         c.beginPath();
         c.rect(x - 8, -9, 18, 18);
         inkShape(c);

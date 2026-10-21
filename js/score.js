@@ -4,7 +4,7 @@
 // game and shown once the table is empty and the last guy has gone over.
 
 const SCORE_PER_GRAM = 1.25;    // an object's points: a dinner plate (600 g) is 750
-const SCORE_GUY = 5;            // a backup, or a glue soldier, knocked off
+const SCORE_GUY = 5;            // a backup, or a bubblegum soldier, knocked off
 const SCORE_FIRST_GUY = 25;     // the first guy knocked off
 const SCORE_FADE_TIME = 1;      // seconds the score takes to fade in
 const SCORE_FONT_PX = 96;
@@ -50,7 +50,7 @@ function scoreGuy(g) {
     addScore(g === guys[0] ? SCORE_FIRST_GUY : SCORE_GUY);
 }
 
-// Whether the run is over: nothing left in play (thrown off or glued down),
+// Whether the run is over: nothing left in play (thrown off or gummed down),
 // and every guy has gone over and out of sight.
 function runOver() {
     return !things.some(inPlay)
