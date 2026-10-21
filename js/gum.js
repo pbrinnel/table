@@ -84,10 +84,13 @@ function gumAt(xMm, yMm) {
     return null;
 }
 
-// What a bubblegum soldier can gum: something in its home spot, on the table and
-// still, that nobody has hold of and no other bubblegum soldier is after.
+// What a bubblegum soldier can gum: something in its home spot, sitting on the
+// cloth itself (dhfm91: never on another piece, which could be pulled out from
+// under it and leave it hanging), still, that nobody has hold of and no other
+// bubblegum soldier is after.
 function gummable(g, t) {
-    return inPlay(t) && t.home && !busy(t) && !isHeld(t.body) && isTidy(t, 1)
+    return inPlay(t) && t.home && t.level === LEVEL_ON_CLOTH && !t.on
+        && !busy(t) && !isHeld(t.body) && isTidy(t, 1)
         && (g.sulks.get(t) || 0) <= g.clock
         && !guys.some(o => o !== g && (o.gumJob === t || o.job === t));
 }
