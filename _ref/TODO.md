@@ -103,6 +103,12 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [ ] Gummed things can be grabbed again, but held on a strict leash (about 5 px of
       movement); let go, one snaps back to where it was gummed (dhfm91)
 
+- [ ] The score screen is hard to read over gummed things left on the table: the score
+      and credits run across them. Give the text a backing or move it clear (dhfm91)
+- [ ] A prompt on the score screen to play again, something like "Press to Keep
+      Smashing". For now it resets the same table; later it leads to the next level, with
+      scores carried from level to level (dhfm91)
+
 dhfm91's priorities, in order:
 - [ ] More varied dialog: "Unhand me!" when a guy is grabbed, more "Calling for backup!"
       variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
