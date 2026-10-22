@@ -279,6 +279,22 @@ function reachToward(t, d, angle) {
     return reach;
 }
 
+// How far from its center, along d (a unit Vec2), the ray in from d's side
+// first meets one of its pieces: where a guy coming from that side actually
+// touches it. Not reachToward, which is how far the thing spreads that way: a
+// long knife spreads far along a slant it barely covers, and a guy standing
+// that far out would be holding it from thin air.
+function surfaceToward(t, d) {
+    const p = t.body.getPosition(), far = reachOf(t) + 0.01;
+    const input = { p1: Vec2.add(p, Vec2.mul(d, far)), p2: p, maxFraction: 1 };
+    let first = 1;
+    for (let f = t.body.getFixtureList(); f; f = f.getNext()) {
+        const output = {};
+        if (f.rayCast(output, input, 0)) first = Math.min(first, output.fraction);
+    }
+    return first < 1 ? far * (1 - first) : reachToward(t, d);
+}
+
 // A piece that started resting on another is put back once it's on it again,
 // wherever that one is; the bottom of a stack is put back like anything else.
 function isTidy(t, slack) {
@@ -379,7 +395,7 @@ function roomySide(g, t, want) {
         for (const sgn of i ? [1, -1] : [1]) {
             const a = base + sgn * i * Math.PI / GUY_SIDE_TRIES;
             const side = Vec2(Math.cos(a), Math.sin(a));
-            const spot = Vec2.add(p, Vec2.mul(side, reachToward(t, side) + GUY_R_MM / 1000));
+            const spot = Vec2.add(p, Vec2.mul(side, surfaceToward(t, side) + GUY_R_MM / 1000));
             if (hasRoom(g, spot, t)) return side;
         }
     }
@@ -768,7 +784,7 @@ function guyWants(g, h) {
         const want = t.homeOn && !t.on ? Vec2.sub(p, baseOf(t.homeOn).body.getPosition()) : side;
         side = roomySide(g, t, want);
     }
-    const touching = reachToward(t, side) + GUY_R_MM / 1000;
+    const touching = surfaceToward(t, side) + GUY_R_MM / 1000;
     const dist = Vec2.distance(p, goalOf(t));
 
     // Running to it counts as progress as much as hauling it does, so he
@@ -802,7 +818,8 @@ function guyWants(g, h) {
             frequencyHz: GUY_GRIP_HZ,
             dampingRatio: 0.9,
         }, cloth, t.body, edge));
-        g.hold = Vec2.mul(side, touching);
+        // where he stands, in the thing's own frame, so it turns as the thing does
+        g.hold = t.body.getLocalVector(Vec2.mul(side, touching));
         g.carry = Vec2.clone(edge);
     }
 
@@ -852,7 +869,7 @@ function guyWants(g, h) {
     g.grip.setTarget(g.carry);
     // keep pace with it, plus close whatever gap has opened
     g.steerDir = null;
-    return Vec2.add(t.body.getLinearVelocity(), walkTo(at, standable(Vec2.add(p, g.hold)), GUY_WALK_SPEED));
+    return Vec2.add(t.body.getLinearVelocity(), walkTo(at, standable(Vec2.add(p, t.body.getWorldVector(g.hold))), GUY_WALK_SPEED));
 }
 
 // Counts the objects that have gone over the edge since the last step. Each one
