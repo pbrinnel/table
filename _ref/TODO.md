@@ -145,5 +145,7 @@ Paul's ideas, October 2026 (each tried in a lab first where it's a big change):
       of gum or beat a crowd of guys, up to a limit so it can't overpower everything.
       Maybe an unlimited nudge with a cooldown instead
 - [ ] Bubblegum soldiers don't read as bubblegum: they look blocky and robotic (Paul)
+- [ ] A lab of better animations for a bubblegum soldier gumming something: candidates
+      side by side, the way `_labs/spawn.html` does arrivals (Paul)
 - [x] Guys hauling a knife held it from a guy's width away or more: they now take hold
       where they touch it (Claude, for Paul)
