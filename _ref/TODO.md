@@ -94,7 +94,7 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 
 - [ ] Score multiplier by how many guys are out on the table, so saving a big plate
       for the end is a strategy (Paul's idea)
-  - Being tried in `_labs/score.html`, with a 30 s countdown per level (Paul), before
+  - Being tried in `_labs/score.html`, with a 60 s countdown per level (Paul), before
     either goes in the game (Claude, for Paul)
 
 - [x] Glue becomes bubblegum: "gummed", "Bubblegum Soldiers" in the box, pink, wads of gum

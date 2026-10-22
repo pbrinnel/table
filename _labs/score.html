@@ -85,8 +85,12 @@
     const RECEIPT_OLDEST_ALPHA = 0.3;   // the sixth line up is this faint
     const EDGE_INSET = 70;           // how far in from the edge an at-the-edge score starts
     const EDGE_DRIFT = 45;           // and drifts further in
-    const EDGE_HOLD = 1.1;
-    const EDGE_FADE = 0.9;
+    // Scores that land together are queued (Paul): each gets QUEUE_STEP seconds
+    // to itself before the next one shows, so a big sweep plays out over a while
+    // and nothing piles on top of anything. The total counts up with them, and the
+    // end screen waits for the last.
+    const QUEUE_STEP = 1.1;
+    const EDGE_FADE = 0.3;           // the last part of an at-the-edge score's QUEUE_STEP, fading out
     const EDGE_PLUS_PX = 42;
     const EDGE_NAME_PX = 22;
     const EDGE_TOTAL_PX = 30;
@@ -112,6 +116,14 @@
     const CLEAR_BATCH = 3;
     const CLEAR_MOVING = 1.5;        // m/s: a thing already faster than this is left to go
     const STORE = 'table-lab-score';
+    const TIMER_SECONDS = 60;        // per level; the clock starts at the first grab
+    const TIMER_PX = 36;
+    const TIMER_GROW = 1.3;          // the digits grow steadily to this many times their size over the last TIMER_GROW_SECS: no blinking
+    const TIMER_GROW_SECS = 10;
+    const EDGE_MATH_PX = 18;
+    const TITLE_PX = 56;             // "Time's up!" above the score
+    const TITLE_GAP = 6;
+    const ROW_COL_PX = 3.6;          // B's middle column sits this many font sizes in from the right edge
 
     const POP_STYLES = [
         ['Now (the game today)', 'Plain +N pops, top right.'],
@@ -130,19 +142,45 @@
         ['cups', 'Cups and saucers'], ['other', 'Other'], ['guys', 'Guys'],
     ];
 
-    let popStyle = 0, endStyle = 0;
+    // ---- where a new score add or multiplier goes ----
+    // Add one entry here and it shows up in every display style, the math line and
+    // style B's rows, with its own on/off button in the panel. `make` gets the
+    // entry's context { kind: 'object' | 'guy', thing, guy, key, guysOnTable } and
+    // returns a term { label, op: 'add' | 'mult', value } or null for none. An
+    // entry's points are round((base + adds) x mults). `row` names the term's
+    // line in style B. These rules are placeholders until Paul and dhfm91 settle them.
+    const TERM_MAKERS = [
+        {
+            id: 'guys', name: 'Multiplier: guys on the table', row: 'Guys multiplier', on: true,
+            make: ctx => ({ label: 'guys', op: 'mult', value: Math.max(1, ctx.guysOnTable) }),
+        },
+    ];
+
+    // popStyle 3 is "At the edge" and endStyle 1 is "By group": Paul's favorite, 4b
+    let popStyle = 3, endStyle = 1, timerOn = true;
     try {
         const s = JSON.parse(localStorage.getItem(STORE));
         if (s && s.pop >= 0 && s.pop < POP_STYLES.length) popStyle = s.pop;
         if (s && s.end >= 0 && s.end < END_STYLES.length) endStyle = s.end;
+        if (s && typeof s.timer === 'boolean') timerOn = s.timer;
+        if (s && s.off instanceof Array) for (const m of TERM_MAKERS) if (s.off.includes(m.id)) m.on = false;
     } catch (e) { /* works without it */ }
     const remember = () => {
-        try { localStorage.setItem(STORE, JSON.stringify({ pop: popStyle, end: endStyle })); } catch (e) { /* works without it */ }
+        try {
+            localStorage.setItem(STORE, JSON.stringify({
+                pop: popStyle, end: endStyle, timer: timerOn, off: TERM_MAKERS.filter(m => !m.on).map(m => m.id),
+            }));
+        } catch (e) { /* works without it */ }
     };
 
     // ---- what the game's scoring does, written down as it happens ----
-    let ledger = [];       // { key, name, grams, rate, n, where, group, math, t, a, ry }
+    let ledger = [];       // { key, name, n, where, group, terms, math, hasExtras, base, extras, t, a, ry }
     let clearTimer = null;
+    let timerStarted = false, timeLeft = TIMER_SECONDS, timeUp = false;
+    let queueNow = 0, queueEnd = 0;   // seconds; an entry shows from its start, t counting up from there
+    const started = () => ledger.filter(e => e.t >= 0);
+    const shownTotal = () => started().reduce((sum, e) => sum + e.n, 0);
+    const queueDone = () => !ledger.length || ledger[ledger.length - 1].t >= QUEUE_STEP;
     let playFade = 1;      // the during-play display fades out as the end screen comes up
 
     const keyOf = kind => { for (const k in KINDS) if (KINDS[k] === kind) return k; return '?'; };
@@ -156,10 +194,94 @@
     };
     const commas = n => n.toLocaleString('en-US');
 
-    function logEntry(e) {
-        e.t = 0; e.a = 0; e.ry = null;
+    // ---- terms: every display reads an entry through these ----
+    const ORDER = ['base', 'add', 'mult'];
+
+    // Points, step by step: bases, then adds, then mults, rounding as it goes so the
+    // extra points each term brought always add up to the final points.
+    function settle(terms) {
+        let run = 0, prev = 0, base = 0;
+        const extras = [];
+        for (const op of ORDER) {
+            for (const term of terms.filter(t => t.op === op)) {
+                if (op === 'mult') run *= term.value; else run += term.value;
+                const cum = Math.round(run);
+                if (op === 'base') base = cum; else extras.push({ term, pts: cum - prev });
+                prev = cum;
+            }
+        }
+        return { n: prev, base, extras };
+    }
+
+    // The short math line: the base, then each add and mult that changes anything.
+    function termsMath(terms) {
+        const bases = terms.filter(t => t.op === 'base');
+        const shown = terms.filter(t => (t.op === 'add' && t.value !== 0) || (t.op === 'mult' && t.value !== 1));
+        if (!shown.length) return { text: bases.map(t => t.label).join(' + '), hasExtras: false };
+        const parts = [commas(Math.round(bases.reduce((sum, t) => sum + t.value, 0)))];
+        for (const op of ['add', 'mult']) {
+            for (const t of shown.filter(t => t.op === op)) {
+                parts.push((op === 'add' ? '+' : '×') + (op === 'add' ? commas(t.value) : t.value) + ' ' + t.label);
+            }
+        }
+        return { text: parts.join(' '), hasExtras: true };
+    }
+
+    // ctx: { kind, thing, guy, key, name, group, where, base: term }
+    function logEntry(ctx) {
+        ctx.guysOnTable = guys.filter(g => g !== ctx.guy && onTable(g.thing) && !g.leaving && !g.entrance).length;
+        const terms = [ctx.base];
+        for (const m of TERM_MAKERS) {
+            const term = m.on && m.make(ctx);
+            if (term) terms.push(Object.assign({ kind: m.row }, term));
+        }
+        const { n, base, extras } = settle(terms);
+        const m = termsMath(terms);
+        const e = { key: ctx.key, name: ctx.name, where: ctx.where, group: ctx.group, terms, n, base, extras,
+            math: m.text, hasExtras: m.hasExtras, t: 0, a: 0, ry: null };
+        e.start = Math.max(queueNow, queueEnd);
+        queueEnd = e.start + QUEUE_STEP;
         ledger.push(e);
+        addScore(n);
         scorePops[0].entry = e;
+    }
+
+    // ---- the clock ----
+    // whole seconds only, no minutes (Paul)
+    const clockText = s => String(s);
+    const secondsLeft = () => Math.ceil(timeLeft - 1e-9);
+
+    function timesUp() {
+        timeUp = true;
+        timeLeft = 0;
+        letGoOfEverything();
+        debugPaused = true;
+        if (clearTimer) { clearInterval(clearTimer); clearTimer = null; }
+    }
+
+    function tickClock(dt, over) {
+        if (!timerOn || timeUp) return;
+        if (!timerStarted && things.some(t => isHeld(t.body))) timerStarted = true;
+        if (!timerStarted || over || debugPaused) return;
+        timeLeft = Math.max(0, timeLeft - dt);
+        if (timeLeft <= 0) timesUp();
+    }
+
+    // The clock and the running total are plain text in the floor's margin above
+    // the table, out of the way, with no box (Paul): the clock at the table's
+    // left end, the total at its right, as the screen shows it.
+    function topMargin(view) {
+        const w = TABLE_W_MM / MM_PER_UNIT, h = TABLE_H_MM / MM_PER_UNIT;
+        const tw = frameTurned ? h : w, th = frameTurned ? w : h;
+        return { left: (view.w - tw) / 2, right: (view.w + tw) / 2, mid: (view.h - th) / 4 };
+    }
+
+    function drawClock(c, view) {
+        const grow = Math.min(1, Math.max(0, (TIMER_GROW_SECS - timeLeft) / TIMER_GROW_SECS));
+        const m = topMargin(view);
+        c.fillStyle = INK;
+        font(c, TIMER_PX * (1 + (TIMER_GROW - 1) * grow));
+        text(c, clockText(secondsLeft()), m.left, m.mid, 'left', 'middle');
     }
 
     function installScoring() {
@@ -167,26 +289,28 @@
         window.resetScore = () => {
             resetOrig();
             ledger = [];
+            queueEnd = 0;
+            timerStarted = false;
+            timeLeft = TIMER_SECONDS;
+            timeUp = false;
             if (clearTimer) { clearInterval(clearTimer); clearTimer = null; }
         };
         window.scoreObject = t => {
-            const n = Math.round(t.kind.mass * SCORE_PER_GRAM);
-            addScore(n);
+            if (timeUp) return;
             const key = keyOf(t.kind);
             logEntry({
-                key, name: nameOf(key), grams: t.kind.mass, rate: SCORE_PER_GRAM, n, where: t.edgeAt,
-                group: groupOf(key), math: commas(t.kind.mass) + ' g × ' + SCORE_PER_GRAM,
+                kind: 'object', thing: t, key, name: nameOf(key), where: t.edgeAt, group: groupOf(key),
+                base: { label: commas(t.kind.mass) + ' g × ' + SCORE_PER_GRAM, op: 'base', value: t.kind.mass * SCORE_PER_GRAM },
             });
         };
         window.scoreGuy = g => {
-            if (g.scored) return;
+            if (g.scored || timeUp) return;
             g.scored = true;
             const first = g === guys[0];
-            const n = first ? SCORE_FIRST_GUY : SCORE_GUY;
-            addScore(n);
             logEntry({
-                key: 'guy', name: first ? 'first guy' : g.gum ? 'bubblegum soldier' : 'backup', grams: 0, rate: 0, n,
-                where: g.thing.edgeAt, group: 'guys', math: first ? 'first guy, once' : 'flat, first time off only',
+                kind: 'guy', guy: g, key: 'guy', name: first ? 'first guy' : g.gum ? 'bubblegum soldier' : 'backup',
+                where: g.thing.edgeAt, group: 'guys',
+                base: { label: first ? 'first guy' : 'backup', op: 'base', value: first ? SCORE_FIRST_GUY : SCORE_GUY },
             });
         };
     }
@@ -211,7 +335,7 @@
     const gummedLine = n => 'Gummed: ' + n + (n === 1 ? ' thing' : ' things') + ', 0 points';
 
     // ---- during play ----
-    const boxShown = () => playFade * Math.min(1, ledger[0].t / FADE_IN);
+    const boxShown = () => playFade * Math.min(1, Math.max(0, ledger[0].t) / FADE_IN);
     function drawPlain(c, view) {
         c.fillStyle = INK;
         font(c, SCORE_POP_PX);
@@ -223,20 +347,20 @@
 
     function drawNamed(c, view) {
         c.fillStyle = INK;
-        scorePops.forEach((pop, i) => {
-            c.globalAlpha = playFade * (1 - Math.max(0, pop.t - SCORE_POP_HOLD) / SCORE_POP_FADE);
-            const y = SCORE_POP_MARGIN + i * POP_NAMED_GAP, x = view.w - SCORE_POP_MARGIN, e = pop.entry;
+        const showing = started().filter(e => e.t < QUEUE_STEP + SCORE_POP_FADE).reverse();
+        showing.forEach((e, i) => {
+            c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN) * (1 - Math.max(0, e.t - QUEUE_STEP) / SCORE_POP_FADE);
+            const y = SCORE_POP_MARGIN + i * POP_NAMED_GAP, x = view.w - SCORE_POP_MARGIN;
             font(c, POP_NAME_PX);
-            text(c, '+' + commas(pop.n) + (e ? ' ' + e.name : ''), x, y, 'right');
-            if (e) {
-                font(c, POP_MATH_PX);
-                text(c, e.math, x, y + POP_NAME_PX * 1.05, 'right');
-            }
+            text(c, '+' + commas(e.n) + ' ' + e.name, x, y, 'right');
+            font(c, POP_MATH_PX);
+            text(c, e.math, x, y + POP_NAME_PX * 1.05, 'right');
         });
     }
 
     function drawReceipt(c, view, dt) {
-        if (!ledger.length) return;
+        const lines = started();
+        if (!lines.length) return;
         const bw = RECEIPT_W, bx = view.w - MARGIN - bw, by = MARGIN;
         const rowsTop = by + RECEIPT_PAD, rowsH = RECEIPT_LINES * RECEIPT_ROW;
         const bh = RECEIPT_PAD * 2 + rowsH + 10 + RECEIPT_TOTAL_PX * 1.15;
@@ -247,7 +371,7 @@
         c.clip();
         const left = bx + RECEIPT_PAD, right = bx + bw - RECEIPT_PAD;
         for (let rank = 0; rank <= RECEIPT_LINES; rank++) {
-            const e = ledger[ledger.length - 1 - rank];
+            const e = lines[lines.length - 1 - rank];
             if (!e) break;
             const slot = rowsTop + (RECEIPT_LINES - 1 - rank) * RECEIPT_ROW;
             const want = rank >= RECEIPT_LINES ? 0 : 1 - (1 - RECEIPT_OLDEST_ALPHA) * rank / (RECEIPT_LINES - 1);
@@ -274,35 +398,41 @@
         c.fillStyle = INK;
         font(c, RECEIPT_TOTAL_PX);
         text(c, 'Total', left, ruleY + 6);
-        text(c, commas(score), right, ruleY + 6, 'right');
+        text(c, commas(shownTotal()), right, ruleY + 6, 'right');
     }
 
     function drawAtEdge(c, view) {
-        const life = EDGE_HOLD + EDGE_FADE;
+        const life = QUEUE_STEP;
         for (const e of ledger) {
-            if (e.t >= life || !e.where) continue;
+            if (e.t < 0 || e.t >= life || !e.where) continue;
             const f = toView(mmToFrame(e.where.x * 1000, e.where.y * 1000));
             const dx = view.w / 2 - f.x, dy = view.h / 2 - f.y, d = Math.hypot(dx, dy) || 1;
             const move = EDGE_INSET + EDGE_DRIFT * Math.min(1, e.t / life);
             const x = Math.max(EDGE_INSET, Math.min(view.w - EDGE_INSET, f.x + dx / d * move));
             const y = Math.max(EDGE_PLUS_PX, Math.min(view.h - TALK_MARGIN - TALK_BOX_H - EDGE_NAME_PX * 2, f.y + dy / d * move));
-            c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN) * (1 - Math.max(0, e.t - EDGE_HOLD) / EDGE_FADE);
+            c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN) * (1 - Math.max(0, e.t - (life - EDGE_FADE)) / EDGE_FADE);
             c.fillStyle = INK;
             font(c, EDGE_PLUS_PX);
             text(c, '+' + commas(e.n), x, y, 'center', 'bottom');
             font(c, EDGE_NAME_PX);
             text(c, e.name, x, y, 'center', 'top');
+            if (e.hasExtras) {
+                font(c, EDGE_MATH_PX);
+                text(c, e.math, x, y + EDGE_NAME_PX * 1.05, 'center', 'top');
+            }
         }
-        if (!ledger.length) return;
+        if (!started().length) return;
+        const m = topMargin(view);
+        c.globalAlpha = boxShown();
+        c.fillStyle = INK;
         font(c, EDGE_TOTAL_PX);
-        const s = 'Total ' + commas(score), w = c.measureText(s).width + BOX_PAD * 2, h = EDGE_TOTAL_PX * 1.1 + BOX_PAD * 2;
-        scorePanel(c, boxShown(), view.w - MARGIN - w, MARGIN, w, h);
-        text(c, s, view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD, 'right');
+        text(c, 'Total ' + commas(shownTotal()), m.right, m.mid, 'right', 'middle');
     }
 
     function drawTotalAndLast(c, view) {
-        if (!ledger.length) return;
-        const e = ledger[ledger.length - 1];
+        const lines = started();
+        if (!lines.length) return;
+        const e = lines[lines.length - 1];
         const line = '+' + commas(e.n) + ': ' + e.name + ', ' + e.math;
         const maxW = view.w - MARGIN * 2 - BOX_PAD * 2;
         let px = LAST_LINE_PX;
@@ -311,64 +441,105 @@
         if (natural > maxW) { px = Math.floor(px * maxW / natural); font(c, px); }
         const lw = c.measureText(line).width;
         font(c, LAST_TOTAL_PX);
-        const tw = c.measureText(commas(score)).width;
+        const tw = c.measureText(commas(shownTotal())).width;
         const bw = Math.max(LAST_MIN_W, lw, tw) + BOX_PAD * 2, bh = LAST_TOTAL_PX * 1.1 + px * 1.2 + BOX_PAD * 2;
         scorePanel(c, boxShown(), view.w - MARGIN - bw, MARGIN, bw, bh);
         c.fillStyle = INK;
-        text(c, commas(score), view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD, 'right');
+        text(c, commas(shownTotal()), view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD, 'right');
         c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN);
         font(c, px);
         text(c, line, view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD + LAST_TOTAL_PX * 1.1, 'right');
     }
 
     // ---- at the end ----
+    const titleH = () => timeUp ? TITLE_PX * 1.1 + TITLE_GAP : 0;
+    function drawTitle(c, cx, y) {
+        if (!timeUp) return;
+        font(c, TITLE_PX);
+        text(c, "Time's up!", cx, y, 'center');
+    }
+
     function drawEndScore(c, view, shown) {
         const s = 'Score: ' + commas(score);
+        font(c, TITLE_PX);
+        const titleW = timeUp ? c.measureText("Time's up!").width : 0;
         font(c, SCORE_FONT_PX);
-        const w = c.measureText(s).width;
-        scorePanel(c, shown, view.w / 2 - w / 2 - SCORE_PANEL_PAD, view.h / 2 - SCORE_FONT_PX * 0.55 - SCORE_PANEL_PAD,
-            w + SCORE_PANEL_PAD * 2, SCORE_FONT_PX * 1.1 + SCORE_PANEL_PAD * 2);
-        text(c, s, view.w / 2, view.h / 2, 'center', 'middle');
+        const w = Math.max(c.measureText(s).width, titleW);
+        const h = SCORE_FONT_PX * 1.1 + titleH() + SCORE_PANEL_PAD * 2, top = view.h / 2 - h / 2;
+        scorePanel(c, shown, view.w / 2 - w / 2 - SCORE_PANEL_PAD, top, w + SCORE_PANEL_PAD * 2, h);
+        drawTitle(c, view.w / 2, top + SCORE_PANEL_PAD);
+        font(c, SCORE_FONT_PX);
+        text(c, s, view.w / 2, top + SCORE_PANEL_PAD + titleH(), 'center');
     }
 
     // the band the end panels use: above the dialog box, which stays up after the score
     const endBand = view => ({ top: END_MARGIN, bottom: view.h - TALK_MARGIN - TALK_BOX_H - END_GAP });
 
-    function drawEndGroups(c, view, shown) {
+    // The least a row's font may be, in view units: FULL_MIN_PX, or FULL_MIN_REAL_PX real pixels on a small screen.
+    const minRowPx = view => Math.max(FULL_MIN_PX, FULL_MIN_REAL_PX * view.w / canvas.getBoundingClientRect().width);
+
+    // Rows are [label, middle, right]; a term kind's right column is its extra points.
+    function endRows() {
         const rows = [];
         for (const [g, label] of GROUPS) {
             const mine = ledger.filter(e => e.group === g);
             if (!mine.length) continue;
             const pieces = g === 'guys' ? String(mine.length) : mine.length + (mine.length === 1 ? ' piece' : ' pieces');
-            rows.push([label, pieces, commas(mine.reduce((sum, e) => sum + e.n, 0))]);
+            rows.push([label, pieces, commas(mine.reduce((sum, e) => sum + e.base, 0))]);
         }
+        const kinds = [];
+        for (const e of ledger) for (const x of e.extras) {
+            let k = kinds.find(k => k.name === x.term.kind);
+            if (!k) kinds.push(k = { name: x.term.kind, pts: 0 });
+            k.pts += x.pts;
+        }
+        for (const k of kinds) if (k.pts) rows.push([k.name, '', (k.pts > 0 ? '+' : '-') + commas(Math.abs(k.pts))]);
         const gum = gummedCount();
+        if (gum) rows.push(['Gummed', gum + (gum === 1 ? ' thing' : ' things'), '0']);
+        const left = things.filter(inPlay).length;
+        if (left) rows.push(['Left on the table', left + (left === 1 ? ' piece' : ' pieces'), '']);
+        if (timerOn && !timeUp) rows.push(['Time left', clockText(secondsLeft()) + ' s', '']);
+        return rows;
+    }
+
+    function drawEndGroups(c, view, shown) {
+        const rows = endRows();
         const w = Math.min(GROUP_W, view.w - END_MARGIN * 2);
-        const h = END_PAD * 2 + SCORE_FONT_PX * 1.1 + 14 + (rows.length + (gum ? 1 : 0)) * GROUP_ROW;
         const band = endBand(view);
+        const head = titleH() + SCORE_FONT_PX * 1.1 + 14;
+        // the rows (and the rule and total under them) shrink to fit above the dialog box
+        const rowsH = px => (rows.length + 1) * px * GROUP_ROW / GROUP_PX + 14;
+        const avail = band.bottom - band.top - END_PAD * 2 - head;
+        const px = Math.max(minRowPx(view), Math.min(GROUP_PX, GROUP_PX * avail / rowsH(GROUP_PX)));
+        const rowH = px * GROUP_ROW / GROUP_PX;
+        const h = END_PAD * 2 + head + rowsH(px);
         const x = view.w / 2 - w / 2, y = (band.top + band.bottom) / 2 - h / 2;
         scorePanel(c, shown, x, y, w, h);
         c.fillStyle = INK;
+        drawTitle(c, view.w / 2, y + END_PAD);
         font(c, SCORE_FONT_PX);
-        text(c, 'Score: ' + commas(score), view.w / 2, y + END_PAD, 'center');
-        let ry = y + END_PAD + SCORE_FONT_PX * 1.1 + 14;
-        font(c, GROUP_PX);
-        for (const [label, pieces, pts] of rows) {
-            text(c, label, x + END_PAD, ry);
-            text(c, pieces, x + w - END_PAD - GROUP_PX * 3.6, ry, 'right');
-            text(c, pts, x + w - END_PAD, ry, 'right');
-            ry += GROUP_ROW;
+        text(c, 'Score: ' + commas(score), view.w / 2, y + END_PAD + titleH(), 'center');
+        const left = x + END_PAD, right = x + w - END_PAD, mid = right - px * ROW_COL_PX;
+        let ry = y + END_PAD + head;
+        font(c, px);
+        for (const [label, middle, pts] of rows) {
+            text(c, label, left, ry);
+            text(c, middle, mid, ry, 'right');
+            text(c, pts, right, ry, 'right');
+            ry += rowH;
         }
-        if (gum) text(c, gummedLine(gum), x + END_PAD, ry);
+        rule(c, left, right, ry + 2);
+        ry += 14;
+        text(c, 'Total', left, ry);
+        text(c, commas(score), right, ry, 'right');
     }
 
     function drawEndFull(c, view, shown) {
         const gum = gummedCount();
         const band = endBand(view), maxH = band.bottom - band.top;
-        const perPx = view.w / canvas.getBoundingClientRect().width;
-        const minPx = Math.max(FULL_MIN_PX, FULL_MIN_REAL_PX * perPx);
+        const minPx = minRowPx(view);
         const gumH = gum ? minPx * 2 : 0;
-        const avail = maxH - END_PAD * 2 - gumH - FULL_TOTAL_PX * 1.25 - 14;
+        const avail = maxH - END_PAD * 2 - titleH() - gumH - FULL_TOTAL_PX * 1.25 - 14;
         const n = ledger.length;
         let px = Math.min(FULL_MAX_PX, avail / (Math.max(1, n) * FULL_ROW));
         let list = ledger, more = 0;
@@ -380,12 +551,13 @@
         }
         const rowH = px * FULL_ROW, rowCount = list.length + (more ? 1 : 0);
         const w = Math.min(Math.max(FULL_W, px * FULL_W_PER_PX), view.w - END_MARGIN * 2);
-        const h = END_PAD * 2 + rowCount * rowH + 14 + gumH + FULL_TOTAL_PX * 1.25;
+        const h = END_PAD * 2 + titleH() + rowCount * rowH + 14 + gumH + FULL_TOTAL_PX * 1.25;
         const x = view.w / 2 - w / 2, y = (band.top + band.bottom) / 2 - h / 2;
         scorePanel(c, shown, x, y, w, h);
         c.fillStyle = INK;
+        drawTitle(c, view.w / 2, y + END_PAD);
         const left = x + END_PAD, right = x + w - END_PAD;
-        let ry = y + END_PAD;
+        let ry = y + END_PAD + titleH();
         font(c, px);
         if (more) { text(c, '… and ' + more + ' more', left, ry); ry += rowH; }
         for (const e of list) {
@@ -411,7 +583,10 @@
             c.textBaseline = 'top';
             for (const pop of scorePops) pop.t += dt;
             scorePops = scorePops.filter(pop => pop.t < SCORE_POP_HOLD + SCORE_POP_FADE);
-            for (const e of ledger) e.t += dt;
+            queueNow += dt;
+            for (const e of ledger) e.t = queueNow - e.start;
+            const over = runOver();
+            tickClock(dt, over);
             playFade = scoreShown === null ? 1 : Math.max(0, 1 - scoreShown / SCORE_FADE_TIME);
             if (popStyle === 0) drawPlain(c, view);
             else if (popStyle === 1) drawNamed(c, view);
@@ -419,8 +594,10 @@
             else if (popStyle === 3) drawAtEdge(c, view);
             else drawTotalAndLast(c, view);
             c.globalAlpha = 1;
+            if (timerOn) drawClock(c, view);
+            c.globalAlpha = 1;
 
-            if (runOver()) {
+            if ((over || timeUp) && queueDone()) {
                 // the first guy has his last word as the score comes up
                 if (scoreShown === null) {
                     scoreShown = 0;
@@ -484,6 +661,7 @@
         add('p', 'An object scores its weight in grams × ' + SCORE_PER_GRAM + '. A guy scores ' + SCORE_FIRST_GUY
             + ' for the first guy and ' + SCORE_GUY + ' for any other, the first time he goes over only. Things saved by gum score nothing.');
         add('p', 'The credits are left out of the end screen here.');
+        add('p', 'Added here, and only a placeholder until Paul and dhfm91 settle the rules: each score is a list of terms (a base, adds, mults), and every display style reads them, so a new add or mult shows up everywhere. The first mult is the number of guys on the table, so saving a big plate for the end pays. A ' + TIMER_SECONDS + ' second clock starts at the first grab; at 0 everything stops and the end screen comes up.');
 
         const group = (title, styles, get, set, labels) => {
             add('h2', title);
@@ -501,6 +679,18 @@
         group('During play', POP_STYLES, () => popStyle, i => { popStyle = i; }, ['1', '2', '3', '4', '5']);
         group('At the end', END_STYLES, () => endStyle, i => { endStyle = i; }, ['A', 'B', 'C']);
 
+        add('h2', 'Score terms');
+        const tbox = add('div');
+        tbox.className = 'choices';
+        const toggle = (label, get, set) => {
+            const b = add('button', '', tbox);
+            const refresh = () => { b.textContent = label + ': ' + (get() ? 'on' : 'off'); b.classList.toggle('on', get()); };
+            b.addEventListener('click', () => { set(!get()); refresh(); remember(); });
+            refresh();
+        };
+        for (const m of TERM_MAKERS) toggle(m.name, () => m.on, v => { m.on = v; });
+        toggle('Timer (' + TIMER_SECONDS + ' s)', () => timerOn, v => { timerOn = v; });
+
         add('h2', 'Try it');
         const box = add('div');
         box.className = 'choices';
@@ -508,7 +698,7 @@
         button('Knock something off', knockSomething);
         button('Knock a guy off', knockGuy);
         button('Clear the table', clearTable);
-        button('Reset table', () => setTable(TEST_LAYOUT));
+        button('Reset table', () => { setTable(TEST_LAYOUT); debugPaused = false; });
     }
 
     async function loadGame() {
