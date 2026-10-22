@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>score</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { background: #fff; overflow: hidden; overscroll-behavior: none; }
+
+    /* the right margin leaves the panel's column free; js/frame.js fits the
+       table into what the body has left */
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        padding: 20px;
+        margin-right: 300px;
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    @font-face {
+        font-family: "Patrick Hand";
+        src: url("../fonts/patrick-hand-latin-400-normal.woff2") format("woff2");
+        font-display: block;
+    }
+
+    #stage { display: block; touch-action: none; max-width: 100%; }
+
+    #panel {
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: 300px;
+        overflow-y: auto;
+        padding: 14px;
+        background: #f4f4f4;
+        border-left: 1px solid #000;
+        font: 18px/1.25 "Patrick Hand", sans-serif;
+        color: #000;
+    }
+    #panel h2 { font-size: 18px; font-weight: normal; margin: 14px 0 4px; text-decoration: underline; }
+    #panel h2:first-child { margin-top: 0; }
+    #panel p { margin: 6px 0; }
+    .choices { display: flex; flex-direction: column; gap: 4px; }
+    .choices button { font: inherit; text-align: left; padding: 4px 8px; border: 2px solid #000; background: #fff; color: #000; cursor: pointer; }
+    .choices button.on { background: #000; color: #fff; }
+
+    /* a phone held upright: the panel moves under the table */
+    @media (max-width: 700px) {
+        body { margin-right: 0; min-height: 60vh; height: 60vh; }
+        #panel { top: auto; left: 0; width: auto; height: 40vh; border-left: 0; border-top: 1px solid #000; }
+    }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="panel"></div>
+
+<script>
+// A mock-up, not part of the game: the real game runs as it is, and this page
+// replaces the score's functions after load to compare ways of showing how the
+// score adds up. The rules (what scores what) are js/score.js's, untouched.
+(() => {
+    // ---- feel numbers ----
+    const MARGIN = 24;               // from the top and right edges of the view
+    const POP_NAMED_GAP = 60;        // between stacked named pops (a name line and a math line each)
+    const POP_NAME_PX = 34;
+    const POP_MATH_PX = 19;
+    const FADE_IN = 0.35;            // seconds a new thing takes to fade in: nothing blinks
+    const EASE_RATE = 5;             // how fast receipt lines slide and fade toward their place, per second
+    const RECEIPT_LINES = 6;
+    const RECEIPT_W = 330;
+    const RECEIPT_PAD = 12;
+    const RECEIPT_ROW = 50;
+    const RECEIPT_NAME_PX = 23;
+    const RECEIPT_MATH_PX = 16;
+    const RECEIPT_TOTAL_PX = 32;
+    const RECEIPT_OLDEST_ALPHA = 0.3;   // the sixth line up is this faint
+    const EDGE_INSET = 70;           // how far in from the edge an at-the-edge score starts
+    const EDGE_DRIFT = 45;           // and drifts further in
+    const EDGE_HOLD = 1.1;
+    const EDGE_FADE = 0.9;
+    const EDGE_PLUS_PX = 42;
+    const EDGE_NAME_PX = 22;
+    const EDGE_TOTAL_PX = 30;
+    const BOX_PAD = 12;
+    const LAST_TOTAL_PX = 58;
+    const LAST_LINE_PX = 21;
+    const LAST_MIN_W = 300;
+    const END_MARGIN = 30;           // from the view's top and bottom
+    const END_GAP = 12;              // between an end panel and the dialog box under it
+    const END_PAD = 24;
+    const GROUP_PX = 30;
+    const GROUP_ROW = 40;
+    const GROUP_W = 540;
+    const FULL_W = 520;
+    const FULL_W_PER_PX = 26;        // the panel is at least this many font sizes wide
+    const FULL_MAX_PX = 26;
+    const FULL_MIN_PX = 14;
+    const FULL_MIN_REAL_PX = 10;     // on a small screen the least that is, in real pixels, so a phone can read it
+    const FULL_ROW = 1.3;            // row height as a multiple of the font size
+    const FULL_TOTAL_PX = 44;
+    const KNOCK_SPEED = 3;           // m/s toward the nearest edge
+    const CLEAR_EVERY = 100;         // ms between batches
+    const CLEAR_BATCH = 3;
+    const CLEAR_MOVING = 1.5;        // m/s: a thing already faster than this is left to go
+    const STORE = 'table-lab-score';
+
+    const POP_STYLES = [
+        ['Now (the game today)', 'Plain +N pops, top right.'],
+        ['Named', '+N and the name, with the math under.'],
+        ['Running receipt', 'A check in the corner: last lines and the total.'],
+        ['At the edge', 'The score where the thing went over.'],
+        ['Total and last', 'The total, and the last score in a line.'],
+    ];
+    const END_STYLES = [
+        ['Score only (today)', 'The centered Score.'],
+        ['By group', 'Score, then a line per group.'],
+        ['Full receipt', 'Every line, in the order they went over.'],
+    ];
+    const GROUPS = [
+        ['plates', 'Plates'], ['cutlery', 'Cutlery'], ['glasses', 'Glasses'],
+        ['cups', 'Cups and saucers'], ['other', 'Other'], ['guys', 'Guys'],
+    ];
+
+    let popStyle = 0, endStyle = 0;
+    try {
+        const s = JSON.parse(localStorage.getItem(STORE));
+        if (s && s.pop >= 0 && s.pop < POP_STYLES.length) popStyle = s.pop;
+        if (s && s.end >= 0 && s.end < END_STYLES.length) endStyle = s.end;
+    } catch (e) { /* works without it */ }
+    const remember = () => {
+        try { localStorage.setItem(STORE, JSON.stringify({ pop: popStyle, end: endStyle })); } catch (e) { /* works without it */ }
+    };
+
+    // ---- what the game's scoring does, written down as it happens ----
+    let ledger = [];       // { key, name, grams, rate, n, where, group, math, t, a, ry }
+    let clearTimer = null;
+    let playFade = 1;      // the during-play display fades out as the end screen comes up
+
+    const keyOf = kind => { for (const k in KINDS) if (KINDS[k] === kind) return k; return '?'; };
+    const nameOf = key => TALK_NAMES[key] || key.replace(/([A-Z])/g, ' $1').toLowerCase();
+    const groupOf = key => {
+        if (/fork|knife|spoon/i.test(key)) return 'cutlery';
+        if (/plate|charger/i.test(key)) return 'plates';
+        if (/glass|goblet|flute/i.test(key)) return 'glasses';
+        if (/cup|saucer/i.test(key)) return 'cups';
+        return 'other';
+    };
+    const commas = n => n.toLocaleString('en-US');
+
+    function logEntry(e) {
+        e.t = 0; e.a = 0; e.ry = null;
+        ledger.push(e);
+        scorePops[0].entry = e;
+    }
+
+    function installScoring() {
+        const resetOrig = window.resetScore;
+        window.resetScore = () => {
+            resetOrig();
+            ledger = [];
+            if (clearTimer) { clearInterval(clearTimer); clearTimer = null; }
+        };
+        window.scoreObject = t => {
+            const n = Math.round(t.kind.mass * SCORE_PER_GRAM);
+            addScore(n);
+            const key = keyOf(t.kind);
+            logEntry({
+                key, name: nameOf(key), grams: t.kind.mass, rate: SCORE_PER_GRAM, n, where: t.edgeAt,
+                group: groupOf(key), math: commas(t.kind.mass) + ' g × ' + SCORE_PER_GRAM,
+            });
+        };
+        window.scoreGuy = g => {
+            if (g.scored) return;
+            g.scored = true;
+            const first = g === guys[0];
+            const n = first ? SCORE_FIRST_GUY : SCORE_GUY;
+            addScore(n);
+            logEntry({
+                key: 'guy', name: first ? 'first guy' : g.gum ? 'bubblegum soldier' : 'backup', grams: 0, rate: 0, n,
+                where: g.thing.edgeAt, group: 'guys', math: first ? 'first guy, once' : 'flat, first time off only',
+            });
+        };
+    }
+
+    // ---- drawing helpers ----
+    const toView = p => frameTurned ? { x: LH - p.y, y: p.x } : { x: p.x, y: p.y };
+    const font = (c, px) => { c.font = px + 'px "Patrick Hand"'; };
+    const text = (c, s, x, y, align, base) => {
+        c.textAlign = align || 'left';
+        c.textBaseline = base || 'top';
+        c.fillText(s, x, y);
+    };
+    const rule = (c, x0, x1, y) => {
+        c.lineWidth = LINE_WIDTH;
+        c.strokeStyle = INK;
+        c.beginPath();
+        c.moveTo(x0, y);
+        c.lineTo(x1, y);
+        c.stroke();
+    };
+    const gummedCount = () => things.filter(t => !isGuy(t) && onTable(t) && t.gummed).length;
+    const gummedLine = n => 'Gummed: ' + n + (n === 1 ? ' thing' : ' things') + ', 0 points';
+
+    // ---- during play ----
+    const boxShown = () => playFade * Math.min(1, ledger[0].t / FADE_IN);
+    function drawPlain(c, view) {
+        c.fillStyle = INK;
+        font(c, SCORE_POP_PX);
+        scorePops.forEach((pop, i) => {
+            c.globalAlpha = playFade * (1 - Math.max(0, pop.t - SCORE_POP_HOLD) / SCORE_POP_FADE);
+            text(c, '+' + commas(pop.n), view.w - SCORE_POP_MARGIN, SCORE_POP_MARGIN + i * SCORE_POP_GAP, 'right');
+        });
+    }
+
+    function drawNamed(c, view) {
+        c.fillStyle = INK;
+        scorePops.forEach((pop, i) => {
+            c.globalAlpha = playFade * (1 - Math.max(0, pop.t - SCORE_POP_HOLD) / SCORE_POP_FADE);
+            const y = SCORE_POP_MARGIN + i * POP_NAMED_GAP, x = view.w - SCORE_POP_MARGIN, e = pop.entry;
+            font(c, POP_NAME_PX);
+            text(c, '+' + commas(pop.n) + (e ? ' ' + e.name : ''), x, y, 'right');
+            if (e) {
+                font(c, POP_MATH_PX);
+                text(c, e.math, x, y + POP_NAME_PX * 1.05, 'right');
+            }
+        });
+    }
+
+    function drawReceipt(c, view, dt) {
+        if (!ledger.length) return;
+        const bw = RECEIPT_W, bx = view.w - MARGIN - bw, by = MARGIN;
+        const rowsTop = by + RECEIPT_PAD, rowsH = RECEIPT_LINES * RECEIPT_ROW;
+        const bh = RECEIPT_PAD * 2 + rowsH + 10 + RECEIPT_TOTAL_PX * 1.15;
+        scorePanel(c, boxShown(), bx, by, bw, bh);
+        c.save();
+        c.beginPath();
+        c.rect(bx, rowsTop, bw, rowsH);
+        c.clip();
+        const left = bx + RECEIPT_PAD, right = bx + bw - RECEIPT_PAD;
+        for (let rank = 0; rank <= RECEIPT_LINES; rank++) {
+            const e = ledger[ledger.length - 1 - rank];
+            if (!e) break;
+            const slot = rowsTop + (RECEIPT_LINES - 1 - rank) * RECEIPT_ROW;
+            const want = rank >= RECEIPT_LINES ? 0 : 1 - (1 - RECEIPT_OLDEST_ALPHA) * rank / (RECEIPT_LINES - 1);
+            if (e.ry === null) e.ry = slot + RECEIPT_ROW * 0.6;
+            const k = Math.min(1, dt * EASE_RATE);
+            e.ry += (slot - e.ry) * k;
+            e.a += (want - e.a) * k;
+            c.globalAlpha = e.a * playFade;
+            c.fillStyle = INK;
+            font(c, RECEIPT_NAME_PX);
+            const pts = commas(e.n), pw = c.measureText(pts).width, nw = c.measureText(e.name).width;
+            text(c, e.name, left, e.ry);
+            text(c, pts, right, e.ry, 'right');
+            const dotW = c.measureText('.').width;
+            const dots = Math.floor((right - left - nw - pw - 14) / dotW);
+            if (dots > 0) text(c, '.'.repeat(dots), left + nw + 6, e.ry);
+            font(c, RECEIPT_MATH_PX);
+            text(c, e.math, left, e.ry + RECEIPT_NAME_PX * 1.05);
+        }
+        c.restore();
+        c.globalAlpha = boxShown();
+        const ruleY = rowsTop + rowsH + 4;
+        rule(c, left, right, ruleY);
+        c.fillStyle = INK;
+        font(c, RECEIPT_TOTAL_PX);
+        text(c, 'Total', left, ruleY + 6);
+        text(c, commas(score), right, ruleY + 6, 'right');
+    }
+
+    function drawAtEdge(c, view) {
+        const life = EDGE_HOLD + EDGE_FADE;
+        for (const e of ledger) {
+            if (e.t >= life || !e.where) continue;
+            const f = toView(mmToFrame(e.where.x * 1000, e.where.y * 1000));
+            const dx = view.w / 2 - f.x, dy = view.h / 2 - f.y, d = Math.hypot(dx, dy) || 1;
+            const move = EDGE_INSET + EDGE_DRIFT * Math.min(1, e.t / life);
+            const x = Math.max(EDGE_INSET, Math.min(view.w - EDGE_INSET, f.x + dx / d * move));
+            const y = Math.max(EDGE_PLUS_PX, Math.min(view.h - TALK_MARGIN - TALK_BOX_H - EDGE_NAME_PX * 2, f.y + dy / d * move));
+            c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN) * (1 - Math.max(0, e.t - EDGE_HOLD) / EDGE_FADE);
+            c.fillStyle = INK;
+            font(c, EDGE_PLUS_PX);
+            text(c, '+' + commas(e.n), x, y, 'center', 'bottom');
+            font(c, EDGE_NAME_PX);
+            text(c, e.name, x, y, 'center', 'top');
+        }
+        if (!ledger.length) return;
+        font(c, EDGE_TOTAL_PX);
+        const s = 'Total ' + commas(score), w = c.measureText(s).width + BOX_PAD * 2, h = EDGE_TOTAL_PX * 1.1 + BOX_PAD * 2;
+        scorePanel(c, boxShown(), view.w - MARGIN - w, MARGIN, w, h);
+        text(c, s, view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD, 'right');
+    }
+
+    function drawTotalAndLast(c, view) {
+        if (!ledger.length) return;
+        const e = ledger[ledger.length - 1];
+        const line = '+' + commas(e.n) + ': ' + e.name + ', ' + e.math;
+        const maxW = view.w - MARGIN * 2 - BOX_PAD * 2;
+        let px = LAST_LINE_PX;
+        font(c, px);
+        const natural = c.measureText(line).width;
+        if (natural > maxW) { px = Math.floor(px * maxW / natural); font(c, px); }
+        const lw = c.measureText(line).width;
+        font(c, LAST_TOTAL_PX);
+        const tw = c.measureText(commas(score)).width;
+        const bw = Math.max(LAST_MIN_W, lw, tw) + BOX_PAD * 2, bh = LAST_TOTAL_PX * 1.1 + px * 1.2 + BOX_PAD * 2;
+        scorePanel(c, boxShown(), view.w - MARGIN - bw, MARGIN, bw, bh);
+        c.fillStyle = INK;
+        text(c, commas(score), view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD, 'right');
+        c.globalAlpha = playFade * Math.min(1, e.t / FADE_IN);
+        font(c, px);
+        text(c, line, view.w - MARGIN - BOX_PAD, MARGIN + BOX_PAD + LAST_TOTAL_PX * 1.1, 'right');
+    }
+
+    // ---- at the end ----
+    function drawEndScore(c, view, shown) {
+        const s = 'Score: ' + commas(score);
+        font(c, SCORE_FONT_PX);
+        const w = c.measureText(s).width;
+        scorePanel(c, shown, view.w / 2 - w / 2 - SCORE_PANEL_PAD, view.h / 2 - SCORE_FONT_PX * 0.55 - SCORE_PANEL_PAD,
+            w + SCORE_PANEL_PAD * 2, SCORE_FONT_PX * 1.1 + SCORE_PANEL_PAD * 2);
+        text(c, s, view.w / 2, view.h / 2, 'center', 'middle');
+    }
+
+    // the band the end panels use: above the dialog box, which stays up after the score
+    const endBand = view => ({ top: END_MARGIN, bottom: view.h - TALK_MARGIN - TALK_BOX_H - END_GAP });
+
+    function drawEndGroups(c, view, shown) {
+        const rows = [];
+        for (const [g, label] of GROUPS) {
+            const mine = ledger.filter(e => e.group === g);
+            if (!mine.length) continue;
+            const pieces = g === 'guys' ? String(mine.length) : mine.length + (mine.length === 1 ? ' piece' : ' pieces');
+            rows.push([label, pieces, commas(mine.reduce((sum, e) => sum + e.n, 0))]);
+        }
+        const gum = gummedCount();
+        const w = Math.min(GROUP_W, view.w - END_MARGIN * 2);
+        const h = END_PAD * 2 + SCORE_FONT_PX * 1.1 + 14 + (rows.length + (gum ? 1 : 0)) * GROUP_ROW;
+        const band = endBand(view);
+        const x = view.w / 2 - w / 2, y = (band.top + band.bottom) / 2 - h / 2;
+        scorePanel(c, shown, x, y, w, h);
+        c.fillStyle = INK;
+        font(c, SCORE_FONT_PX);
+        text(c, 'Score: ' + commas(score), view.w / 2, y + END_PAD, 'center');
+        let ry = y + END_PAD + SCORE_FONT_PX * 1.1 + 14;
+        font(c, GROUP_PX);
+        for (const [label, pieces, pts] of rows) {
+            text(c, label, x + END_PAD, ry);
+            text(c, pieces, x + w - END_PAD - GROUP_PX * 3.6, ry, 'right');
+            text(c, pts, x + w - END_PAD, ry, 'right');
+            ry += GROUP_ROW;
+        }
+        if (gum) text(c, gummedLine(gum), x + END_PAD, ry);
+    }
+
+    function drawEndFull(c, view, shown) {
+        const gum = gummedCount();
+        const band = endBand(view), maxH = band.bottom - band.top;
+        const perPx = view.w / canvas.getBoundingClientRect().width;
+        const minPx = Math.max(FULL_MIN_PX, FULL_MIN_REAL_PX * perPx);
+        const gumH = gum ? minPx * 2 : 0;
+        const avail = maxH - END_PAD * 2 - gumH - FULL_TOTAL_PX * 1.25 - 14;
+        const n = ledger.length;
+        let px = Math.min(FULL_MAX_PX, avail / (Math.max(1, n) * FULL_ROW));
+        let list = ledger, more = 0;
+        if (px < minPx) {
+            px = minPx;
+            const fit = Math.max(2, Math.floor(avail / (px * FULL_ROW)));
+            more = n - (fit - 1);
+            list = ledger.slice(more);
+        }
+        const rowH = px * FULL_ROW, rowCount = list.length + (more ? 1 : 0);
+        const w = Math.min(Math.max(FULL_W, px * FULL_W_PER_PX), view.w - END_MARGIN * 2);
+        const h = END_PAD * 2 + rowCount * rowH + 14 + gumH + FULL_TOTAL_PX * 1.25;
+        const x = view.w / 2 - w / 2, y = (band.top + band.bottom) / 2 - h / 2;
+        scorePanel(c, shown, x, y, w, h);
+        c.fillStyle = INK;
+        const left = x + END_PAD, right = x + w - END_PAD;
+        let ry = y + END_PAD;
+        font(c, px);
+        if (more) { text(c, '… and ' + more + ' more', left, ry); ry += rowH; }
+        for (const e of list) {
+            font(c, px);
+            text(c, e.name, left, ry);
+            text(c, commas(e.n), right, ry, 'right');
+            font(c, px * 0.8);
+            text(c, e.math, right - px * 3.6, ry + px * 0.1, 'right');
+            ry += rowH;
+        }
+        rule(c, left, right, ry + 4);
+        ry += 14;
+        if (gum) { font(c, px); text(c, gummedLine(gum), left, ry); ry += gumH; }
+        font(c, FULL_TOTAL_PX);
+        text(c, 'Total', left, ry);
+        text(c, commas(score), right, ry, 'right');
+    }
+
+    function installDrawing() {
+        window.drawScore = (c, dt) => {
+            c.save();
+            const view = uprightView(c);
+            c.textBaseline = 'top';
+            for (const pop of scorePops) pop.t += dt;
+            scorePops = scorePops.filter(pop => pop.t < SCORE_POP_HOLD + SCORE_POP_FADE);
+            for (const e of ledger) e.t += dt;
+            playFade = scoreShown === null ? 1 : Math.max(0, 1 - scoreShown / SCORE_FADE_TIME);
+            if (popStyle === 0) drawPlain(c, view);
+            else if (popStyle === 1) drawNamed(c, view);
+            else if (popStyle === 2) drawReceipt(c, view, dt);
+            else if (popStyle === 3) drawAtEdge(c, view);
+            else drawTotalAndLast(c, view);
+            c.globalAlpha = 1;
+
+            if (runOver()) {
+                // the first guy has his last word as the score comes up
+                if (scoreShown === null) {
+                    scoreShown = 0;
+                    say(TALK_DAMAGE, 'sad', null);
+                }
+                scoreShown += dt;
+                const shown = Math.min(1, scoreShown / SCORE_FADE_TIME);
+                if (endStyle === 0) drawEndScore(c, view, shown);
+                else if (endStyle === 1) drawEndGroups(c, view, shown);
+                else drawEndFull(c, view, shown);
+            }
+            c.restore();
+        };
+    }
+
+    // ---- knocking things off ----
+    function knock(t) {
+        const p = t.body.getPosition();
+        const hw = TABLE_W_MM / 2000, hh = TABLE_H_MM / 2000;
+        const v = hw - Math.abs(p.x) < hh - Math.abs(p.y) ? planck.Vec2(Math.sign(p.x) || 1, 0) : planck.Vec2(0, Math.sign(p.y) || 1);
+        t.body.setAwake(true);
+        t.body.setLinearVelocity(planck.Vec2(v.x * KNOCK_SPEED, v.y * KNOCK_SPEED));
+    }
+    const pick = list => list[Math.floor(Math.random() * list.length)];
+    function knockSomething() {
+        const all = things.filter(inPlay);
+        if (!all.length) return;
+        const cloth = all.filter(t => !t.on);
+        knock(pick(cloth.length ? cloth : all));
+    }
+    function knockGuy() {
+        const on = guys.filter(g => onTable(g.thing));
+        if (on.length) knock(pick(on).thing);
+    }
+    function clearTable() {
+        if (clearTimer) clearInterval(clearTimer);
+        clearTimer = setInterval(() => {
+            // topmost first, so a stack comes down level by level
+            const rest = things.filter(t => inPlay(t) && t.drop === undefined).sort((a, b) => b.level - a.level);
+            if (things.some(inPlay)) {
+                rest.filter(t => t.body.getLinearVelocity().length() < CLEAR_MOVING).slice(0, CLEAR_BATCH).forEach(knock);
+                return;
+            }
+            guys.filter(g => onTable(g.thing)).forEach(g => knock(g.thing));
+            clearInterval(clearTimer);
+            clearTimer = null;
+        }, CLEAR_EVERY);
+    }
+
+    // ---- the panel ----
+    function buildPanel() {
+        const panel = document.getElementById('panel');
+        const add = (tag, s, parent) => {
+            const el = document.createElement(tag);
+            if (s) el.textContent = s;
+            (parent || panel).appendChild(el);
+            return el;
+        };
+        add('h2', 'About');
+        add('p', 'The real game, with different ways to show where the score comes from. Nothing about what scores what changes.');
+        add('p', 'An object scores its weight in grams × ' + SCORE_PER_GRAM + '. A guy scores ' + SCORE_FIRST_GUY
+            + ' for the first guy and ' + SCORE_GUY + ' for any other, the first time he goes over only. Things saved by gum score nothing.');
+        add('p', 'The credits are left out of the end screen here.');
+
+        const group = (title, styles, get, set, labels) => {
+            add('h2', title);
+            const box = add('div');
+            box.className = 'choices';
+            const buttons = styles.map(([name, note], i) => {
+                const b = add('button', labels[i] + '. ' + name, box);
+                b.title = note;
+                b.addEventListener('click', () => { set(i); refresh(); remember(); });
+                return b;
+            });
+            const refresh = () => buttons.forEach((b, i) => b.classList.toggle('on', i === get()));
+            refresh();
+        };
+        group('During play', POP_STYLES, () => popStyle, i => { popStyle = i; }, ['1', '2', '3', '4', '5']);
+        group('At the end', END_STYLES, () => endStyle, i => { endStyle = i; }, ['A', 'B', 'C']);
+
+        add('h2', 'Try it');
+        const box = add('div');
+        box.className = 'choices';
+        const button = (label, fn) => add('button', label, box).addEventListener('click', fn);
+        button('Knock something off', knockSomething);
+        button('Knock a guy off', knockGuy);
+        button('Clear the table', clearTable);
+        button('Reset table', () => setTable(TEST_LAYOUT));
+    }
+
+    async function loadGame() {
+        const html = await (await fetch('../index.html')).text();
+        const srcs = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m => m[1].replace(/\?v=.*$/, ''));
+        const texts = await Promise.all(srcs.map(async s => {
+            const r = await fetch('../' + s);
+            if (!r.ok) throw new Error(s + ': ' + r.status);
+            return r.text();
+        }));
+        srcs.forEach((s, i) => {
+            const el = document.createElement('script');
+            el.textContent = texts[i];
+            document.body.appendChild(el);
+        });
+    }
+
+    loadGame().then(() => {
+        document.fonts.load('20px "Patrick Hand"');
+        installScoring();
+        installDrawing();
+        buildPanel();
+    }).catch(e => {
+        document.getElementById('panel').textContent = (location.protocol === 'file:' ? 'Labs need the local server: double-click _labs-mac.command (or _labs-windows.bat on Windows) in the repo folder.' : 'Failed to load the game: ' + e.message);
+    });
+})();
+</script>
+</body>
+</html>

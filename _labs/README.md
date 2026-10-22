@@ -23,6 +23,9 @@ Dev tools that never reach the site: slider pages for tuning, test pages, build 
   rest under a collapsed UNUSED), each looping in its own
   panel with replay, speed and a scrub slider. Its guy drawing is a copy of
   `js/guy.js`'s, so keep the two in step.
+- `score.html`: the real game with five ways to show each score as it comes and three end
+  screens, to compare how clearly the total's math is shown. A mock-up only: it replaces the
+  score's functions at runtime and leaves the rules in `js/score.js` alone.
 
 A lab that loads the game's files should reach them with `../js/...` and must never post to
 a live server: stub `window.fetch` once there is one.
