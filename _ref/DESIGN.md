@@ -348,7 +348,8 @@ gets messier (dhfm91).
   screen's total, a button: "Continue?" after a cleared table, "Play Again?" once time's
   up. One level for now, so both set out a fresh table from nothing; with levels,
   "Continue?" will lead to the next one with the score carried. It answers a press, Enter
-  or Space, but only once the end screen has fully come up.
+  or Space, but only once the end screen has fully come up. Under the pointer it's filled
+  with ink, its words in paper, and the cursor is a hand.
 
 ## The clock (Paul)
 

@@ -91,6 +91,7 @@ let scoreQueueEnd = 0;   // when the last queued score has had its turn
 let scoreTableDone = false; // the table's end scores (bonus, gum) are in
 let levelsDone = 0;      // levels completed earlier this game: none until there are levels to go on to
 let scoreButton = null;  // the end screen's button, in upright view units, while it's drawn
+let scoreHover = false;  // the pointer is over it: it's drawn inked in, answering
 
 function resetScore() {
     score = 0;
@@ -99,6 +100,8 @@ function resetScore() {
     scoreQueueEnd = 0;
     scoreTableDone = false;
     scoreButton = null;
+    scoreHover = false;
+    canvas.style.cursor = '';
 }
 
 const scoreSigned = n => (n < 0 ? '−' : '+') + scoreCommas(Math.abs(n));
@@ -349,8 +352,12 @@ function drawEndScore(c, view, shown) {
     c.font = SCORE_BUTTON_PX + 'px "Patrick Hand"';
     const bw = c.measureText(label).width + SCORE_BUTTON_PAD * 2;
     const bx = view.w / 2 - bw / 2, by = ry + rowH + SCORE_BUTTON_GAP;
+    // under the pointer it's filled with ink and the words go paper, like a
+    // pressed key
     c.lineWidth = LINE_WIDTH;
+    if (scoreHover) c.fillRect(bx, by, bw, buttonH);
     c.strokeRect(bx, by, bw, buttonH);
+    c.fillStyle = scoreHover ? DIALOG : INK;
     scoreText(c, label, SCORE_BUTTON_PX, view.w / 2, by + buttonH / 2, 'center', 'middle');
     scoreButton = { x: bx, y: by, w: bw, h: buttonH };
 }
@@ -373,6 +380,14 @@ function playOn() {
 }
 
 function listenForScore() {
+    canvas.addEventListener('pointermove', e => {
+        scoreHover = scoreButtonHit(e.clientX, e.clientY);
+        canvas.style.cursor = scoreHover ? 'pointer' : '';
+    });
+    canvas.addEventListener('pointerleave', () => {
+        scoreHover = false;
+        canvas.style.cursor = '';
+    });
     addEventListener('keydown', e => {
         if ((e.key === 'Enter' || e.key === ' ') && scoreButton && scoreShown >= SCORE_FADE_TIME) {
             e.preventDefault();
