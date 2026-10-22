@@ -242,6 +242,14 @@ The same design as Paul's earlier games (`fourkeys`):
 - Check it on a phone-sized window as well as a desktop one, both orientations.
 - Claude uses headless browsers only, for screenshots and test runs. No visible browser
   windows unless asked.
+- Those headless runs use `chrome-headless-shell`, never the person's own Chrome. A
+  headless copy of Google Chrome, even with its own profile, counts to the computer as
+  Chrome running: while it's up, clicking the Dock icon or a link goes to it, and the
+  person's Chrome opens no windows. Install it once, outside the repo (it's a download,
+  so ask first), with
+  `npx --yes @puppeteer/browsers install chrome-headless-shell@stable --path ~/.cache/chrome-headless-shell`.
+  That prints the binary's path; it takes the usual `--remote-debugging-port` and
+  `--user-data-dir` flags and is always headless. Give subagents the path in their brief.
 - Headless Chrome won't make a window narrower than about 500px, so a 390px screenshot is
   really a cropped 500px page. For phone widths, load the page in an `<iframe>` of the
   phone's size and screenshot that.
