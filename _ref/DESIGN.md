@@ -377,6 +377,8 @@ gets messier (dhfm91).
   laptop) from where it was gummed, never turns, sliding off its puddle, and snaps back
   when let go. Nothing else moves it. It still counts as gone for the ending, and the
   guys leave it alone.
+  - **Update (Paul):** the leash is three times as long, `GUM_LEASH_MM` 27 mm (about
+    15 px on a laptop), so a tug is plain to see. It has a slider on `_labs/tune.html`.
 - **Update (dhfm91):** he only gums things sitting on the cloth itself (a charger, a
   saucer, cutlery, glasses), never a piece resting on another: pulled out from under
   it, its support would leave it hanging in midair. Things on top of a gummed piece can

@@ -22,7 +22,7 @@ const GUM_TALK_TIME = 2;              // seconds the line stays once fully typed
 const GUM_DELAY = 0.25;               // seconds from the call to his coming out, and between tries for cover
 const GUM_ENTER_PACE = 5;             // how many times faster than a backup's his way out is
 const GUM_LINE = 'Calling BUBBLEGUM SOLDIER!';
-const GUM_LEASH_MM = 9;               // how far a gummed thing can be pulled: about 5 px on a laptop
+const GUM_LEASH_MM = 27;              // how far a gummed thing can be pulled (Paul: room to see it give)
 // how a gummed thing looks: a puddle under it, wads stuck over its edge
 const GUM_SPILL_MM = 7;               // how far the puddle spreads past the thing's outline
 const GUM_WOBBLE_MM = 1.5;            // how uneven its edge is
