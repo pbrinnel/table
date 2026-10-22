@@ -22,13 +22,19 @@ const GUM_TALK_TIME = 2;              // seconds the line stays once fully typed
 const GUM_DELAY = 0.25;               // seconds from the call to his coming out, and between tries for cover
 const GUM_ENTER_PACE = 5;             // how many times faster than a backup's his way out is
 const GUM_LINE = 'Calling BUBBLEGUM SOLDIER!';
-const GUM_LEASH_MM = 27;              // how far a gummed thing can be pulled (Paul: room to see it give)
+const GUM_LEASH_MM = 20;              // how far a gummed thing can be pulled (Paul: room to see it give)
 // how a gummed thing looks: a puddle under it, wads stuck over its edge
 const GUM_SPILL_MM = 7;               // how far the puddle spreads past the thing's outline
 const GUM_WOBBLE_MM = 1.5;            // how uneven its edge is
 const GUM_STEPS = 48;                 // points round an edge
 const GUM_WADS = 3;                   // wads round its edge, pinning it down
 const GUM_WAD_MM = 11;                // a wad's radius
+// Pulled on its leash, the gum stretches between the puddle and the thing:
+// GUM_FOLDS more outlines, spread evenly between, like an accordion, the
+// middle ones pinched in by up to GUM_FOLD_PINCH of their size (Paul)
+const GUM_FOLDS = 2;
+const GUM_FOLD_PINCH = 0.15;
+const GUM_FOLD_SHOW_MM = 0.5;         // pulled less than this, the folds would only thicken the puddle's ink
 
 let gumWeight = 0;   // the table's total weight in grams, as it was laid
 let gumNext = 0;     // index into GUM_MARKS of the next mark to pass
@@ -196,32 +202,44 @@ function edgeOf(t, d) {
 // a wobbling edge; and over it GUM_WADS wads of the same gum stuck across its
 // edge, half on it and half on the puddle, no two alike. On the edge rather than the middle, so
 // they show on anything, a plate with a bowl on it included, and pin down any
-// shape. Pulled on its leash, the thing and its wads slide off the puddle.
+// shape. Pulled on its leash, the thing and its wads slide off the puddle, the
+// gum stretching after them in folds.
 function gumPieces() {
     const pieces = [];
     for (const t of things) {
         if (!t.gummed || !onTable(t)) continue;
         // fixed per thing, so nothing crawls
         const seed = t.gumAt.x * 97 + t.gumAt.y * 61;
-        pieces.push({
-            z: baseHeight(t) + FLAT_Z_MM - 1,
-            draw(c) {
-                // the outline as the thing sits now, moved back to where it was
-                // gummed (it only ever slides, never turns)
-                c.setTransform(inkFrame);
-                c.beginPath();
-                for (let i = 0; i < GUM_STEPS; i++) {
-                    const a = i / GUM_STEPS * Math.PI * 2, d = Vec2(Math.cos(a), Math.sin(a));
-                    const r = edgeOf(t, d) * 1000 + GUM_SPILL_MM + Math.sin(a * 5 + seed) * GUM_WOBBLE_MM;
-                    const q = mmToFrame(t.gumAt.x * 1000 + d.x * r, t.gumAt.y * 1000 + d.y * r);
-                    if (i === 0) c.moveTo(q.x, q.y); else c.lineTo(q.x, q.y);
-                }
-                c.closePath();
-                c.fillStyle = GUM_PUDDLE;
-                c.fill();
-                inkLine(c);
-            },
-        });
+        // the outline as the thing sits now, round `at` (meters), scaled by k (it
+        // only ever slides, never turns)
+        const outline = (c, at, k) => {
+            c.setTransform(inkFrame);
+            c.beginPath();
+            for (let i = 0; i < GUM_STEPS; i++) {
+                const a = i / GUM_STEPS * Math.PI * 2, d = Vec2(Math.cos(a), Math.sin(a));
+                const r = (edgeOf(t, d) * 1000 + GUM_SPILL_MM + Math.sin(a * 5 + seed) * GUM_WOBBLE_MM) * k;
+                const q = mmToFrame(at.x * 1000 + d.x * r, at.y * 1000 + d.y * r);
+                if (i === 0) c.moveTo(q.x, q.y); else c.lineTo(q.x, q.y);
+            }
+            c.closePath();
+            c.fillStyle = GUM_PUDDLE;
+            c.fill();
+            inkLine(c);
+        };
+        const z = baseHeight(t) + FLAT_Z_MM - 1;
+        pieces.push({ z, draw(c) { outline(c, t.gumAt, 1); } });
+        // the folds, from the puddle toward the thing, each over the one before
+        for (let f = 1; f <= GUM_FOLDS; f++) {
+            const u = f / (GUM_FOLDS + 1);
+            pieces.push({
+                z: z + f * 0.01,
+                draw(c) {
+                    const off = Vec2.sub(t.body.getPosition(), t.gumAt);
+                    if (off.length() * 1000 < GUM_FOLD_SHOW_MM) return;
+                    outline(c, Vec2.add(t.gumAt, Vec2.mul(off, u)), 1 - GUM_FOLD_PINCH * Math.sin(Math.PI * u));
+                },
+            });
+        }
         pieces.push({
             z: baseHeight(t) + (t.kind.tall ? heightOf(t.kind) : FLAT_Z_MM) + 0.5,
             draw(c) {
