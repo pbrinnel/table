@@ -23,13 +23,6 @@ Dev tools that never reach the site: slider pages for tuning, test pages, build 
   rest under a collapsed UNUSED), each looping in its own
   panel with replay, speed and a scrub slider. Its guy drawing is a copy of
   `js/guy.js`'s, so keep the two in step.
-- `score.html`: the real game with five ways to show each score as it comes and three end
-  screens (4 and B, "At the edge" and "By group", are the defaults), to compare how clearly the
-  total's math is shown. Every score is a list of terms (a base, adds, mults) from a table at
-  the top of its script, so a new add or mult shows in every style; it also tries a guys-on-the-table
-  multiplier and a 60 second clock (Paul). Scores that land together queue up and show one
-  after another, and the clock and total sit as plain text above the table. A mock-up only: it replaces the score's functions at runtime
-  and leaves the rules in `js/score.js` alone.
 
 A lab that loads the game's files should reach them with `../js/...` and must never post to
 a live server: stub `window.fetch` once there is one.

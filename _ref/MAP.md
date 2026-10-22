@@ -16,7 +16,8 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
 | `js/gum.js` | The bubblegum soldier: comes at each quarter of the table's weight gone over the edge, big, square and pink; gums things in their home spots for good (`inPlay`, the leash `holdGum`, the puddle and wads) |
-| `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys; shown once the table is empty and the guys are gone |
+| `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys, each a list of terms (`SCORE_TERMS`: the guys multiplier); each shown in turn where it went over, the total above the table, and the end screen broken down by group |
+| `js/clock.js` | The clock: `CLOCK_SECONDS` from the first grab, shown above the table; at 0 time's up (`clockUp`) and play stops |
 | `js/debug.js` | Debug mode: the DEBUG button, a floating window (drag its header, resize its corner; its place is remembered) with a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |
 
@@ -32,6 +33,6 @@ Not published:
 | `_labs-mac.command`, `_labs-windows.bat` | The same, opened at the labs' index (`_labs/index.html`), which opens each lab in its own tab |
 | `.gitattributes` | Keeps `.bat` files in Windows line endings |
 | `_ref/` | Docs: this map, `TODO.md`, `DESIGN.md` (what the game is), `BUILD.md` (how it's built, and in what order) |
-| `_labs/` | Dev tools. `tune.html`: the table with a slider for every feel constant. `objects.html`: every object kind with its collision shape. `spawn.html`: arrival animations to choose from. `color.html` ("art styles"): the game redrawn in other looks (MS Paint, Game Boy Camera), a mock-up. `score.html`: ways to show how the score adds up, on the real game, a mock-up. `check.sh`: checks the hidden-page tags, the `?v=N`s and this map |
+| `_labs/` | Dev tools. `tune.html`: the table with a slider for every feel constant. `objects.html`: every object kind with its collision shape. `spawn.html`: arrival animations to choose from. `color.html` ("art styles"): the game redrawn in other looks (MS Paint, Game Boy Camera), a mock-up. `check.sh`: checks the hidden-page tags, the `?v=N`s and this map |
 | `_config.yml` | Tells Jekyll to leave `CLAUDE.md` and `README.md` off the site |
 | `.claude/` | Claude Code setup: `launch.json` (local preview server), `agents/builder.md` (the Sonnet subagent for delegated work) |

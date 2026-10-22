@@ -61,7 +61,8 @@ In load order. Each declares what the ones after it use.
 | `js/guy.js` | The little guys: sharing jobs, backups arriving, grabbing and hauling, knockdowns, the end |
 | `js/talk.js` | The guy's dialog box: typewriter text, portrait, the opening lines, the backup call |
 | `js/gum.js` | The bubblegum soldier: when he's called, what he gums, the leash, and how gum is drawn; `inPlay()` for what's still left |
-| `js/score.js` | The score: counted as things go over, shown at the end |
+| `js/score.js` | The score: each one worked out from its terms as things go over, queued and shown in turn, and the end screen |
+| `js/clock.js` | The clock, from the first grab; time's up stops the world and grabbing |
 | `js/start.js` | Builds the table and runs the loop. Last |
 
 Positions are in mm from the table's center, x right and y down; the physics divides by
