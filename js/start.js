@@ -234,5 +234,6 @@ setTable(TEST_LAYOUT);
 listenForDrags();
 listenForTalk();
 listenForClock();
+listenForScore();
 listenForDebug();
 requestAnimationFrame(loop);

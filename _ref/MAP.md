@@ -16,7 +16,7 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/guy.js` | The little guys (the first, then a backup for every object that goes over the edge): sharing jobs, grabbing and hauling, knockdowns, their slow end, their drawing |
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
 | `js/gum.js` | The bubblegum soldier: comes at each quarter of the table's weight gone over the edge, big, square and pink; gums things in their home spots for good (`inPlay`, the leash `holdGum`, the puddle and wads) |
-| `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys, each a list of terms (`SCORE_TERMS`: the guys multiplier); each shown in turn where it went over, the total above the table, and the end screen broken down by group |
+| `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys, each a list of terms (`SCORE_TERMS`: the guys multiplier); each shown in turn where it went over, the total above the table, and the end screen broken down by group, with the clear bonus, the gum penalty and "Continue?" / "Play Again?" |
 | `js/clock.js` | The clock: `CLOCK_SECONDS` from the first grab, shown above the table; at 0 time's up (`clockUp`) and play stops |
 | `js/debug.js` | Debug mode: the DEBUG button, a floating window (drag its header, resize its corner; its place is remembered) with a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |
