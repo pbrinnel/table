@@ -50,6 +50,12 @@ function grab(e) {
         hush();
         return;
     }
+    // the end screen's button: on to the next table
+    if (scoreButtonHit(e.clientX, e.clientY)) {
+        e.preventDefault();
+        playOn();
+        return;
+    }
     // time's up: hands off
     if (clockUp) return;
     const p = pointerMm(e);

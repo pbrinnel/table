@@ -338,6 +338,18 @@ gets messier (dhfm91).
     base points, a row per kind of term with what it added, then Gummed (0 points), Left
     on the table and Time left as they apply, a rule, and the total. The credits stay,
     one line now: "Designed by Paul & David".
+- **Update (Paul): when a table ends.** Cleared of everything but the guys, a bonus of
+  `SCORE_CLEAR` (10,000) plus `SCORE_CLEAR_PER_LEVEL` (5,000) for each level completed
+  earlier this game; there's one level for now, so it's 10,000. Gummed things don't stop
+  the bonus, but each costs `SCORE_GUMMED` (−200), cleared or out of time. Neither is
+  multiplied. Both play in the middle of the table in the queue, after what went over,
+  and get rows of their own on the end screen.
+- **Update (Paul): going on** (the play-again prompt was dhfm91's idea). Under the end
+  screen's total, a button: "Continue?" after a cleared table, "Play Again?" once time's
+  up. One level for now, so both set out a fresh table from nothing; with levels,
+  "Continue?" will lead to the next one with the score carried. It answers a press, Enter
+  or Space, but only once the end screen has fully come up. Under the pointer it's filled
+  with ink, its words in paper, and the cursor is a hand.
 
 ## The clock (Paul)
 

@@ -22,6 +22,15 @@ const SCORE_TERMS = [
     { row: 'Guys multiplier', make: ctx => ({ label: 'guys', op: 'mult', value: Math.max(1, ctx.guysOnTable) }) },
 ];
 
+// When a table ends (Paul): cleared of everything but the guys, a bonus of
+// SCORE_CLEAR plus SCORE_CLEAR_PER_LEVEL for each level completed earlier this
+// game; and SCORE_GUMMED for each thing gummed down, cleared or not (gum
+// doesn't stop the bonus). Neither is multiplied: SCORE_TERMS are for what
+// goes over the edge.
+const SCORE_CLEAR = 10000;
+const SCORE_CLEAR_PER_LEVEL = 5000;
+const SCORE_GUMMED = -200;
+
 // Scores that land together are queued (Paul): each gets SCORE_QUEUE_STEP
 // seconds to itself, so a big sweep plays out over a while and nothing piles
 // on top of anything. The running total counts up with them, and the end
@@ -51,7 +60,15 @@ const SCORE_TITLE_PX = 56;      // "Time's up!" above the score
 const SCORE_GROUPS = [
     ['plates', 'Plates'], ['cutlery', 'Cutlery'], ['glasses', 'Glasses'],
     ['cups', 'Cups and saucers'], ['other', 'Other'], ['guys', 'Guys'],
+    ['cleared', 'Table cleared'], ['gummed', 'Gummed'],
 ];
+// Under the total, a button to go on (Paul): "Continue?" after a cleared
+// table, "Play Again?" once time's up. One level for now, so both set out a
+// fresh table; it only answers once the end screen has fully come up, so a
+// tap meant for the table can't skip it.
+const SCORE_BUTTON_PX = 36;
+const SCORE_BUTTON_PAD = 12;    // round the button's words
+const SCORE_BUTTON_GAP = 18;    // between the total and the button
 const SCORE_CREDITS = [
     'Designed by Paul & David',
 ];
@@ -71,13 +88,23 @@ let scoreShown = null;   // seconds the end screen has been showing; null before
 let scoreLog = [];       // every score, in the order they came: see scoreEntry
 let scoreNow = 0;        // seconds, for the queue
 let scoreQueueEnd = 0;   // when the last queued score has had its turn
+let scoreTableDone = false; // the table's end scores (bonus, gum) are in
+let levelsDone = 0;      // levels completed earlier this game: none until there are levels to go on to
+let scoreButton = null;  // the end screen's button, in upright view units, while it's drawn
+let scoreHover = false;  // the pointer is over it: it's drawn inked in, answering
 
 function resetScore() {
     score = 0;
     scoreShown = null;
     scoreLog = [];
     scoreQueueEnd = 0;
+    scoreTableDone = false;
+    scoreButton = null;
+    scoreHover = false;
+    canvas.style.cursor = '';
 }
+
+const scoreSigned = n => (n < 0 ? '−' : '+') + scoreCommas(Math.abs(n));
 
 const scoreCommas = n => n.toLocaleString('en-US');
 
@@ -123,11 +150,12 @@ function termsMath(terms) {
 }
 
 // One score: its terms worked out, added to the total, and queued to show.
-// ctx: { thing, guy, name, group, where (meters, where it went over), base }
+// ctx: { thing, guy, name, group, where (meters, where it went over), base,
+// count, plain (true: SCORE_TERMS don't apply) }
 function scoreEntry(ctx) {
     ctx.guysOnTable = guys.filter(g => g !== ctx.guy && onTable(g.thing) && !g.leaving && !g.entrance).length;
     const terms = [ctx.base];
-    for (const m of SCORE_TERMS) {
+    if (!ctx.plain) for (const m of SCORE_TERMS) {
         const term = m.make(ctx);
         if (term) terms.push(Object.assign({ row: m.row }, term));
     }
@@ -136,7 +164,26 @@ function scoreEntry(ctx) {
     const start = Math.max(scoreNow, scoreQueueEnd);
     scoreQueueEnd = start + SCORE_QUEUE_STEP;
     scoreLog.push({ name: ctx.name, group: ctx.group, where: ctx.where ? Vec2.clone(ctx.where) : null, n, base, extras,
-        math: termsMath(terms), start });
+        math: termsMath(terms), start, count: ctx.count || 1 });
+}
+
+// The table has ended, cleared or out of time: its own scores, shown in the
+// middle of the table.
+function scoreTableEnd() {
+    const middle = Vec2(0, 0);
+    if (!clockUp) {
+        scoreEntry({
+            name: 'table cleared!', group: 'cleared', where: middle, plain: true,
+            base: { label: 'cleared', op: 'base', value: SCORE_CLEAR + SCORE_CLEAR_PER_LEVEL * levelsDone },
+        });
+    }
+    const gummed = things.filter(t => !isGuy(t) && onTable(t) && t.gummed).length;
+    if (gummed) {
+        scoreEntry({
+            name: gummed === 1 ? 'gummed thing' : gummed + ' gummed things', group: 'gummed', where: middle, plain: true,
+            count: gummed, base: { label: 'gummed', op: 'base', value: SCORE_GUMMED * gummed },
+        });
+    }
 }
 
 // An object has gone over the edge.
@@ -224,7 +271,7 @@ function drawScoresAsTheyCome(c, view, fade) {
         c.globalAlpha = fade * Math.min(1, t / SCORE_FADE_IN)
             * (1 - Math.max(0, t - (SCORE_QUEUE_STEP - SCORE_EDGE_FADE)) / SCORE_EDGE_FADE);
         c.fillStyle = INK;
-        scoreText(c, '+' + scoreCommas(e.n), SCORE_EDGE_PX, x, y, 'center', 'bottom');
+        scoreText(c, scoreSigned(e.n), SCORE_EDGE_PX, x, y, 'center', 'bottom');
         scoreText(c, e.name, SCORE_NAME_PX, x, y, 'center', 'top');
         if (e.extras.some(x => x.pts)) scoreText(c, e.math, SCORE_MATH_PX, x, y + SCORE_NAME_PX * 1.05, 'center', 'top');
     }
@@ -238,15 +285,18 @@ function drawScoresAsTheyCome(c, view, fade) {
 }
 
 // The end screen's rows: [label, middle column, points]. A row per group that
-// scored (its base points), one per kind of term (the points it added), then
-// what scored nothing and why, and the time.
+// scored (its base points; the clear bonus and the gum among them), one per
+// kind of term (the points it added), then what's left and the time.
 function scoreRows() {
     const rows = [];
     for (const [g, label] of SCORE_GROUPS) {
         const mine = scoreLog.filter(e => e.group === g);
         if (!mine.length) continue;
-        const count = g === 'guys' ? String(mine.length) : mine.length + (mine.length === 1 ? ' piece' : ' pieces');
-        rows.push([label, count, scoreCommas(mine.reduce((sum, e) => sum + e.base, 0))]);
+        const n = mine.reduce((sum, e) => sum + e.count, 0);
+        const count = g === 'cleared' ? '' : g === 'guys' ? String(n)
+            : g === 'gummed' ? n + (n === 1 ? ' thing' : ' things') : n + (n === 1 ? ' piece' : ' pieces');
+        const pts = mine.reduce((sum, e) => sum + e.base, 0);
+        rows.push([label, count, pts < 0 ? scoreSigned(pts) : scoreCommas(pts)]);
     }
     const kinds = [];
     for (const e of scoreLog) for (const x of e.extras) {
@@ -254,28 +304,28 @@ function scoreRows() {
         if (!k) kinds.push(k = { row: x.term.row, pts: 0 });
         k.pts += x.pts;
     }
-    for (const k of kinds) if (k.pts) rows.push([k.row, '', (k.pts > 0 ? '+' : '-') + scoreCommas(Math.abs(k.pts))]);
-    const gummed = things.filter(t => !isGuy(t) && onTable(t) && t.gummed).length;
-    if (gummed) rows.push(['Gummed', gummed + (gummed === 1 ? ' thing' : ' things'), '0']);
+    for (const k of kinds) if (k.pts) rows.push([k.row, '', scoreSigned(k.pts)]);
     const left = things.filter(inPlay).length;
     if (left) rows.push(['Left on the table', left + (left === 1 ? ' piece' : ' pieces'), '']);
     if (!clockUp) rows.push(['Time left', clockSeconds() + ' s', '']);
     return rows;
 }
 
-// "Time's up!" if it is, "Score: N", the rows, a rule and the total, on a
-// panel centered above the dialog box, which stays up after the score.
+// "Time's up!" if it is, "Score: N", the rows, a rule, the total and the
+// button, on a panel centered above the dialog box, which stays up after the
+// score.
 function drawEndScore(c, view, shown) {
     const rows = scoreRows();
     const titleH = clockUp ? SCORE_TITLE_PX * 1.1 + 6 : 0;
-    const head = titleH + SCORE_FONT_PX * 1.1 + 14;
+    const buttonH = SCORE_BUTTON_PX * 1.1 + SCORE_BUTTON_PAD * 2;
+    const head = titleH + SCORE_FONT_PX * 1.1 + 14, foot = SCORE_BUTTON_GAP + buttonH;
     const top = SCORE_END_MARGIN, bottom = view.h - TALK_MARGIN - TALK_BOX_H - SCORE_END_GAP;
     const rowsH = px => (rows.length + 1) * px * SCORE_ROW / SCORE_ROW_PX + 14;
-    const avail = bottom - top - SCORE_END_PAD * 2 - head;
+    const avail = bottom - top - SCORE_END_PAD * 2 - head - foot;
     const minPx = Math.max(SCORE_ROW_MIN_PX, SCORE_ROW_MIN_REAL_PX * view.w / canvas.getBoundingClientRect().width);
     const px = Math.max(minPx, Math.min(SCORE_ROW_PX, SCORE_ROW_PX * avail / rowsH(SCORE_ROW_PX)));
     const rowH = px * SCORE_ROW / SCORE_ROW_PX;
-    const w = Math.min(SCORE_END_W, view.w - SCORE_END_MARGIN * 2), h = SCORE_END_PAD * 2 + head + rowsH(px);
+    const w = Math.min(SCORE_END_W, view.w - SCORE_END_MARGIN * 2), h = SCORE_END_PAD * 2 + head + rowsH(px) + foot;
     const x = view.w / 2 - w / 2, y = (top + bottom) / 2 - h / 2;
     scorePanel(c, shown, x, y, w, h);
     if (clockUp) scoreText(c, "Time's up!", SCORE_TITLE_PX, view.w / 2, y + SCORE_END_PAD, 'center', 'top');
@@ -297,6 +347,53 @@ function drawEndScore(c, view, shown) {
     ry += 14;
     scoreText(c, 'Total', px, left, ry, 'left', 'top');
     scoreText(c, scoreCommas(score), px, right, ry, 'right', 'top');
+
+    const label = clockUp ? 'Play Again?' : 'Continue?';
+    c.font = SCORE_BUTTON_PX + 'px "Patrick Hand"';
+    const bw = c.measureText(label).width + SCORE_BUTTON_PAD * 2;
+    const bx = view.w / 2 - bw / 2, by = ry + rowH + SCORE_BUTTON_GAP;
+    // under the pointer it's filled with ink and the words go paper, like a
+    // pressed key
+    c.lineWidth = LINE_WIDTH;
+    if (scoreHover) c.fillRect(bx, by, bw, buttonH);
+    c.strokeRect(bx, by, bw, buttonH);
+    c.fillStyle = scoreHover ? DIALOG : INK;
+    scoreText(c, label, SCORE_BUTTON_PX, view.w / 2, by + buttonH / 2, 'center', 'middle');
+    scoreButton = { x: bx, y: by, w: bw, h: buttonH };
+}
+
+// Whether a press at this page position is on the end screen's button, once
+// it's fully up.
+function scoreButtonHit(clientX, clientY) {
+    if (!scoreButton || scoreShown === null || scoreShown < SCORE_FADE_TIME) return false;
+    const r = canvas.getBoundingClientRect();
+    const vw = frameTurned ? LH : LW, vh = frameTurned ? LW : LH;
+    const x = (clientX - r.left) / r.width * vw, y = (clientY - r.top) / r.height * vh;
+    const b = scoreButton;
+    return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+}
+
+// On to the next table: one level for now, so a fresh one, from nothing.
+function playOn() {
+    levelsDone = 0;
+    setTable(TEST_LAYOUT);
+}
+
+function listenForScore() {
+    canvas.addEventListener('pointermove', e => {
+        scoreHover = scoreButtonHit(e.clientX, e.clientY);
+        canvas.style.cursor = scoreHover ? 'pointer' : '';
+    });
+    canvas.addEventListener('pointerleave', () => {
+        scoreHover = false;
+        canvas.style.cursor = '';
+    });
+    addEventListener('keydown', e => {
+        if ((e.key === 'Enter' || e.key === ' ') && scoreButton && scoreShown >= SCORE_FADE_TIME) {
+            e.preventDefault();
+            playOn();
+        }
+    });
 }
 
 // The credits: a box tucked inside the table's top right corner, the whole box
@@ -324,6 +421,10 @@ function drawScore(c, dt) {
     c.save();
     const view = uprightView(c);
     scoreNow += dt;
+    if (!scoreTableDone && (clockUp || !things.some(inPlay))) {
+        scoreTableDone = true;
+        scoreTableEnd();
+    }
     const done = !scoreLog.length || scoreNow >= scoreQueueEnd;
     const ending = (runOver() || clockUp) && done;
     const fade = scoreShown === null ? 1 : Math.max(0, 1 - scoreShown / SCORE_FADE_TIME);
