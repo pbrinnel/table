@@ -98,6 +98,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       first in a score lab (now retired; it's in git at 7b34a46)
 - [ ] A bonus for clearing the table of everything but the guys (Paul). It goes in as a
       term in `SCORE_TERMS` (`js/score.js`), so it gets its own end-screen row
+- [ ] Guys push and pull with different strengths (Paul). Today a guy only pulls, by a
+      grip capped at `GUY_GRIP_SHARE` of the player's drag force (`js/guy.js`); pushing
+      would be a second, separate strength, with which is stronger still to decide
 
 - [x] Glue becomes bubblegum: "gummed", "Bubblegum Soldiers" in the box, pink, wads of gum
       pinning every gummed thing; gummed things tugged on a strict leash and snapped
