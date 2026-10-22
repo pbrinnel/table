@@ -17,7 +17,7 @@ Every file the page loads, in load order. Keep this true when you add, rename or
 | `js/talk.js` | The little guy's dialog box: portrait and typed words, drawn upright on the screen; the opening lines and the backup call |
 | `js/gum.js` | The bubblegum soldier: comes at each quarter of the table's weight gone over the edge, big, square and pink; gums things in their home spots for good (`inPlay`, the leash `holdGum`, the puddle and wads) |
 | `js/score.js` | The score: points for everything knocked over the edge, by weight, and for guys; shown once the table is empty and the guys are gone |
-| `js/debug.js` | Debug mode: the DEBUG button, a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
+| `js/debug.js` | Debug mode: the DEBUG button, a floating window (drag its header, resize its corner; its place is remembered) with a live list of every object and guy and their properties (`OBJECT_ROWS`, `GUY_ROWS`), and pause/play (`debugPaused`) |
 | `js/start.js` | Sets the table, starts listening, runs the loop; loaded last |
 
 Also in `js/lib/`: `planck-LICENSE.txt`, Planck's MIT license.

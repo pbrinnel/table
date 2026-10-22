@@ -14,6 +14,8 @@ const DEBUG_MARK = '#e00';      // the selection's ring and the panel's mark
 const DEBUG_RING_GAP = 6;       // frame units between a thing's edge and its ring
 const DEBUG_RING_WIDTH = 2;     // frame units
 const DEBUG_HOVER_DASH = [6, 5]; // the hover ring is dashed, the selection's solid
+const DEBUG_KEEP_PX = 40;       // how much of the panel's header stays on screen
+const DEBUG_SAVE_KEY = 'table-debug-panel'; // where the panel's place and size are kept
 
 let debugOn = false;
 let debugPaused = false;        // start.js skips stepping the world while this is true
@@ -96,16 +98,72 @@ function dbgEntryHtml(t, title, rows, item) {
         (t === debugSelected ? '▶ ' : '') + title + '</h3>' + dbgRowsHtml(rows, item) + '</div>';
 }
 
-// The panel is a header that stays put, with the pause button, and a list
-// under it that's rebuilt every refresh. A click needs its press and release
-// on the same element, so nothing clickable may be rebuilt in between: the
-// button lives in the header, and the list's entries answer the press itself.
+// The panel is a floating window: a header that stays put, with the pause
+// button, and a list under it that's rebuilt every refresh. A click needs its
+// press and release on the same element, so nothing clickable may be rebuilt
+// in between: the button lives in the header, and the list's entries answer
+// the press itself.
 function buildDebugPanel(panel) {
-    panel.innerHTML = '<button type="button" id="debug-pause">Pause</button><div id="debug-list"></div>';
+    panel.innerHTML = '<div id="debug-head"><span>Debug</span><button type="button" id="debug-pause">Pause</button></div>' +
+        '<div id="debug-list"></div>';
+}
+
+// Keeps enough of the header on screen to grab it again, wherever the window
+// was left and whatever size the screen is now.
+function dbgKeepOnScreen(panel) {
+    const r = panel.getBoundingClientRect();
+    const x = Math.min(Math.max(r.left, DEBUG_KEEP_PX - r.width), innerWidth - DEBUG_KEEP_PX);
+    const y = Math.min(Math.max(r.top, 0), innerHeight - DEBUG_KEEP_PX);
+    panel.style.left = x + 'px';
+    panel.style.top = y + 'px';
+}
+
+function dbgSavePanel(panel) {
+    const r = panel.getBoundingClientRect();
+    if (!r.width) return;   // hidden: there's nothing to keep
+    try {
+        localStorage.setItem(DEBUG_SAVE_KEY, JSON.stringify({ x: r.left, y: r.top, w: r.width, h: r.height }));
+    } catch (e) { /* a private window can refuse; the panel just forgets */ }
+}
+
+function dbgRestorePanel(panel) {
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(DEBUG_SAVE_KEY)); } catch (e) { /* as above */ }
+    if (!s) return;
+    panel.style.left = s.x + 'px';
+    panel.style.top = s.y + 'px';
+    panel.style.width = s.w + 'px';
+    panel.style.height = s.h + 'px';
+}
+
+// Dragging the header moves the window; a press on its button is left alone.
+function dbgDragByHead(panel) {
+    const head = document.getElementById('debug-head');
+    let grab = null;
+    head.addEventListener('pointerdown', e => {
+        if (e.target.closest('button')) return;
+        const r = panel.getBoundingClientRect();
+        grab = { id: e.pointerId, dx: e.clientX - r.left, dy: e.clientY - r.top };
+        head.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    head.addEventListener('pointermove', e => {
+        if (!grab || e.pointerId !== grab.id) return;
+        panel.style.left = (e.clientX - grab.dx) + 'px';
+        panel.style.top = (e.clientY - grab.dy) + 'px';
+        dbgKeepOnScreen(panel);
+    });
+    const drop = e => {
+        if (!grab || e.pointerId !== grab.id) return;
+        grab = null;
+        dbgSavePanel(panel);
+    };
+    head.addEventListener('pointerup', drop);
+    head.addEventListener('pointercancel', drop);
+    head.addEventListener('lostpointercapture', drop);
 }
 
 function refreshDebug() {
-    const panel = document.getElementById('debug-panel');
     const list = document.getElementById('debug-list');
     document.getElementById('debug-pause').textContent = debugPaused ? 'Play' : 'Pause';
     // anything gone from the table for good can't stay picked out
@@ -118,9 +176,9 @@ function refreshDebug() {
         html += dbgEntryHtml(g.thing, 'guy ' + i + (i === 0 ? ' (first)' : ' (backup)'), GUY_ROWS, g);
     });
     // keep the scroll place across the rebuild
-    const top = panel.scrollTop;
+    const top = list.scrollTop;
     list.innerHTML = html;
-    panel.scrollTop = top;
+    list.scrollTop = top;
 }
 
 function dbgThingById(id) {
@@ -172,6 +230,7 @@ function setDebug(on) {
     clearInterval(debugTimer);
     debugTimer = null;
     if (on) {
+        dbgKeepOnScreen(document.getElementById('debug-panel'));
         refreshDebug();
         debugTimer = setInterval(refreshDebug, DEBUG_REFRESH_MS);
     }
@@ -184,6 +243,11 @@ function listenForDebug() {
     const panel = document.getElementById('debug-panel');
     if (!button || !panel) return;
     buildDebugPanel(panel);
+    dbgRestorePanel(panel);
+    dbgDragByHead(panel);
+    // resizing from the corner is the browser's own, so its size is watched
+    new ResizeObserver(() => { if (debugOn) dbgSavePanel(panel); }).observe(panel);
+    addEventListener('resize', () => { if (debugOn) dbgKeepOnScreen(panel); });
     button.addEventListener('click', () => setDebug(!debugOn));
     document.getElementById('debug-pause').addEventListener('click', () => {
         debugPaused = !debugPaused;
