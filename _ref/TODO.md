@@ -98,6 +98,9 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
       first in a score lab (now retired; it's in git at 7b34a46)
 - [x] A bonus for clearing the table of everything but the guys (Paul): 10,000 + 5,000 per
       level completed this game; −200 for each gummed thing (Claude, for Paul)
+- [ ] A run that ends at 0 points: the first guy still says "Haven't you done enough
+      damage?" (`TALK_DAMAGE`, from `drawScore` in `js/score.js`), which reads oddly when
+      you did nothing. Give that case its own line (Paul)
 - [ ] Guys push and pull with different strengths (Paul). Today a guy only pulls, by a
       grip capped at `GUY_GRIP_SHARE` of the player's drag force (`js/guy.js`); pushing
       would be a second, separate strength, with which is stronger still to decide
