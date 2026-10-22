@@ -94,6 +94,8 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 
 - [ ] Score multiplier by how many guys are out on the table, so saving a big plate
       for the end is a strategy (Paul's idea)
+  - Being tried in `_labs/score.html`, with a 30 s countdown per level (Paul), before
+    either goes in the game (Claude, for Paul)
 
 - [x] Glue becomes bubblegum: "gummed", "Bubblegum Soldiers" in the box, pink, wads of gum
       pinning every gummed thing; gummed things tugged on a strict leash and snapped
@@ -122,3 +124,26 @@ dhfm91's priorities, in order:
       games do it: a JSON bin on extendsclass (dhfm91)
 - [ ] Terrain: table and tablecloth properties that change play, for more varied
       games, possibly including the cloth being destroyed, by fire say (dhfm91)
+
+Paul's ideas, October 2026 (each tried in a lab first where it's a big change):
+- [ ] A title screen. Working title "TABLE"; or "Silverwar", which starts as
+      "Silverware" until the last "e" falls off (Paul)
+- [ ] Stealth, as a lab first: it's a big change to the game (Paul). Guys get a cone
+      of vision the way they face, patrols, and alert states. A guy only notices a
+      table piece moving inside his cone; then he's alert ("!" over his head, like
+      Metal Gear Solid), and if it's still moving the alarm goes up, for him and every
+      guy within an alert radius. So a level starts covert, clearing the table unseen
+      until you're caught, then goes all out, with the timer ticking. A big stealth
+      bonus builds for drops in a row unseen (10+ in a row scores huge); all out, the
+      bonus needs a lot of guys out
+- [ ] See whether dating-sim mechanics could fit, or rule them out (Paul)
+- [ ] Lives, as a lab first (Paul): what's left on the table when a level ends
+      (pieces, or maybe weight) comes off your lives; at none it's game over. Levels
+      follow one another and get harder, all on the same time limit, with more guys
+      at the start and harder setups (a bubblegum soldier out from the start, say)
+- [ ] Breaking free (Paul): jiggle a thing to pull harder for a moment, to tear it out
+      of gum or beat a crowd of guys, up to a limit so it can't overpower everything.
+      Maybe an unlimited nudge with a cooldown instead
+- [ ] Bubblegum soldiers don't read as bubblegum: they look blocky and robotic (Paul)
+- [x] Guys hauling a knife held it from a guy's width away or more: they now take hold
+      where they touch it (Claude, for Paul)
