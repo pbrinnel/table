@@ -92,8 +92,12 @@ The shared list, in place of GitHub Issues. Put your name on what you take.
 - [x] A basic score, shown at the end: objects by weight, 5 a guy, 25 the first guy
       (dhfm91; Claude, for dhfm91)
 
-- [ ] Score multiplier by how many guys are out on the table, so saving a big plate
-      for the end is a strategy (Paul's idea)
+- [x] Score multiplier by how many guys are out on the table, so saving a big plate
+      for the end is a strategy (Paul's idea; Claude, for Paul). In the game with a 60 s
+      clock, each score shown in turn with its math, and the end screen by group, tried
+      first in a score lab (now retired; it's in git at 7b34a46)
+- [ ] A bonus for clearing the table of everything but the guys (Paul). It goes in as a
+      term in `SCORE_TERMS` (`js/score.js`), so it gets its own end-screen row
 
 - [x] Glue becomes bubblegum: "gummed", "Bubblegum Soldiers" in the box, pink, wads of gum
       pinning every gummed thing; gummed things tugged on a strict leash and snapped
@@ -111,6 +115,7 @@ dhfm91's priorities, in order:
       variants, and so on (dhfm91; Claude, for dhfm91). "Unhand me!" (first guy only)
       and four backup lines are in; more to come.
 - [ ] Time limits, lax at first and stricter as it goes, so the game can be lost (dhfm91)
+  - A first one is in: 60 s from the first grab (Paul). Lax-then-strict is still open
 - [ ] Maybe a reset button for a player who's painted themselves into a corner, at a flat
       point cost that hurts a high score (dhfm91)
 - [ ] Level variants in a loop: the player keeps clearing tables for as long as they like
@@ -122,3 +127,28 @@ dhfm91's priorities, in order:
       games do it: a JSON bin on extendsclass (dhfm91)
 - [ ] Terrain: table and tablecloth properties that change play, for more varied
       games, possibly including the cloth being destroyed, by fire say (dhfm91)
+
+Paul's ideas, October 2026 (each tried in a lab first where it's a big change):
+- [ ] A title screen. Working title "TABLE"; or "Silverwar", which starts as
+      "Silverware" until the last "e" falls off (Paul)
+- [ ] Stealth, as a lab first: it's a big change to the game (Paul). Guys get a cone
+      of vision the way they face, patrols, and alert states. A guy only notices a
+      table piece moving inside his cone; then he's alert ("!" over his head, like
+      Metal Gear Solid), and if it's still moving the alarm goes up, for him and every
+      guy within an alert radius. So a level starts covert, clearing the table unseen
+      until you're caught, then goes all out, with the timer ticking. A big stealth
+      bonus builds for drops in a row unseen (10+ in a row scores huge); all out, the
+      bonus needs a lot of guys out
+- [ ] See whether dating-sim mechanics could fit, or rule them out (Paul)
+- [ ] Lives, as a lab first (Paul): what's left on the table when a level ends
+      (pieces, or maybe weight) comes off your lives; at none it's game over. Levels
+      follow one another and get harder, all on the same time limit, with more guys
+      at the start and harder setups (a bubblegum soldier out from the start, say)
+- [ ] Breaking free (Paul): jiggle a thing to pull harder for a moment, to tear it out
+      of gum or beat a crowd of guys, up to a limit so it can't overpower everything.
+      Maybe an unlimited nudge with a cooldown instead
+- [ ] Bubblegum soldiers don't read as bubblegum: they look blocky and robotic (Paul)
+- [ ] A lab of better animations for a bubblegum soldier gumming something: candidates
+      side by side, the way `_labs/spawn.html` does arrivals (Paul)
+- [x] Guys hauling a knife held it from a guy's width away or more: they now take hold
+      where they touch it (Claude, for Paul)

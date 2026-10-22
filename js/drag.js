@@ -50,6 +50,8 @@ function grab(e) {
         hush();
         return;
     }
+    // time's up: hands off
+    if (clockUp) return;
     const p = pointerMm(e);
     const t = grabAt(p.x, p.y);
     if (!t) return;

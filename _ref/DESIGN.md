@@ -322,6 +322,32 @@ gets messier (dhfm91).
   corner as the screen shows it; the score's panel holds only the score. On a small
   screen they never go below `SCORE_CREDIT_MIN_PX` real pixels, so a phone can still
   read them.
+- **Update (Paul): how the score is shown, and a multiplier.** This changes dhfm91's
+  "+N" in the corner and the end screen's lone "Score: N"; tried first in a score lab.
+  - Each score is a list of terms, a base (weight × `SCORE_PER_GRAM`, or a guy's flat
+    points), then adds, then multipliers (`SCORE_TERMS`), so new ones can come without
+    changing how anything is shown. The first: times the guys on the table when it goes
+    over (a guy's own score doesn't count him), so saving a big plate for the end pays.
+  - As it comes, each score shows near where it went over: "+750", the name, and the math
+    when a term changed it ("1,000 ×4 guys"). Scores that land together queue, one at a
+    time, `SCORE_QUEUE_STEP` each, so a sweep plays out over several seconds and nothing
+    overlaps. The total so far sits above the table's right end as plain text, counting up
+    with them.
+  - The end screen waits for the last queued score. Under "Score: N": a row per group that
+    scored (plates, cutlery, glasses, cups and saucers, other, guys) with its count and
+    base points, a row per kind of term with what it added, then Gummed (0 points), Left
+    on the table and Time left as they apply, a rule, and the total. The credits stay,
+    one line now: "Designed by Paul & David".
+
+## The clock (Paul)
+
+- `CLOCK_SECONDS` (60; 30 and 90 were tried) to clear the table, from the player's first
+  grab, as plain seconds above the table's left end. It stops once nothing is left in
+  play. Over the last `CLOCK_GROW_SECS` the digits grow steadily; nothing blinks.
+- At 0 it's time's up: everything held is let go, the table stands still as it was, nothing
+  more can be grabbed or score, and the end screen comes up with "Time's up!" over the
+  score and what was left on the table. A first step toward dhfm91's time limits; making
+  them lax at first and stricter later is still open.
 
 ## The glue soldier (dhfm91)
 
@@ -377,6 +403,11 @@ gets messier (dhfm91).
   laptop) from where it was gummed, never turns, sliding off its puddle, and snaps back
   when let go. Nothing else moves it. It still counts as gone for the ending, and the
   guys leave it alone.
+  - **Update (Paul):** the leash is longer, `GUM_LEASH_MM` 20 mm (about 11 px on a
+    laptop; tripled to 27 first, then brought back), so a tug is plain to see. It has a
+    slider on `_labs/tune.html`. Pulled, the gum stretches after the thing: `GUM_FOLDS`
+    (2) more outlines of the puddle between it and the thing, evenly spaced like an
+    accordion, the middle ones pinched in a little (`GUM_FOLD_PINCH`).
 - **Update (dhfm91):** he only gums things sitting on the cloth itself (a charger, a
   saucer, cutlery, glasses), never a piece resting on another: pulled out from under
   it, its support would leave it hanging in midair. Things on top of a gummed piece can

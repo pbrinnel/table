@@ -16,6 +16,7 @@ function setTable(layout) {
     addGuy(GUY_START.x, GUY_START.y);
     resetGum();
     resetScore();
+    resetClock();
     startTalk();
 }
 
@@ -213,7 +214,9 @@ function loop(time) {
     // a hidden tab stops the clock; don't replay the gap
     const dt = lastTime === null ? 0 : Math.min((time - lastTime) / 1000, 0.25);
     lastTime = time;
-    if (!debugPaused) stepWorld(dt, stepGuys, endingPace(dt));
+    // time's up, the table stands still as it was left
+    if (!debugPaused && !clockUp) stepWorld(dt, stepGuys, endingPace(dt));
+    tickClock(dt);
     dropFallen();
 
     ctx.fillStyle = FLOOR;
@@ -221,6 +224,7 @@ function loop(time) {
     drawTable(ctx);
     drawThings(ctx, dt);
     drawScore(ctx, dt);
+    drawClock(ctx);
     drawDebug(ctx);
     drawTalk(ctx, dt);
     requestAnimationFrame(loop);
@@ -229,5 +233,6 @@ function loop(time) {
 setTable(TEST_LAYOUT);
 listenForDrags();
 listenForTalk();
+listenForClock();
 listenForDebug();
 requestAnimationFrame(loop);
